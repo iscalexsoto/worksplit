@@ -883,16 +883,16 @@
         <div class="mini-clock-value" id="taskClock">00:00:00</div>
       </div>
       <div class="mini-clock afk-clock">
-        <div class="mini-clock-label">AFK acumulado</div>
+        <div class="mini-clock-label">Ausente acumulado</div>
         <div class="mini-clock-value" id="afkClock">00:00:00</div>
       </div>
     </div>
 
     <!-- CONTROL BUTTONS -->
     <div class="ctrl-buttons">
-      <button class="btn-ctrl btn-start" id="btnStart" onclick="startSession()">▶ Iniciar sesión</button>
-      <button class="btn-ctrl btn-afk" id="btnAfk" onclick="toggleAfk()" disabled>⏸ AFK / Pausa</button>
-      <button class="btn-ctrl btn-stop" id="btnStop" onclick="stopSession()" disabled>■ Detener sesión</button>
+      <button class="btn-ctrl btn-start" id="btnStart" onclick="startSession()">▶ Iniciar</button>
+      <button class="btn-ctrl btn-afk" id="btnAfk" onclick="toggleAfk()" disabled>⏸ Ausentarme</button>
+      <button class="btn-ctrl btn-stop" id="btnStop" onclick="stopSession()" disabled>■ Detener</button>
       <button class="btn-ctrl btn-new" id="btnNewSession" onclick="newSession()" style="display:none;">↺ Nueva sesión</button>
     </div>
 
@@ -907,7 +907,7 @@
         <div class="summary-card-value" id="sumReal">—</div>
       </div>
       <div class="summary-card">
-        <div class="summary-card-label">AFK total</div>
+        <div class="summary-card-label">Total ausente</div>
         <div class="summary-card-value" id="sumAfk">—</div>
       </div>
       <div class="summary-card">
@@ -965,7 +965,7 @@
       <span class="modal-stat-value" id="mReal">—</span>
     </div>
     <div class="modal-stat">
-      <span class="modal-stat-label">Tiempo AFK</span>
+      <span class="modal-stat-label">Tiempo ausente</span>
       <span class="modal-stat-value" id="mAfk">—</span>
     </div>
     <div class="modal-stat">
@@ -1713,10 +1713,14 @@ function totalEstMs() {
 function updateButtons() {
   const s = state.status;
   document.getElementById('btnStart').disabled = s !== 'idle' && s !== 'stopped';
-  document.getElementById('btnStart').textContent = s === 'stopped' ? '▶ Reanudar' : '▶ Iniciar sesión';
+  document.getElementById('btnStart').textContent =
+    (s === 'running' || s === 'afk') ? '▶ Activo'
+    : s === 'stopped' ? '▶ Reanudar'
+    : '▶ Iniciar';
   document.getElementById('btnAfk').disabled = s !== 'running' && s !== 'afk';
-  document.getElementById('btnAfk').textContent = s === 'afk' ? '▶ Continuar' : '⏸ AFK / Pausa';
+  document.getElementById('btnAfk').textContent = s === 'afk' ? '▶ Volver' : '⏸ Ausentarme';
   document.getElementById('btnStop').disabled = s !== 'running' && s !== 'afk';
+  document.getElementById('btnStop').textContent = s === 'stopped' ? '■ Detenido' : '■ Detener';
   document.getElementById('btnNewSession').style.display = (s === 'stopped' || s === 'done') ? '' : 'none';
   updateSessionMetaFields();
 }
@@ -1726,8 +1730,8 @@ function updateStatus() {
   const label = document.getElementById('statusLabel');
   const map = {
     idle: ['', 'Listo'],
-    running: ['running', 'En sesión'],
-    afk: ['paused', 'AFK'],
+    running: ['running', 'Activo'],
+    afk: ['paused', 'Ausente'],
     stopped: ['', 'Detenido'],
     done: ['done', 'Finalizado'],
   };
