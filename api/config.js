@@ -3,8 +3,13 @@
 // se sirve desde aquí solo para no tenerla hardcodeada en el repo. Su protección
 // real son las restricciones de dominio configuradas en Google Cloud.
 export default function handler(req, res) {
+  // El número de proyecto (App ID del Picker) es el prefijo numérico del Client ID:
+  // "1032365573872-xxxx.apps.googleusercontent.com" -> "1032365573872".
+  const clientId = process.env.GOOGLE_CLIENT_ID || '';
+  const projectNumber = clientId.split('-')[0] || null;
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.status(200).json({
     googleApiKey: process.env.GOOGLE_API_KEY || null,
+    googleProjectNumber: projectNumber,
   });
 }

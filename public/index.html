@@ -946,6 +946,7 @@
 // authorization code flow + refresh token. La API key pública del Picker se
 // obtiene del backend (/api/config) para no tenerla hardcodeada en el repo.
 let GOOGLE_API_KEY = null;
+let GOOGLE_PROJECT_NUMBER = null;   // App ID para el Picker (scope drive.file)
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const SESSION_HEADERS = ['session_id','date','status','total_estimated_min',
   'total_real_sec','total_afk_sec','updated_at','title','description'];
@@ -1827,6 +1828,7 @@ async function loadConfig() {
     if (res.ok) {
       const data = await res.json();
       GOOGLE_API_KEY = data.googleApiKey || null;
+      GOOGLE_PROJECT_NUMBER = data.googleProjectNumber || null;
     }
   } catch (e) { /* sin config: isGoogleConfigured() lo reflejará */ }
   return GOOGLE_API_KEY;
@@ -1844,10 +1846,14 @@ async function pickFolder() {
     const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
       .setSelectFolderEnabled(true)
       .setMimeTypes('application/vnd.google-apps.folder');
-    const picker = new google.picker.PickerBuilder()
+    let builder = new google.picker.PickerBuilder()
       .setTitle('Elige una carpeta para WorkSplit')
       .setOAuthToken(googleAuth.accessToken)
-      .setDeveloperKey(GOOGLE_API_KEY)
+      .setDeveloperKey(GOOGLE_API_KEY);
+    // App ID (número de proyecto): necesario para que el Picker funcione con el
+    // scope drive.file. Sin esto Google suele devolver un 403.
+    if (GOOGLE_PROJECT_NUMBER) builder = builder.setAppId(GOOGLE_PROJECT_NUMBER);
+    const picker = builder
       .addView(view)
       .setCallback((data) => {
         const action = data[google.picker.Response.ACTION];
