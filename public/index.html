@@ -891,7 +891,7 @@
     <div class="sheet-section">
       <h4>Google Sheets</h4>
       <div class="sheet-status err" id="googleConfigWarn" style="display:none;">
-        Falta configurar GOOGLE_API_KEY (para el selector de carpeta de Drive).
+        El servidor de autenticación no está disponible.
       </div>
       <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" onclick="connectGoogle()">Conectar con Google</button>
       <div class="google-account" id="googleAccountRow" style="display:none;">
@@ -906,7 +906,7 @@
           <button class="btn-sheet btn-sheet-push" onclick="pushToSheet()">↑ Guardar</button>
           <button class="btn-sheet btn-sheet-load" onclick="loadFromSheet()">↓ Cargar</button>
         </div>
-        <button class="btn-sheet" onclick="resetGoogleTarget()">Cambiar carpeta / Sheet</button>
+        <button class="btn-sheet" onclick="resetGoogleTarget()">Buscar / recrear Sheet</button>
       </div>
       <div class="sheet-status" id="sheetStatus"></div>
     </div>
@@ -943,21 +943,22 @@
 <script>
 // ─── GOOGLE CONFIG ──────────────────────────────────────────
 // El login OAuth lo maneja el backend serverless (/api/auth/*) usando el
-// authorization code flow + refresh token. La API key pública del Picker se
-// obtiene del backend (/api/config) para no tenerla hardcodeada en el repo.
-let GOOGLE_API_KEY = null;
-let GOOGLE_PROJECT_NUMBER = null;   // App ID para el Picker (scope drive.file)
+// authorization code flow + refresh token. La app crea (o reutiliza) un único
+// Sheet dentro de una carpeta propia en el Drive del usuario: sin Picker, sin
+// API key. Todas las llamadas a Google usan el access token (Bearer).
+const DRIVE_FOLDER_NAME = 'WorkSplit';
+const SHEET_FILE_NAME = 'WorkSplit';
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
-const SESSION_HEADERS = ['session_id','date','status','total_estimated_min',
+const DRIVE_FILES = 'https://www.googleapis.com/drive/v3/files';
+const SESSION_HEADERS = ['date','status','total_estimated_min',
   'total_real_sec','total_afk_sec','updated_at','title','description'];
-const TASK_HEADERS = ['session_id','order','group','name','estimated_min',
+const TASK_HEADERS = ['order','group','name','estimated_min',
   'real_sec','status','started_at','ended_at','updated_at'];
 let googleAuth = {
   accessToken: null,
   tokenExpiry: 0,
   email: null,
   connected: false,    // hay sesión válida en el backend (cookie con refresh token)
-  pickerInited: false,
   tabsEnsured: false,
   refreshTimer: null,
 };
@@ -969,7 +970,6 @@ let state = {
   description: '',
   groups: ['General'],
   tasks: [],
-  sessionId: null,
   startTime: null,
   totalElapsed: 0,      // ms
   taskElapsed: 0,       // ms current task
@@ -1536,7 +1536,6 @@ function startSession() {
       }
     }
   } else {
-    state.sessionId = 'ws_' + Date.now();
     state.startTime = Date.now();
     state.totalElapsed = 0;
     state.taskElapsed = 0;
@@ -1591,7 +1590,6 @@ function newSession() {
   if (state.status === 'running' || state.status === 'afk') return;
   if (state.status !== 'idle' && !confirm('¿Empezar de nuevo? Se conservan las tareas, pero se reinician tiempos y progreso.')) return;
   state.status = 'idle';
-  state.sessionId = null;
   state.startTime = null;
   state.totalElapsed = 0;
   state.taskElapsed = 0;
@@ -1722,8 +1720,8 @@ function closeModal() {
 
 // ─── GOOGLE: CONFIG & STORAGE HELPERS ───────────────────────
 function isGoogleConfigured() {
-  // El login depende del backend; aquí solo validamos la API key del Picker.
-  return GOOGLE_API_KEY && GOOGLE_API_KEY !== 'TU_API_KEY_AQUI';
+  // El login y el guardado dependen del backend; no hay config de cliente.
+  return true;
 }
 function getFolderId() { return localStorage.getItem('worksplit_folder_id') || null; }
 function getSheetId() { return localStorage.getItem('worksplit_sheet_id') || null; }
@@ -1732,11 +1730,6 @@ function isGoogleReady() {
   // Conectado (cookie con refresh token) + Sheet elegido. El access token se
   // renueva solo dentro de gFetch()/ensureToken() si hiciera falta.
   return !!(googleAuth.connected && getSheetId());
-}
-
-// ─── GOOGLE: LIBRARY LOADERS (onload callbacks) ─────────────
-function gapiLoaded() {
-  gapi.load('picker', () => { googleAuth.pickerInited = true; });
 }
 
 // ─── GOOGLE: TOKEN (vía backend /api/auth) ──────────────────
@@ -1819,58 +1812,6 @@ async function logoutGoogle() {
   updateGoogleUI();
 }
 
-// ─── GOOGLE: PICKER ─────────────────────────────────────────
-// Carga la config pública (API key del Picker) desde el backend una sola vez.
-async function loadConfig() {
-  if (GOOGLE_API_KEY) return GOOGLE_API_KEY;
-  try {
-    const res = await fetch('/api/config', { credentials: 'same-origin' });
-    if (res.ok) {
-      const data = await res.json();
-      GOOGLE_API_KEY = data.googleApiKey || null;
-      GOOGLE_PROJECT_NUMBER = data.googleProjectNumber || null;
-    }
-  } catch (e) { /* sin config: isGoogleConfigured() lo reflejará */ }
-  return GOOGLE_API_KEY;
-}
-
-async function pickFolder() {
-  await loadConfig();
-  return new Promise((resolve, reject) => {
-    if (!GOOGLE_API_KEY) {
-      reject(new Error('Falta GOOGLE_API_KEY en el servidor (variable de entorno).')); return;
-    }
-    if (!googleAuth.pickerInited || !window.google || !google.picker) {
-      reject(new Error('El selector de Google (Picker) aún no carga.')); return;
-    }
-    const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-      .setSelectFolderEnabled(true)
-      .setMimeTypes('application/vnd.google-apps.folder');
-    let builder = new google.picker.PickerBuilder()
-      .setTitle('Elige una carpeta para WorkSplit')
-      .setOAuthToken(googleAuth.accessToken)
-      .setDeveloperKey(GOOGLE_API_KEY);
-    // App ID (número de proyecto): necesario para que el Picker funcione con el
-    // scope drive.file. Sin esto Google suele devolver un 403.
-    if (GOOGLE_PROJECT_NUMBER) builder = builder.setAppId(GOOGLE_PROJECT_NUMBER);
-    const picker = builder
-      .addView(view)
-      .setCallback((data) => {
-        const action = data[google.picker.Response.ACTION];
-        if (action === google.picker.Action.PICKED) {
-          const doc = data[google.picker.Response.DOCUMENTS][0];
-          const folderId = doc[google.picker.Document.ID];
-          localStorage.setItem('worksplit_folder_id', folderId);
-          resolve(folderId);
-        } else if (action === google.picker.Action.CANCEL) {
-          reject(new Error('Selección de carpeta cancelada.'));
-        }
-      })
-      .build();
-    picker.setVisible(true);
-  });
-}
-
 // ─── GOOGLE: SHEETS / DRIVE LOW-LEVEL ───────────────────────
 function valuesUpdate(id, range, values) {
   return gFetch(
@@ -1897,25 +1838,48 @@ async function ensureTabs(sheetId) {
   if (!titles.includes('tasks')) requests.push({ addSheet: { properties: { title: 'tasks' } } });
   if (!titles.includes('summary')) requests.push({ addSheet: { properties: { title: 'summary' } } });
   if (requests.length) await batchUpdate(sheetId, requests);
-  await valuesUpdate(sheetId, 'sessions!A1:I1', [SESSION_HEADERS]);
-  await valuesUpdate(sheetId, 'tasks!A1:J1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'sessions!A1:H1', [SESSION_HEADERS]);
+  await valuesUpdate(sheetId, 'tasks!A1:I1', [TASK_HEADERS]);
   googleAuth.tabsEnsured = true;
 }
 
+// Busca un archivo creado por la app (scope drive.file solo ve los suyos).
+// Devuelve el id del primero que coincida, o null.
+async function findDriveFile(name, mimeType, parentId) {
+  const safe = String(name).replace(/'/g, "\\'");
+  let q = `name = '${safe}' and mimeType = '${mimeType}' and trashed = false`;
+  if (parentId) q += ` and '${parentId}' in parents`;
+  const url = `${DRIVE_FILES}?q=${encodeURIComponent(q)}` +
+    `&fields=${encodeURIComponent('files(id,name)')}&spaces=drive&pageSize=10`;
+  const res = await gFetch(url);
+  const f = (res.files || [])[0];
+  return f ? f.id : null;
+}
+
+async function createFolder(name, parentId) {
+  const body = { name, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) body.parents = [parentId];
+  const file = await gFetch(DRIVE_FILES, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return file.id;
+}
+
 async function createSheet(folderId) {
-  const dateStr = new Date().toLocaleDateString('es-MX');
   const body = {
-    name: 'WorkSplit - ' + dateStr,
+    name: SHEET_FILE_NAME,
     mimeType: 'application/vnd.google-apps.spreadsheet',
   };
   if (folderId) body.parents = [folderId];
-  const file = await gFetch('https://www.googleapis.com/drive/v3/files', {
+  const file = await gFetch(DRIVE_FILES, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const sheetId = file.id;
-  // Get the default sheet so we can replace it with sessions/tasks.
+  // Get the default sheet so we can replace it with sessions/tasks/summary.
   const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
   const defaultId = meta.sheets[0].properties.sheetId;
   await batchUpdate(sheetId, [
@@ -1924,11 +1888,38 @@ async function createSheet(folderId) {
     { addSheet: { properties: { title: 'summary' } } },
     { deleteSheet: { sheetId: defaultId } },
   ]);
-  await valuesUpdate(sheetId, 'sessions!A1:I1', [SESSION_HEADERS]);
-  await valuesUpdate(sheetId, 'tasks!A1:J1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'sessions!A1:H1', [SESSION_HEADERS]);
+  await valuesUpdate(sheetId, 'tasks!A1:I1', [TASK_HEADERS]);
   localStorage.setItem('worksplit_sheet_id', sheetId);
   localStorage.setItem('worksplit_sheet_name', file.name);
   googleAuth.tabsEnsured = true;
+  return sheetId;
+}
+
+// Asegura la carpeta y el Sheet en Drive: reutiliza los existentes (buscándolos
+// por nombre) y solo crea lo que falte. Guarda los ids en localStorage.
+async function ensureWorkspace() {
+  let folderId = getFolderId();
+  if (!folderId) {
+    folderId = await findDriveFile(DRIVE_FOLDER_NAME, 'application/vnd.google-apps.folder', null);
+    if (!folderId) folderId = await createFolder(DRIVE_FOLDER_NAME, null);
+    localStorage.setItem('worksplit_folder_id', folderId);
+  }
+
+  let sheetId = getSheetId();
+  if (!sheetId) {
+    sheetId = await findDriveFile(SHEET_FILE_NAME, 'application/vnd.google-apps.spreadsheet', folderId);
+    if (sheetId) {
+      // Reutiliza el Sheet existente.
+      localStorage.setItem('worksplit_sheet_id', sheetId);
+      localStorage.setItem('worksplit_sheet_name', SHEET_FILE_NAME);
+      await ensureTabs(sheetId);
+    } else {
+      sheetId = await createSheet(folderId);
+    }
+  } else if (!googleAuth.tabsEnsured) {
+    await ensureTabs(sheetId);
+  }
   return sheetId;
 }
 
@@ -1973,12 +1964,7 @@ async function writeSummary(sheetId, taskData) {
 }
 
 // ─── GOOGLE: SETUP ORCHESTRATION ────────────────────────────
-async function ensureSetup(opts = {}) {
-  if (!isGoogleConfigured()) {
-    setSheetStatus('Falta configurar GOOGLE_API_KEY (para el selector de carpeta).', 'err');
-    updateGoogleUI();
-    return false;
-  }
+async function ensureSetup() {
   // Asegura un access token desde el backend. Si no hay sesión, el usuario debe
   // pulsar "Conectar con Google" (que redirige al consentimiento OAuth).
   if (!googleAuth.accessToken || Date.now() >= googleAuth.tokenExpiry) {
@@ -1991,17 +1977,8 @@ async function ensureSetup(opts = {}) {
   }
   updateGoogleUI();
 
-  let folderId = getFolderId();
-  if (!folderId) {
-    setSheetStatus('Elige una carpeta en tu Drive...', '');
-    folderId = await pickFolder();
-  }
-  if (!getSheetId()) {
-    setSheetStatus('Creando Sheet...', '');
-    await createSheet(folderId);
-  } else if (!googleAuth.tabsEnsured) {
-    await ensureTabs(getSheetId());
-  }
+  if (!getSheetId()) setSheetStatus('Preparando tu Sheet en Drive...', '');
+  await ensureWorkspace();
   updateGoogleUI();
   return true;
 }
@@ -2019,8 +1996,8 @@ async function resetGoogleTarget() {
   googleAuth.tabsEnsured = false;
   updateGoogleUI();
   try {
-    const ok = await ensureSetup({ interactive: false });
-    if (ok) setSheetStatus('✓ Nueva carpeta / Sheet configurado.', 'ok');
+    const ok = await ensureSetup();
+    if (ok) setSheetStatus('✓ Sheet de WorkSplit listo.', 'ok');
   } catch (e) {
     setSheetStatus('Error: ' + e.message, 'err');
   }
@@ -2031,7 +2008,7 @@ async function pushToSheet(silent) {
   if (silent && !isGoogleReady()) return;
   try {
     if (!silent) {
-      const ok = await ensureSetup({ interactive: true });
+      const ok = await ensureSetup();
       if (!ok) return;
     }
     const sheetId = getSheetId();
@@ -2045,9 +2022,7 @@ async function pushToSheet(silent) {
     const afkMs = state.status === 'afk'
       ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
       : state.afkElapsed;
-    const sessionId = state.sessionId || ('ws_' + Date.now());
     const sessionRow = [
-      sessionId,
       new Date().toLocaleDateString('es-MX'),
       state.status,
       state.tasks.reduce((s, t) => s + t.estimatedMin, 0),
@@ -2068,12 +2043,12 @@ async function pushToSheet(silent) {
       endedAt: t.status === 'done' ? (t.endedAt || '') : '',
     }));
     const taskRows = taskData.map((t, idx) => [
-      sessionId, idx + 1, t.group, t.name, t.estimatedMin,
+      idx + 1, t.group, t.name, t.estimatedMin,
       t.realSec, t.status, t.startedAt, t.endedAt, now,
     ]);
 
-    await valuesUpdate(sheetId, 'sessions!A1:I2', [SESSION_HEADERS, sessionRow]);
-    await valuesClear(sheetId, 'tasks!A2:J');
+    await valuesUpdate(sheetId, 'sessions!A1:H2', [SESSION_HEADERS, sessionRow]);
+    await valuesClear(sheetId, 'tasks!A2:I');
     await valuesUpdate(sheetId, 'tasks!A1', [TASK_HEADERS, ...taskRows]);
     await writeSummary(sheetId, taskData);
 
@@ -2088,38 +2063,37 @@ async function loadFromSheet() {
     alert('No puedes cargar mientras hay una sesión activa.'); return;
   }
   try {
-    const ok = await ensureSetup({ interactive: true });
+    const ok = await ensureSetup();
     if (!ok) return;
     const sheetId = getSheetId();
     if (!sheetId) { setSheetStatus('No hay Sheet configurado.', 'err'); return; }
     setSheetStatus('Cargando...', '');
 
-    const sRes = await valuesGet(sheetId, 'sessions!A2:I2');
-    const tRes = await valuesGet(sheetId, 'tasks!A2:J');
+    const sRes = await valuesGet(sheetId, 'sessions!A2:H2');
+    const tRes = await valuesGet(sheetId, 'tasks!A2:I');
     const sRow = (sRes.values && sRes.values[0]) || null;
     if (!sRow) { setSheetStatus('No hay sesiones guardadas en el Sheet.', 'err'); return; }
 
     const tRows = tRes.values || [];
     state.tasks = tRows
       .filter(r => r && r.length)
-      .sort((a, b) => (parseInt(a[1], 10) || 0) - (parseInt(b[1], 10) || 0))
+      .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0))
       .map(r => ({
         id: Date.now() + Math.random(),
-        name: r[3] || '',
-        group: r[2] || 'General',
-        estimatedMin: parseInt(r[4], 10) || 30,
-        realSec: parseInt(r[5], 10) || 0,
-        status: r[6] || 'pending',
-        startedAt: r[7] || null,
-        endedAt: r[8] || null,
+        name: r[2] || '',
+        group: r[1] || 'General',
+        estimatedMin: parseInt(r[3], 10) || 30,
+        realSec: parseInt(r[4], 10) || 0,
+        status: r[5] || 'pending',
+        startedAt: r[6] || null,
+        endedAt: r[7] || null,
       }));
 
-    state.sessionId = sRow[0] || null;
-    state.status = sRow[2] === 'done' ? 'stopped' : (sRow[2] || 'idle');
-    state.totalElapsed = (parseInt(sRow[4], 10) || 0) * 1000;
-    state.afkElapsed = (parseInt(sRow[5], 10) || 0) * 1000;
-    state.title = sRow[7] || '';
-    state.description = sRow[8] || '';
+    state.status = sRow[1] === 'done' ? 'stopped' : (sRow[1] || 'idle');
+    state.totalElapsed = (parseInt(sRow[3], 10) || 0) * 1000;
+    state.afkElapsed = (parseInt(sRow[4], 10) || 0) * 1000;
+    state.title = sRow[6] || '';
+    state.description = sRow[7] || '';
 
     normalizeGroups();
     saveLocal(); syncSessionMetaUI(); renderGroups(); renderTasks();
@@ -2221,8 +2195,6 @@ initGoogleSession();
 // Comprueba si ya hay sesión de Google (cookie con refresh token en el backend).
 // Si la hay, el usuario sigue conectado tras recargar o días después.
 async function initGoogleSession() {
-  await loadConfig();          // API key del Picker desde el backend
-  updateGoogleUI();
   // Mensajes tras volver del consentimiento OAuth (?connected=1 o ?error=...).
   const params = new URLSearchParams(window.location.search);
   if (params.get('error')) {
@@ -2235,14 +2207,20 @@ async function initGoogleSession() {
     const token = await fetchAccessToken();
     if (token) {
       if (!googleAuth.email) await fetchUserInfo();
-      if (params.has('connected')) setSheetStatus('✓ Conectado con Google.', 'ok');
+      updateGoogleUI();
+      // Justo tras conectar, prepara (o reutiliza) la carpeta y el Sheet en Drive.
+      if (params.has('connected')) {
+        try {
+          await ensureWorkspace();
+          setSheetStatus('✓ Conectado. Tu Sheet está listo.', 'ok');
+        } catch (e) {
+          setSheetStatus('Conectado, pero no se pudo preparar el Sheet: ' + e.message, 'err');
+        }
+      }
     }
   } catch (e) { /* sin sesión: el usuario verá el botón Conectar */ }
   updateGoogleUI();
 }
 </script>
-
-<!-- Librería de Google API (solo para el Picker / selector de carpeta). -->
-<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
 </body>
 </html>

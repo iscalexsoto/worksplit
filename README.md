@@ -17,18 +17,20 @@ lib/*.js             helpers OAuth, cifrado y cookies
 legacy/              versión vieja en Go/.exe y Apps Script (ya no se usan)
 ```
 
+El Sheet se crea (o se reutiliza si ya existe) dentro de una carpeta `WorkSplit` en
+"Mi unidad" del usuario. No usa el Google Picker ni API key: todo va con el access
+token vía las APIs REST de Drive/Sheets.
+
 ## Configuración en Google Cloud Console
 
-1. **Habilita las APIs**: Google Sheets API, Google Drive API y Google Picker API.
+1. **Habilita las APIs**: Google Sheets API y Google Drive API.
 2. **OAuth Client ID** (tipo *Web application*):
    - *Authorized redirect URIs*:
      `http://localhost:3000/api/auth/callback` (dev) y
      `https://TU-APP.vercel.app/api/auth/callback` (producción).
-   - *Authorized JavaScript origins*: `http://localhost:3000` y `https://TU-APP.vercel.app`
-     (necesario para el Picker).
+   - *Authorized JavaScript origins*: `http://localhost:3000` y `https://TU-APP.vercel.app`.
 3. Copia el **Client ID** y el **Client Secret**.
-4. **API key** (para el Picker): créala en *Credenciales*.
-5. **Pantalla de consentimiento → publica en "Producción"** (no "Testing").
+4. **Pantalla de consentimiento → publica en "Producción"** (no "Testing").
    En Testing los refresh tokens caducan a los 7 días. Con los scopes usados
    (`drive.file`, `userinfo.email`, `openid`, NO sensibles) publicar a Producción
    **no requiere verificación de Google**.
@@ -41,13 +43,8 @@ Copia `.env.example` a `.env.local` (dev) y carga las mismas variables en Vercel
 |---|---|
 | `GOOGLE_CLIENT_ID` | OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | Client Secret (¡solo servidor!) |
-| `GOOGLE_API_KEY` | API key del Picker (pública; se sirve vía `/api/config`) |
 | `COOKIE_SECRET` | Clave para cifrar la cookie. Genérala: `openssl rand -base64 32` |
 | `APP_ORIGIN` | `http://localhost:3000` en dev; tu dominio en prod (opcional) |
-
-La `GOOGLE_API_KEY` es una credencial **pública** (el navegador la necesita para el
-Picker); se entrega vía `/api/config`. Su protección real son las **restricciones de
-dominio** en Google Cloud, no ocultarla.
 
 ## Desarrollo local
 
@@ -68,7 +65,8 @@ antes del primer deploy de producción.
 
 ## Verificación rápida
 
-1. Abre la app → "Conectar con Google" → consiente → vuelves conectado.
+1. Abre la app → "Conectar con Google" → consiente → vuelves conectado y se crea
+   (o reutiliza) la carpeta `WorkSplit` con tu Sheet dentro.
 2. **Recarga la página**: debes seguir conectado (esa es la mejora clave).
-3. Elige carpeta, crea el Sheet, deja que autoguarde y prueba "Cargar".
+3. Deja que autoguarde y prueba "Cargar".
 4. "Salir" cierra la sesión.
