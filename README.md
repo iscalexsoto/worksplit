@@ -8,13 +8,19 @@ El login con Google usa el flujo OAuth **authorization code + refresh token**: t
 conectas una vez y la sesión persiste durante días (el access token se renueva solo
 por detrás), en lugar de expirar cada hora.
 
+Es además una **PWA instalable**: desde Chrome/Edge aparece el botón "Instalar" y se
+abre en su propia ventana, con ícono propio y auto-actualización.
+
 ## Estructura
 
 ```
-public/index.html   Frontend completo (HTML + CSS + JS)
-api/auth/*.js        login / callback / token / logout (serverless)
-lib/*.js             helpers OAuth, cifrado y cookies
-legacy/              versión vieja en Go/.exe y Apps Script (ya no se usan)
+public/index.html         Frontend completo (HTML + CSS + JS)
+public/manifest.webmanifest  Manifiesto PWA (nombre, íconos, colores)
+public/sw.js              Service worker (instalable + carga offline)
+public/icons/             Íconos de la app
+api/auth/*.js             login / callback / token / logout (serverless)
+lib/*.js                  helpers OAuth, cifrado y cookies
+legacy/                   versión vieja en Go/.exe y Apps Script (ya no se usan)
 ```
 
 El Sheet se crea (o se reutiliza si ya existe) dentro de una carpeta `WorkSplit` en

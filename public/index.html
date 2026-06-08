@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WorkSplit</title>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0e0f11">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WorkSplit">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -74,6 +84,30 @@
   .status-dot.running { background: var(--accent); box-shadow: 0 0 6px var(--accent-dim); }
   .status-dot.paused { background: var(--warning); }
   .status-dot.done { background: var(--success); }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .kofi-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #0e0f11;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .kofi-btn:hover { background: #d8ff5e; }
+  .kofi-btn:active { transform: translateY(1px); }
+  .kofi-emoji { font-size: 14px; line-height: 1; }
 
   /* LAYOUT */
   .layout {
@@ -779,9 +813,14 @@
 
 <header>
   <div class="logo">Work<span>Split</span></div>
-  <div class="header-status">
-    <div class="status-dot" id="statusDot"></div>
-    <span id="statusLabel">Listo</span>
+  <div class="header-right">
+    <a class="kofi-btn" href="https://ko-fi.com/A7L5211LO4" target="_blank" rel="noopener">
+      <span class="kofi-emoji">☕</span> Cómprame un café
+    </a>
+    <div class="header-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusLabel">Listo</span>
+    </div>
   </div>
 </header>
 
@@ -2191,6 +2230,13 @@ document.getElementById('addForm').style.display =
   (state.status === 'idle' || state.status === 'stopped') ? '' : 'none';
 tick();
 initGoogleSession();
+
+// PWA: registra el service worker (permite instalar la app y abrir offline).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 
 // Comprueba si ya hay sesión de Google (cookie con refresh token en el backend).
 // Si la hay, el usuario sigue conectado tras recargar o días después.
