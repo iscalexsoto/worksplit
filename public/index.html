@@ -58,12 +58,16 @@
     z-index: 100;
   }
   .logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
     font-family: var(--mono);
     font-size: 15px;
     font-weight: 600;
     letter-spacing: 0.08em;
     color: var(--accent);
   }
+  .logo img { width: 24px; height: 24px; border-radius: 6px; display: block; }
   .logo span { color: var(--muted); font-weight: 300; }
   .header-status {
     font-family: var(--mono);
@@ -792,6 +796,54 @@
     font-weight: 600;
   }
   .btn-modal.primary:hover { opacity: 0.85; }
+  .btn-modal.danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #0e0f11;
+    font-weight: 600;
+  }
+  .btn-modal.danger:hover { opacity: 0.85; }
+  .confirm-text {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Toast (avisos flotantes) */
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    pointer-events: none;
+    width: max-content;
+    max-width: 92vw;
+  }
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.err { border-left-color: var(--danger); }
+  .toast.ok { border-left-color: var(--success); }
+  .toast-icon { font-size: 15px; line-height: 1; }
 
   /* Empty state */
   .empty-state {
@@ -812,7 +864,7 @@
 <body>
 
 <header>
-  <div class="logo">Work<span>Split</span></div>
+  <div class="logo"><img src="/icons/icon-192.png" alt="WorkSplit">Work<span>Split</span></div>
   <div class="header-right">
     <a class="kofi-btn" href="https://ko-fi.com/A7L5211LO4" target="_blank" rel="noopener">
       <span class="kofi-emoji">☕</span> Cómprame un café
@@ -879,11 +931,11 @@
     <!-- MINI CLOCKS -->
     <div class="mini-clocks">
       <div class="mini-clock">
-        <div class="mini-clock-label">Tiempo total</div>
+        <div class="mini-clock-label">Tiempo<br>total</div>
         <div class="mini-clock-value" id="taskClock">00:00:00</div>
       </div>
       <div class="mini-clock afk-clock">
-        <div class="mini-clock-label">Ausente acumulado</div>
+        <div class="mini-clock-label">Ausente<br>acumulado</div>
         <div class="mini-clock-value" id="afkClock">00:00:00</div>
       </div>
     </div>
@@ -893,7 +945,7 @@
       <button class="btn-ctrl btn-start" id="btnStart" onclick="startSession()">▶ Iniciar</button>
       <button class="btn-ctrl btn-afk" id="btnAfk" onclick="toggleAfk()" disabled>⏸ Ausentarme</button>
       <button class="btn-ctrl btn-stop" id="btnStop" onclick="stopSession()" disabled>■ Detener</button>
-      <button class="btn-ctrl btn-new" id="btnNewSession" onclick="newSession()" style="display:none;">↺ Nueva sesión</button>
+      <button class="btn-ctrl btn-new" id="btnNewSession" onclick="newSession()" style="display:none;">↺ Restablecer</button>
     </div>
 
     <!-- SUMMARY -->
@@ -975,6 +1027,21 @@
     <div class="modal-actions">
       <button class="btn-modal" onclick="closeModal()">Cerrar</button>
       <button class="btn-modal primary" onclick="pushToSheet(); closeModal()">Guardar en Sheets</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h2 id="confirmTitle">Confirmar</h2>
+    <p class="confirm-text" id="confirmText"></p>
+    <div class="modal-actions">
+      <button class="btn-modal" id="confirmCancel">Cancelar</button>
+      <button class="btn-modal primary" id="confirmOk">Confirmar</button>
     </div>
   </div>
 </div>
@@ -1557,7 +1624,7 @@ function renderTasks() {
 
 // ─── SESSION CONTROL ────────────────────────────────────────
 function startSession() {
-  if (state.tasks.length === 0) { alert('Agrega al menos una tarea antes de iniciar.'); return; }
+  if (state.tasks.length === 0) { notify('Agrega al menos una tarea antes de iniciar.', 'err'); return; }
   const isResume = state.status === 'stopped';
 
   state.status = 'running';
@@ -1605,8 +1672,14 @@ function toggleAfk() {
   updateButtons(); updateStatus(); saveLocal();
 }
 
-function stopSession() {
-  if (!confirm('¿Detener la sesión? Los contadores se pausarán. Puedes reanudar más tarde.')) return;
+async function stopSession() {
+  const ok = await confirmDialog({
+    title: 'Detener sesión',
+    message: 'Los contadores se pausarán. Puedes reanudar más tarde.',
+    confirmText: 'Detener',
+    danger: true,
+  });
+  if (!ok) return;
   if (state.status === 'afk') {
     state.afkElapsed += Date.now() - state.afkStart;
     state.afkStart = null;
@@ -1625,9 +1698,17 @@ function finishSession() {
   saveLocal();
 }
 
-function newSession() {
+async function newSession() {
   if (state.status === 'running' || state.status === 'afk') return;
-  if (state.status !== 'idle' && !confirm('¿Empezar de nuevo? Se conservan las tareas, pero se reinician tiempos y progreso.')) return;
+  if (state.status !== 'idle') {
+    const ok = await confirmDialog({
+      title: 'Restablecer',
+      message: 'Se conservan las tareas, pero se reinician los tiempos y el progreso.',
+      confirmText: 'Restablecer',
+      danger: true,
+    });
+    if (!ok) return;
+  }
   state.status = 'idle';
   state.startTime = null;
   state.totalElapsed = 0;
@@ -1759,6 +1840,61 @@ function showModal() {
 }
 function closeModal() {
   document.getElementById('finishModal').classList.remove('open');
+}
+
+// Aviso flotante (toast) que reemplaza al alert() nativo. type: '' | 'ok' | 'err'.
+function notify(message, type = '', duration = 3500) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (type ? ' ' + type : '');
+  const icons = { ok: '✓', err: '⚠', '': 'ℹ' };
+  toast.innerHTML = `<span class="toast-icon">${icons[type] || icons['']}</span><span></span>`;
+  toast.lastElementChild.textContent = message;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, duration);
+}
+
+// Diálogo de confirmación personalizado (reemplaza al confirm() nativo).
+// Devuelve una promesa que resuelve true (aceptar) o false (cancelar).
+function confirmDialog({ title = 'Confirmar', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirmModal');
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = message;
+    okBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+    okBtn.classList.toggle('danger', danger);
+    okBtn.classList.toggle('primary', !danger);
+
+    function cleanup(result) {
+      overlay.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('mousedown', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    function onBackdrop(e) { if (e.target === overlay) cleanup(false); }
+    function onKey(e) {
+      if (e.key === 'Escape') cleanup(false);
+      else if (e.key === 'Enter') cleanup(true);
+    }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('mousedown', onBackdrop);
+    document.addEventListener('keydown', onKey);
+    overlay.classList.add('open');
+    okBtn.focus();
+  });
 }
 
 // ─── GOOGLE: CONFIG & STORAGE HELPERS ───────────────────────
@@ -2103,7 +2239,7 @@ async function pushToSheet(silent) {
 
 async function loadFromSheet() {
   if (state.status === 'running' || state.status === 'afk') {
-    alert('No puedes cargar mientras hay una sesión activa.'); return;
+    notify('No puedes cargar mientras hay una sesión activa.', 'err'); return;
   }
   try {
     const ok = await ensureSetup();
