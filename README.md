@@ -41,11 +41,13 @@ Copia `.env.example` a `.env.local` (dev) y carga las mismas variables en Vercel
 |---|---|
 | `GOOGLE_CLIENT_ID` | OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | Client Secret (¡solo servidor!) |
+| `GOOGLE_API_KEY` | API key del Picker (pública; se sirve vía `/api/config`) |
 | `COOKIE_SECRET` | Clave para cifrar la cookie. Genérala: `openssl rand -base64 32` |
 | `APP_ORIGIN` | `http://localhost:3000` en dev; tu dominio en prod (opcional) |
 
-Además, pon tu **API key** del Picker en `public/index.html` (`GOOGLE_API_KEY`); es
-una credencial pública.
+La `GOOGLE_API_KEY` es una credencial **pública** (el navegador la necesita para el
+Picker); se entrega vía `/api/config`. Su protección real son las **restricciones de
+dominio** en Google Cloud, no ocultarla.
 
 ## Desarrollo local
 

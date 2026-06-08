@@ -943,9 +943,9 @@
 <script>
 // ─── GOOGLE CONFIG ──────────────────────────────────────────
 // El login OAuth lo maneja el backend serverless (/api/auth/*) usando el
-// authorization code flow + refresh token. El cliente solo necesita la API key
-// pública para el Google Picker (selector de carpeta).
-const GOOGLE_API_KEY   = 'AIzaSyDm18FaVOsszAvlaPcEUaR4__wp_UhxSYc';
+// authorization code flow + refresh token. La API key pública del Picker se
+// obtiene del backend (/api/config) para no tenerla hardcodeada en el repo.
+let GOOGLE_API_KEY = null;
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const SESSION_HEADERS = ['session_id','date','status','total_estimated_min',
   'total_real_sec','total_afk_sec','updated_at','title','description'];
@@ -1819,8 +1819,25 @@ async function logoutGoogle() {
 }
 
 // ─── GOOGLE: PICKER ─────────────────────────────────────────
-function pickFolder() {
+// Carga la config pública (API key del Picker) desde el backend una sola vez.
+async function loadConfig() {
+  if (GOOGLE_API_KEY) return GOOGLE_API_KEY;
+  try {
+    const res = await fetch('/api/config', { credentials: 'same-origin' });
+    if (res.ok) {
+      const data = await res.json();
+      GOOGLE_API_KEY = data.googleApiKey || null;
+    }
+  } catch (e) { /* sin config: isGoogleConfigured() lo reflejará */ }
+  return GOOGLE_API_KEY;
+}
+
+async function pickFolder() {
+  await loadConfig();
   return new Promise((resolve, reject) => {
+    if (!GOOGLE_API_KEY) {
+      reject(new Error('Falta GOOGLE_API_KEY en el servidor (variable de entorno).')); return;
+    }
     if (!googleAuth.pickerInited || !window.google || !google.picker) {
       reject(new Error('El selector de Google (Picker) aún no carga.')); return;
     }
@@ -2198,6 +2215,8 @@ initGoogleSession();
 // Comprueba si ya hay sesión de Google (cookie con refresh token en el backend).
 // Si la hay, el usuario sigue conectado tras recargar o días después.
 async function initGoogleSession() {
+  await loadConfig();          // API key del Picker desde el backend
+  updateGoogleUI();
   // Mensajes tras volver del consentimiento OAuth (?connected=1 o ?error=...).
   const params = new URLSearchParams(window.location.search);
   if (params.get('error')) {
