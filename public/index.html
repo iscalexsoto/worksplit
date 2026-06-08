@@ -218,6 +218,14 @@
     padding-right: 8px;
     margin: 0 -8px;
   }
+  .task-row.paused {
+    background: rgba(255,255,255,0.02);
+    border-radius: var(--radius);
+    padding-left: 8px;
+    padding-right: 8px;
+    margin: 0 -8px;
+    border-left: 2px solid var(--border2);
+  }
   .task-row.done { opacity: 0.5; }
   .task-row.done .task-name { text-decoration: line-through; color: var(--muted); }
   .task-row.draggable { cursor: default; }
@@ -320,8 +328,23 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .btn-done:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-done:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .btn-done.done-btn-active { border-color: var(--success); color: var(--success); }
+  .btn-done:disabled, .btn-activate:disabled { opacity: 0.4; cursor: default; }
+  .btn-activate {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-activate:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .btn-del-task {
     font-family: var(--mono);
     font-size: 10px;
@@ -1166,9 +1189,30 @@ function normalizeGroups() {
   });
 }
 
-function activateTask(task) {
-  task.status = 'active';
-  task.startedAt = new Date().toISOString();
+// Activa la tarea idx restaurando su tiempo acumulado (realSec) en el cronómetro.
+// Preserva startedAt original si la tarea ya se había trabajado antes.
+function setActive(idx) {
+  const t = state.tasks[idx];
+  if (!t) return;
+  t.status = 'active';
+  if (!t.startedAt) t.startedAt = new Date().toISOString();
+  state.taskElapsed = Math.round(t.realSec || 0) * 1000;
+  state.currentTaskIndex = idx;
+}
+
+// Cambia el foco a otra tarea: deposita el tiempo de la activa actual (pasa a
+// 'paused') y activa la elegida, continuando su cronómetro donde quedó.
+function focusTask(idx) {
+  if (state.status !== 'running') return;
+  const target = state.tasks[idx];
+  if (!target || target.status === 'done' || idx === state.currentTaskIndex) return;
+  const cur = state.currentTaskIndex != null ? state.tasks[state.currentTaskIndex] : null;
+  if (cur && cur.status === 'active') {
+    cur.realSec = Math.round(state.taskElapsed / 1000);
+    cur.status = 'paused';
+  }
+  setActive(idx);
+  saveLocal(); renderTasks(); updateClocks(); updateSummary();
 }
 
 function canReorder() {
@@ -1480,6 +1524,8 @@ function removeTask(idx) {
 
 function markDone(idx) {
   if (state.status !== 'running') return;
+  // Solo se puede marcar como terminada la tarea activa.
+  if (idx !== state.currentTaskIndex) return;
   const task = state.tasks[idx];
   if (!task || task.status === 'done') return;
   // record real time
@@ -1488,16 +1534,13 @@ function markDone(idx) {
   task.status = 'done';
   state.taskElapsed = 0;
   state.currentTaskIndex = null;
-  // find next pending
-  const next = state.tasks.findIndex((t, i) => i > idx && t.status === 'pending');
+  // auto-avanza a la siguiente tarea no terminada (primero tras idx, si no, cualquiera)
+  let next = state.tasks.findIndex((t, i) => i > idx && t.status !== 'done');
+  if (next === -1) next = state.tasks.findIndex(t => t.status !== 'done');
   if (next !== -1) {
-    activateTask(state.tasks[next]);
-    state.currentTaskIndex = next;
+    setActive(next);
   } else {
-    // check if all done
-    const allDone = state.tasks.every(t => t.status === 'done' || t.status === 'pending');
-    const anyPending = state.tasks.some(t => t.status === 'pending');
-    if (!anyPending) finishSession();
+    finishSession();
   }
   saveLocal(); renderTasks(); updateSummary();
 }
@@ -1569,6 +1612,7 @@ function renderTasks() {
       row.className = 'task-row' +
         (canReorder() ? ' draggable' : '') +
         (task.status === 'active' ? ' active' : '') +
+        (task.status === 'paused' ? ' paused' : '') +
         (task.status === 'done' ? ' done' : '');
       if (canReorder()) {
         row.dataset.group = group;
@@ -1585,16 +1629,22 @@ function renderTasks() {
         deltaHtml = `<span class="task-delta ${cls}">${sign}${fmtSec(Math.abs(delta))}</span>`;
       }
 
-      const realDisplay = task.status === 'done' ? fmtSec(task.realSec) : '—';
+      const realDisplay = (task.status === 'done' || task.status === 'paused') ? fmtSec(task.realSec) : '—';
       const activeBar = task.status === 'active' ? '<div class="active-bar"></div>' : '';
       const canDelete = canDeleteTasks();
       const canEdit = canEditTasks();
-      const btnLabel = task.status === 'done' ? '✓ Listo' : 'Marcar listo';
-      const btnClass = task.status === 'done' ? 'btn-done done-btn-active' : 'btn-done';
-      const btnDisabled = task.status === 'done' || state.status !== 'running' ? 'disabled' : '';
+      const isRunning = state.status === 'running';
+      let sessionBtn;
+      if (task.status === 'done') {
+        sessionBtn = `<button class="btn-done done-btn-active" disabled>✓ Listo</button>`;
+      } else if (task.status === 'active') {
+        sessionBtn = `<button class="btn-done" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'}>Marcar listo</button>`;
+      } else {
+        sessionBtn = `<button class="btn-activate" onclick="focusTask(${idx})" ${isRunning ? '' : 'disabled'}>Activar</button>`;
+      }
       const actionsHtml = canDelete
         ? `<button class="btn-del-task" onclick="removeTask(${idx})" title="Eliminar tarea">Eliminar</button>`
-        : `<button class="${btnClass}" onclick="markDone(${idx})" ${btnDisabled}>${btnLabel}</button>`;
+        : sessionBtn;
       const taskDrag = canReorder()
         ? `<span class="drag-handle" draggable="true" title="Arrastrar para reordenar o cambiar de grupo">⋮⋮</span>`
         : '';
@@ -1633,13 +1683,11 @@ function startSession() {
   if (isResume) {
     const activeIdx = state.tasks.findIndex(t => t.status === 'active');
     if (activeIdx !== -1) {
+      // mantiene el tiempo vivo persistido (no se toca taskElapsed)
       state.currentTaskIndex = activeIdx;
     } else {
-      const first = state.tasks.findIndex(t => t.status === 'pending');
-      if (first !== -1) {
-        activateTask(state.tasks[first]);
-        state.currentTaskIndex = first;
-      }
+      const first = state.tasks.findIndex(t => t.status !== 'done');
+      if (first !== -1) setActive(first);
     }
   } else {
     state.startTime = Date.now();
@@ -1647,10 +1695,7 @@ function startSession() {
     state.taskElapsed = 0;
     state.afkElapsed = 0;
     const first = state.tasks.findIndex(t => t.status === 'pending');
-    if (first !== -1) {
-      activateTask(state.tasks[first]);
-      state.currentTaskIndex = first;
-    }
+    if (first !== -1) setActive(first);
   }
 
   document.getElementById('addForm').style.display = 'none';
