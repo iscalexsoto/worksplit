@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkSplit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2127;
+    --border: #2a2d35;
+    --border2: #363a44;
+    --text: #e8eaf0;
+    --muted: #6b7080;
+    --accent: #c8f542;
+    --accent-dim: #8aaa20;
+    --danger: #ff5a5a;
+    --warning: #f5a623;
+    --success: #4cdfb0;
+    --info: #60a5fa;
+    --mono: 'Azeret Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .logo span { color: var(--muted); font-weight: 300; }
+  .header-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .status-dot.running { background: var(--accent); box-shadow: 0 0 6px var(--accent-dim); }
+  .status-dot.paused { background: var(--warning); }
+  .status-dot.done { background: var(--success); }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    height: calc(100vh - 56px);
+  }
+
+  /* LEFT: TASKS */
+  .tasks-panel {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    scrollbar-gutter: stable;
+  }
+  #tasksContainer {
+    overflow-x: auto;
+    margin-bottom: 4px;
+    padding-right: 12px;
+  }
+  .task-headers,
+  .task-row {
+    min-width: 560px;
+    padding-right: 8px;
+    box-sizing: border-box;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .session-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .session-meta .form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .session-meta textarea.form-input {
+    resize: vertical;
+    min-height: 56px;
+    font-family: var(--sans);
+  }
+
+  /* GROUP */
+  .group-block { margin-bottom: 28px; }
+  .group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+  .group-header.draggable { cursor: grab; }
+  .group-header.draggable:active { cursor: grabbing; }
+  .group-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .group-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .group-est {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* TASK ROWS */
+  .task-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 90px 80px 100px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    position: relative;
+  }
+  .task-row:last-child { border-bottom: none; }
+  .task-row.active {
+    background: rgba(200,245,66,0.04);
+    border-radius: var(--radius);
+    padding-left: 8px;
+    padding-right: 8px;
+    margin: 0 -8px;
+  }
+  .task-row.done { opacity: 0.5; }
+  .task-row.done .task-name { text-decoration: line-through; color: var(--muted); }
+  .task-row.draggable { cursor: default; }
+  .task-row.dragging,
+  .group-block.dragging {
+    opacity: 0.45;
+  }
+  .task-row.drag-over,
+  .group-block.drag-over .group-header,
+  .group-block.task-drop-target .group-header {
+    background: rgba(200,245,66,0.06);
+    border-radius: var(--radius);
+  }
+
+  .drag-handle {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1;
+    color: var(--muted);
+    cursor: grab;
+    user-select: none;
+    letter-spacing: -0.12em;
+    padding: 2px 0;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle:hover { color: var(--accent); }
+
+  .tasks-sortable .task-headers,
+  .tasks-sortable .task-row {
+    grid-template-columns: 18px 1fr 90px 90px 80px 100px;
+    min-width: 560px;
+  }
+
+  .task-name {
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .task-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .task-dates {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .task-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 5px 8px;
+    outline: none;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .task-input:focus { border-color: var(--accent); }
+  .task-input-est {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+    padding: 5px 6px;
+  }
+  .task-est, .task-real, .task-delta {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+  }
+  .task-est { color: var(--muted); }
+  .task-real { color: var(--text); }
+  .task-delta.ahead { color: var(--success); }
+  .task-delta.behind { color: var(--danger); }
+  .task-delta.neutral { color: var(--muted); }
+
+  .task-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    padding-right: 4px;
+  }
+  .btn-done {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-done:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-done.done-btn-active { border-color: var(--success); color: var(--success); }
+  .btn-del-task {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-del-task:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ACTIVE TASK INDICATOR */
+  .active-bar {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 60%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* COLUMN HEADERS */
+  .task-headers {
+    display: grid;
+    grid-template-columns: 1fr 90px 90px 80px 100px;
+    gap: 12px;
+    padding: 0 0 8px;
+    margin-bottom: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  #tasksContainer:not(.tasks-sortable) .task-headers span:nth-child(n+2) { text-align: right; }
+  .tasks-sortable .task-headers span:nth-child(n+3) { text-align: right; }
+
+  /* ADD FORM */
+  .add-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 12px;
+  }
+  .add-form h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 120px auto;
+    gap: 10px;
+    align-items: end;
+  }
+  .form-field { display: flex; flex-direction: column; gap: 4px; }
+  .form-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .form-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: var(--muted); }
+  select.form-input { cursor: pointer; }
+
+  .btn-add {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    background: var(--accent);
+    color: #0e0f11;
+    border: none;
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .btn-add:hover { opacity: 0.85; }
+
+  /* RIGHT: CONTROL PANEL */
+  .control-panel {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  /* MAIN CLOCK */
+  .clock-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .clock-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .clock-value {
+    font-family: var(--mono);
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .clock-value.paused-clock { color: var(--warning); }
+  .clock-sub {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* MINI CLOCKS */
+  .mini-clocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .mini-clock {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: center;
+  }
+  .mini-clock-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .mini-clock-value {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .mini-clock.afk-clock .mini-clock-value { color: var(--warning); }
+
+  /* CONTROL BUTTONS */
+  .ctrl-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .btn-ctrl {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: var(--radius);
+    padding: 12px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .btn-start {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0f11;
+  }
+  .btn-start:hover { opacity: 0.85; }
+  .btn-afk {
+    background: transparent;
+    border-color: var(--warning);
+    color: var(--warning);
+  }
+  .btn-afk:hover { background: rgba(245,166,35,0.08); }
+  .btn-stop {
+    background: transparent;
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .btn-stop:hover { background: rgba(255,90,90,0.08); }
+  .btn-new {
+    background: transparent;
+    border-color: var(--border2);
+    color: var(--muted);
+  }
+  .btn-new:hover { border-color: var(--text); color: var(--text); }
+  .btn-resume {
+    background: transparent;
+    border-color: var(--success);
+    color: var(--success);
+  }
+  .btn-resume:hover { background: rgba(76,223,176,0.08); }
+  .btn-ctrl:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+  .btn-ctrl:disabled:hover { background: transparent; opacity: 0.25; }
+
+  /* SUMMARY CARDS */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+  }
+  .summary-card-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .summary-card-value {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .summary-card-value.ahead { color: var(--success); }
+  .summary-card-value.behind { color: var(--danger); }
+
+  /* SHEET SECTION */
+  .sheet-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .sheet-section h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .sheet-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .sheet-input-row .form-input { flex: 1; font-size: 11px; }
+  .btn-sheet {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .btn-sheet:hover { border-color: var(--info); color: var(--info); }
+  .btn-sheet.btn-sheet-push { border-color: var(--info); color: var(--info); }
+  .btn-sheet.btn-sheet-push:hover { background: rgba(96,165,250,0.08); }
+  .btn-sheet.btn-sheet-load { border-color: var(--success); color: var(--success); }
+  .btn-sheet.btn-sheet-load:hover { background: rgba(76,223,176,0.08); }
+  .sheet-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    min-height: 14px;
+  }
+  .sheet-status.ok { color: var(--success); }
+  .sheet-status.err { color: var(--danger); }
+  .btn-connect-google {
+    width: 100%;
+    border-color: var(--accent);
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .btn-connect-google:hover { background: rgba(200,245,66,0.08); }
+  .btn-connect-google:disabled { opacity: 0.35; cursor: not-allowed; }
+  .google-account {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .google-email {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .sheet-link-row {
+    margin-top: 6px;
+  }
+  .sheet-link-row a {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--info);
+    text-decoration: none;
+  }
+  .sheet-link-row a:hover { text-decoration: underline; }
+
+  /* GROUPS MANAGER */
+  .groups-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .groups-section h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .groups-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .group-chip {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .group-chip.draggable { cursor: grab; }
+  .group-chip.draggable:active { cursor: grabbing; }
+  .group-chip.draggable:hover { border-color: var(--accent); color: var(--text); }
+  .group-chip:not(.draggable):hover { border-color: var(--danger); color: var(--danger); }
+  .group-chip.dragging { opacity: 0.45; }
+  .group-chip.drag-over { border-color: var(--accent); color: var(--accent); }
+  .group-chip .del { font-size: 12px; line-height: 1; cursor: pointer; }
+  .group-add-row { display: flex; gap: 8px; }
+  .group-add-row .form-input { flex: 1; font-size: 12px; }
+  .btn-grp-add {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .btn-grp-add:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* FINISH MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 32px;
+    width: 420px;
+    max-width: 95vw;
+  }
+  .modal h2 {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+  .modal-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-stat:last-of-type { border-bottom: none; }
+  .modal-stat-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .modal-stat-value {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .modal-stat-value.ahead { color: var(--success); }
+  .modal-stat-value.behind { color: var(--danger); }
+  .modal-actions { margin-top: 24px; display: flex; gap: 10px; }
+  .btn-modal {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: var(--radius);
+    padding: 10px;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .btn-modal:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-modal.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0f11;
+    font-weight: 600;
+  }
+  .btn-modal.primary:hover { opacity: 0.85; }
+
+  /* Empty state */
+  .empty-state {
+    padding: 40px 0;
+    text-align: center;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Work<span>Split</span></div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusLabel">Listo</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="tasks-panel" id="tasksPanel">
+    <div class="panel-title">Tareas de la sesión</div>
+
+    <div class="session-meta" id="sessionMeta">
+      <div class="form-field">
+        <label class="form-label" for="sessionTitle">Título</label>
+        <input class="form-input" id="sessionTitle" placeholder="Nombre del proyecto o sesión" autocomplete="off" oninput="saveSessionMeta()">
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="sessionDescription">Descripción</label>
+        <textarea class="form-input" id="sessionDescription" placeholder="Descripción general" rows="2" oninput="saveSessionMeta()"></textarea>
+      </div>
+    </div>
+
+    <div id="tasksContainer">
+      <div class="empty-state" id="emptyState">No hay tareas. Agrega una abajo.</div>
+    </div>
+
+    <!-- ADD FORM -->
+    <div class="add-form" id="addForm">
+      <h3>Agregar tarea</h3>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Nombre</label>
+          <input class="form-input" id="fName" placeholder="Descripción de la tarea" autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Grupo</label>
+          <select class="form-input" id="fGroup">
+            <option value="General">General</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Estimado (min)</label>
+          <input class="form-input" id="fEst" type="number" min="1" placeholder="30">
+        </div>
+        <button class="btn-add" onclick="addTask()">+ Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="control-panel">
+    <!-- CLOCK -->
+    <div class="clock-block">
+      <div class="clock-label">Tarea actual</div>
+      <div class="clock-value" id="mainClock">00:00:00</div>
+      <div class="clock-sub" id="mainClockSub">—</div>
+    </div>
+
+    <!-- MINI CLOCKS -->
+    <div class="mini-clocks">
+      <div class="mini-clock">
+        <div class="mini-clock-label">Tiempo total</div>
+        <div class="mini-clock-value" id="taskClock">00:00:00</div>
+      </div>
+      <div class="mini-clock afk-clock">
+        <div class="mini-clock-label">AFK acumulado</div>
+        <div class="mini-clock-value" id="afkClock">00:00:00</div>
+      </div>
+    </div>
+
+    <!-- CONTROL BUTTONS -->
+    <div class="ctrl-buttons">
+      <button class="btn-ctrl btn-start" id="btnStart" onclick="startSession()">▶ Iniciar sesión</button>
+      <button class="btn-ctrl btn-afk" id="btnAfk" onclick="toggleAfk()" disabled>⏸ AFK / Pausa</button>
+      <button class="btn-ctrl btn-stop" id="btnStop" onclick="stopSession()" disabled>■ Detener sesión</button>
+      <button class="btn-ctrl btn-new" id="btnNewSession" onclick="newSession()" style="display:none;">↺ Nueva sesión</button>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-card-label">Total estimado</div>
+        <div class="summary-card-value" id="sumEst">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Tiempo real</div>
+        <div class="summary-card-value" id="sumReal">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">AFK total</div>
+        <div class="summary-card-value" id="sumAfk">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Delta</div>
+        <div class="summary-card-value" id="sumDelta">—</div>
+      </div>
+    </div>
+
+    <!-- GROUPS -->
+    <div class="groups-section">
+      <h4>Grupos</h4>
+      <div class="groups-list" id="groupsList"></div>
+      <div class="group-add-row">
+        <input class="form-input" id="newGroupInput" placeholder="Nuevo grupo..." autocomplete="off">
+        <button class="btn-grp-add" onclick="addGroup()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- GOOGLE SHEETS -->
+    <div class="sheet-section">
+      <h4>Google Sheets</h4>
+      <div class="sheet-status err" id="googleConfigWarn" style="display:none;">
+        Falta configurar GOOGLE_API_KEY (para el selector de carpeta de Drive).
+      </div>
+      <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" onclick="connectGoogle()">Conectar con Google</button>
+      <div class="google-account" id="googleAccountRow" style="display:none;">
+        <span class="google-email" id="googleEmail"></span>
+        <button class="btn-sheet" onclick="logoutGoogle()">Salir</button>
+      </div>
+      <div class="sheet-link-row" id="sheetLinkRow" style="display:none;">
+        <a id="sheetLink" href="#" target="_blank" rel="noopener">Abrir Sheet</a>
+      </div>
+      <div id="googleActions" style="display:none; gap:8px; margin-top:8px; flex-direction:column;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn-sheet btn-sheet-push" onclick="pushToSheet()">↑ Guardar</button>
+          <button class="btn-sheet btn-sheet-load" onclick="loadFromSheet()">↓ Cargar</button>
+        </div>
+        <button class="btn-sheet" onclick="resetGoogleTarget()">Cambiar carpeta / Sheet</button>
+      </div>
+      <div class="sheet-status" id="sheetStatus"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FINISH MODAL -->
+<div class="modal-overlay" id="finishModal">
+  <div class="modal">
+    <h2>🏁 Sesión finalizada</h2>
+    <div class="modal-stat">
+      <span class="modal-stat-label">Total estimado</span>
+      <span class="modal-stat-value" id="mEst">—</span>
+    </div>
+    <div class="modal-stat">
+      <span class="modal-stat-label">Tiempo real (activo)</span>
+      <span class="modal-stat-value" id="mReal">—</span>
+    </div>
+    <div class="modal-stat">
+      <span class="modal-stat-label">Tiempo AFK</span>
+      <span class="modal-stat-value" id="mAfk">—</span>
+    </div>
+    <div class="modal-stat">
+      <span class="modal-stat-label">Delta</span>
+      <span class="modal-stat-value" id="mDelta">—</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="closeModal()">Cerrar</button>
+      <button class="btn-modal primary" onclick="pushToSheet(); closeModal()">Guardar en Sheets</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── GOOGLE CONFIG ──────────────────────────────────────────
+// El login OAuth lo maneja el backend serverless (/api/auth/*) usando el
+// authorization code flow + refresh token. El cliente solo necesita la API key
+// pública para el Google Picker (selector de carpeta).
+const GOOGLE_API_KEY   = 'AIzaSyDm18FaVOsszAvlaPcEUaR4__wp_UhxSYc';
+const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
+const SESSION_HEADERS = ['session_id','date','status','total_estimated_min',
+  'total_real_sec','total_afk_sec','updated_at','title','description'];
+const TASK_HEADERS = ['session_id','order','group','name','estimated_min',
+  'real_sec','status','started_at','ended_at','updated_at'];
+let googleAuth = {
+  accessToken: null,
+  tokenExpiry: 0,
+  email: null,
+  connected: false,    // hay sesión válida en el backend (cookie con refresh token)
+  pickerInited: false,
+  tabsEnsured: false,
+  refreshTimer: null,
+};
+
+// ─── STATE ──────────────────────────────────────────────────
+let state = {
+  status: 'idle', // idle | running | afk | stopped | done
+  title: '',
+  description: '',
+  groups: ['General'],
+  tasks: [],
+  sessionId: null,
+  startTime: null,
+  totalElapsed: 0,      // ms
+  taskElapsed: 0,       // ms current task
+  afkElapsed: 0,        // ms
+  lastTick: null,
+  afkStart: null,
+  currentTaskIndex: null,
+};
+
+const AUTO_SAVE_MS = 2 * 60 * 1000;
+let autoSaveTimer = null;
+const dragState = { type: null, groupIdx: null, taskIdx: null };
+
+function isSessionActive() {
+  return state.status === 'running' || state.status === 'afk';
+}
+
+function startAutoSave() {
+  stopAutoSave();
+  autoSaveTimer = setInterval(autoSave, AUTO_SAVE_MS);
+}
+
+function stopAutoSave() {
+  if (autoSaveTimer) {
+    clearInterval(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+}
+
+function autoSave() {
+  if (!isSessionActive()) return;
+  saveLocal();
+  if (isGoogleReady()) pushToSheet(true);
+}
+
+// ─── PERSISTENCE ────────────────────────────────────────────
+function saveLocal() {
+  localStorage.setItem('worksplit_state', JSON.stringify(state));
+}
+function loadLocal() {
+  const raw = localStorage.getItem('worksplit_state');
+  if (raw) {
+    try {
+      const s = JSON.parse(raw);
+      // If session was running when closed, mark as stopped
+      if (s.status === 'running' || s.status === 'afk') s.status = 'stopped';
+      state = s;
+      if (state.title == null) state.title = '';
+      if (state.description == null) state.description = '';
+      normalizeGroups();
+    } catch(e) {}
+  }
+  syncSessionMetaUI();
+}
+
+function canEditSessionMeta() {
+  return state.status === 'idle' || state.status === 'stopped';
+}
+
+function syncSessionMetaUI() {
+  document.getElementById('sessionTitle').value = state.title || '';
+  document.getElementById('sessionDescription').value = state.description || '';
+  updateSessionMetaFields();
+}
+
+function updateSessionMetaFields() {
+  const editable = canEditSessionMeta();
+  document.getElementById('sessionTitle').disabled = !editable;
+  document.getElementById('sessionDescription').disabled = !editable;
+}
+
+function saveSessionMeta() {
+  if (!canEditSessionMeta()) return;
+  state.title = document.getElementById('sessionTitle').value.trim();
+  state.description = document.getElementById('sessionDescription').value.trim();
+  saveLocal();
+}
+
+function normalizeGroups() {
+  if (!Array.isArray(state.groups) || state.groups.length === 0) {
+    state.groups = ['General'];
+  }
+  state.tasks.forEach(t => {
+    if (!t.group) t.group = state.groups[0];
+    if (!state.groups.includes(t.group)) state.groups.push(t.group);
+    if (t.startedAt == null) t.startedAt = null;
+    if (t.endedAt == null) t.endedAt = null;
+  });
+}
+
+function activateTask(task) {
+  task.status = 'active';
+  task.startedAt = new Date().toISOString();
+}
+
+function canReorder() {
+  return state.status === 'idle';
+}
+
+function reorganizeTasksByGroupOrder() {
+  const byGroup = {};
+  state.tasks.forEach(t => {
+    if (!byGroup[t.group]) byGroup[t.group] = [];
+    byGroup[t.group].push(t);
+  });
+  const ordered = [];
+  state.groups.forEach(g => {
+    if (byGroup[g]) ordered.push(...byGroup[g]);
+  });
+  Object.keys(byGroup).forEach(g => {
+    if (!state.groups.includes(g)) ordered.push(...byGroup[g]);
+  });
+  state.tasks = ordered;
+}
+
+function moveGroup(fromIdx, toIdx) {
+  if (!canReorder() || fromIdx === toIdx) return;
+  if (fromIdx < 0 || toIdx < 0 || fromIdx >= state.groups.length || toIdx >= state.groups.length) return;
+  const [group] = state.groups.splice(fromIdx, 1);
+  state.groups.splice(toIdx, 0, group);
+  reorganizeTasksByGroupOrder();
+  saveLocal(); renderGroups(); renderTasks(); updateSummary();
+}
+
+function moveTaskInGroup(group, fromPos, toPos) {
+  if (!canReorder() || fromPos === toPos) return;
+  const groupTasks = state.tasks.filter(t => t.group === group);
+  if (fromPos < 0 || toPos < 0 || fromPos >= groupTasks.length || toPos >= groupTasks.length) return;
+  const [task] = groupTasks.splice(fromPos, 1);
+  groupTasks.splice(toPos, 0, task);
+
+  const byGroup = {};
+  state.tasks.forEach(t => {
+    if (!byGroup[t.group]) byGroup[t.group] = [];
+    if (t.group !== group) byGroup[t.group].push(t);
+  });
+  byGroup[group] = groupTasks;
+
+  const ordered = [];
+  state.groups.forEach(g => {
+    if (byGroup[g]) ordered.push(...byGroup[g]);
+  });
+  Object.keys(byGroup).forEach(g => {
+    if (!state.groups.includes(g)) ordered.push(...byGroup[g]);
+  });
+  state.tasks = ordered;
+  saveLocal(); renderTasks(); updateSummary();
+}
+
+function moveTaskToPosition(taskIdx, toGroup, toLocalIdx) {
+  if (!canReorder()) return;
+  const task = state.tasks[taskIdx];
+  if (!task) return;
+
+  const fromGroup = task.group;
+  const localIndices = [];
+  state.tasks.forEach((t, i) => { if (t.group === fromGroup) localIndices.push(i); });
+  const fromLocal = localIndices.indexOf(taskIdx);
+  if (fromLocal === -1) return;
+
+  if (fromGroup === toGroup) {
+    const targetLocal = toLocalIdx == null ? localIndices.length - 1 : toLocalIdx;
+    if (fromLocal !== targetLocal) moveTaskInGroup(fromGroup, fromLocal, targetLocal);
+    return;
+  }
+
+  state.tasks.splice(taskIdx, 1);
+  task.group = toGroup;
+
+  const byGroup = {};
+  state.tasks.forEach(t => {
+    if (!byGroup[t.group]) byGroup[t.group] = [];
+    byGroup[t.group].push(t);
+  });
+  if (!byGroup[toGroup]) byGroup[toGroup] = [];
+  const pos = toLocalIdx == null ? byGroup[toGroup].length : Math.min(toLocalIdx, byGroup[toGroup].length);
+  byGroup[toGroup].splice(pos, 0, task);
+
+  const ordered = [];
+  state.groups.forEach(g => {
+    if (byGroup[g]) ordered.push(...byGroup[g]);
+  });
+  Object.keys(byGroup).forEach(g => {
+    if (!state.groups.includes(g)) ordered.push(...byGroup[g]);
+  });
+  state.tasks = ordered;
+  saveLocal(); renderTasks(); updateSummary();
+}
+
+function clearTaskDropHighlights() {
+  document.querySelectorAll('.task-row.drag-over, .group-block.task-drop-target').forEach(el => {
+    el.classList.remove('drag-over', 'task-drop-target');
+  });
+}
+
+function clearDragClasses() {
+  document.querySelectorAll('.dragging, .drag-over, .task-drop-target').forEach(el => {
+    el.classList.remove('dragging', 'drag-over', 'task-drop-target');
+  });
+}
+
+function setupDragDrop() {
+  const groupsList = document.getElementById('groupsList');
+  const tasksContainer = document.getElementById('tasksContainer');
+
+  groupsList.addEventListener('dragstart', e => {
+    if (!canReorder()) return;
+    const chip = e.target.closest('.group-chip[data-group-idx]');
+    if (!chip || e.target.closest('.del')) return;
+    dragState.type = 'group';
+    dragState.groupIdx = parseInt(chip.dataset.groupIdx, 10);
+    chip.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'group');
+  });
+
+  groupsList.addEventListener('dragover', e => {
+    if (dragState.type !== 'group' || !canReorder()) return;
+    const chip = e.target.closest('.group-chip[data-group-idx]');
+    if (!chip) return;
+    e.preventDefault();
+    document.querySelectorAll('.group-chip.drag-over').forEach(c => c.classList.remove('drag-over'));
+    chip.classList.add('drag-over');
+  });
+
+  groupsList.addEventListener('drop', e => {
+    if (dragState.type !== 'group') return;
+    const chip = e.target.closest('.group-chip[data-group-idx]');
+    if (!chip) return;
+    e.preventDefault();
+    moveGroup(dragState.groupIdx, parseInt(chip.dataset.groupIdx, 10));
+    clearDragClasses();
+    dragState.type = null;
+  });
+
+  groupsList.addEventListener('dragend', () => {
+    clearDragClasses();
+    dragState.type = null;
+  });
+
+  tasksContainer.addEventListener('dragstart', e => {
+    if (!canReorder()) return;
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    const groupHeader = handle.closest('.group-header.draggable');
+    const taskRow = handle.closest('.task-row.draggable');
+    if (groupHeader) {
+      dragState.type = 'group';
+      dragState.groupIdx = parseInt(groupHeader.dataset.groupIdx, 10);
+      groupHeader.closest('.group-block').classList.add('dragging');
+    } else if (taskRow) {
+      dragState.type = 'task';
+      dragState.taskIdx = parseInt(taskRow.dataset.taskIdx, 10);
+      taskRow.classList.add('dragging');
+    } else return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', dragState.type);
+  });
+
+  tasksContainer.addEventListener('dragover', e => {
+    if (!canReorder() || !dragState.type) return;
+    e.preventDefault();
+    if (dragState.type === 'group') {
+      const block = e.target.closest('.group-block[data-group-idx]');
+      if (!block) return;
+      document.querySelectorAll('.group-block.drag-over').forEach(b => b.classList.remove('drag-over'));
+      block.classList.add('drag-over');
+    } else if (dragState.type === 'task') {
+      e.preventDefault();
+      clearTaskDropHighlights();
+      const row = e.target.closest('.task-row.draggable');
+      if (row) {
+        row.classList.add('drag-over');
+      } else {
+        const block = e.target.closest('.group-block[data-group]');
+        if (block) block.classList.add('task-drop-target');
+      }
+    }
+  });
+
+  tasksContainer.addEventListener('drop', e => {
+    if (!canReorder() || !dragState.type) return;
+    e.preventDefault();
+    if (dragState.type === 'group') {
+      const block = e.target.closest('.group-block[data-group-idx]');
+      if (!block) return;
+      moveGroup(dragState.groupIdx, parseInt(block.dataset.groupIdx, 10));
+    } else if (dragState.type === 'task') {
+      const row = e.target.closest('.task-row.draggable');
+      if (row) {
+        moveTaskToPosition(dragState.taskIdx, row.dataset.group, parseInt(row.dataset.localIdx, 10));
+      } else {
+        const block = e.target.closest('.group-block[data-group]');
+        if (block) moveTaskToPosition(dragState.taskIdx, block.dataset.group, null);
+      }
+    }
+    clearDragClasses();
+    dragState.type = null;
+  });
+
+  tasksContainer.addEventListener('dragend', () => {
+    clearDragClasses();
+    dragState.type = null;
+  });
+}
+
+// ─── GROUPS ─────────────────────────────────────────────────
+function renderGroups() {
+  const list = document.getElementById('groupsList');
+  const sel = document.getElementById('fGroup');
+  list.innerHTML = '';
+  sel.innerHTML = '';
+  state.groups.forEach((g, gi) => {
+    const chip = document.createElement('div');
+    chip.className = 'group-chip' + (canReorder() ? ' draggable' : '');
+    if (canReorder()) {
+      chip.dataset.groupIdx = gi;
+      chip.draggable = true;
+    }
+    chip.innerHTML = `<span>${g}</span><span class="del" onclick="removeGroup('${g.replace(/'/g, "\\'")}')">×</span>`;
+    list.appendChild(chip);
+    // select option
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    sel.appendChild(opt);
+  });
+}
+function addGroup() {
+  const inp = document.getElementById('newGroupInput');
+  const val = inp.value.trim();
+  if (!val || state.groups.includes(val)) return;
+  state.groups.push(val);
+  inp.value = '';
+  saveLocal(); renderGroups(); renderTasks();
+}
+function removeGroup(g) {
+  if (state.groups.length <= 1) return;
+  state.tasks.forEach(t => { if (t.group === g) t.group = state.groups[0]; });
+  state.groups = state.groups.filter(x => x !== g);
+  saveLocal(); renderGroups(); renderTasks();
+}
+
+// ─── TASKS ──────────────────────────────────────────────────
+function addTask() {
+  if (state.status === 'running' || state.status === 'afk') return;
+  const name = document.getElementById('fName').value.trim();
+  const group = document.getElementById('fGroup').value;
+  const est = parseInt(document.getElementById('fEst').value) || 30;
+  if (!name) return;
+  state.tasks.push({
+    id: Date.now(),
+    name, group,
+    estimatedMin: est,
+    realSec: 0,
+    startedAt: null,
+    endedAt: null,
+    status: 'pending', // pending | active | done
+  });
+  document.getElementById('fName').value = '';
+  document.getElementById('fEst').value = '';
+  saveLocal(); renderTasks(); updateSummary();
+}
+
+function canDeleteTasks() {
+  return state.status === 'idle';
+}
+
+function canEditTasks() {
+  return state.status === 'idle';
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;');
+}
+
+function updateTaskField(idx, field, value) {
+  if (!canEditTasks()) return;
+  const task = state.tasks[idx];
+  if (!task) return;
+  if (field === 'name') {
+    const name = value.trim();
+    if (!name) return;
+    task.name = name;
+  } else if (field === 'estimatedMin') {
+    const est = parseInt(value, 10);
+    if (!est || est < 1) return;
+    task.estimatedMin = est;
+  } else return;
+  saveLocal();
+  updateSummary();
+  if (field === 'estimatedMin') renderTasks();
+}
+
+function removeTask(idx) {
+  if (!canDeleteTasks()) return;
+  state.tasks.splice(idx, 1);
+  saveLocal(); renderTasks(); updateSummary();
+}
+
+function markDone(idx) {
+  if (state.status !== 'running') return;
+  const task = state.tasks[idx];
+  if (!task || task.status === 'done') return;
+  // record real time
+  task.realSec = Math.round((state.taskElapsed) / 1000);
+  task.endedAt = new Date().toISOString();
+  task.status = 'done';
+  state.taskElapsed = 0;
+  state.currentTaskIndex = null;
+  // find next pending
+  const next = state.tasks.findIndex((t, i) => i > idx && t.status === 'pending');
+  if (next !== -1) {
+    activateTask(state.tasks[next]);
+    state.currentTaskIndex = next;
+  } else {
+    // check if all done
+    const allDone = state.tasks.every(t => t.status === 'done' || t.status === 'pending');
+    const anyPending = state.tasks.some(t => t.status === 'pending');
+    if (!anyPending) finishSession();
+  }
+  saveLocal(); renderTasks(); updateSummary();
+}
+
+function taskDatesHtml(task) {
+  const parts = [];
+  if (task.startedAt) parts.push('Inicio: ' + fmtDateTime(task.startedAt));
+  if (task.endedAt) parts.push('Fin: ' + fmtDateTime(task.endedAt));
+  return parts.length ? `<span class="task-dates">${parts.join(' · ')}</span>` : '';
+}
+
+function renderTasks() {
+  const container = document.getElementById('tasksContainer');
+  if (state.tasks.length === 0) {
+    container.innerHTML = '<div class="empty-state" id="emptyState">No hay tareas. Agrega una abajo.</div>';
+    container.classList.remove('tasks-sortable');
+    return;
+  }
+  container.innerHTML = '';
+  container.classList.toggle('tasks-sortable', canReorder());
+
+  // Build headers once
+  const headers = document.createElement('div');
+  headers.className = 'task-headers';
+  const handleHeader = canReorder() ? '<span></span>' : '';
+  headers.innerHTML = `${handleHeader}<span>Tarea</span><span>Est.</span><span>Real</span><span>Delta</span><span>${canDeleteTasks() ? 'Eliminar' : 'Acción'}</span>`;
+  container.appendChild(headers);
+
+  state.groups.forEach((group, gi) => {
+    const items = [];
+    state.tasks.forEach((task, idx) => {
+      if (task.group === group) items.push({ task, idx });
+    });
+    if (items.length === 0) {
+      if (!canReorder()) return;
+      const block = document.createElement('div');
+      block.className = 'group-block group-block-empty';
+      block.dataset.groupIdx = gi;
+      block.dataset.group = group;
+      const groupDrag = `<span class="drag-handle" draggable="true" title="Arrastrar grupo">⋮⋮</span>`;
+      block.innerHTML = `<div class="group-header draggable" data-group-idx="${gi}">
+        <div class="group-header-left">
+          ${groupDrag}
+          <span class="group-label">${group}</span>
+        </div>
+        <span class="group-est">sin tareas</span>
+      </div>`;
+      container.appendChild(block);
+      return;
+    }
+
+    const groupEstMin = items.reduce((s, { task }) => s + task.estimatedMin, 0);
+    const block = document.createElement('div');
+    block.className = 'group-block';
+    block.dataset.groupIdx = gi;
+    block.dataset.group = group;
+    const groupDrag = canReorder()
+      ? `<span class="drag-handle" draggable="true" title="Arrastrar grupo">⋮⋮</span>`
+      : '';
+    block.innerHTML = `<div class="group-header${canReorder() ? ' draggable' : ''}" data-group-idx="${gi}">
+      <div class="group-header-left">
+        ${groupDrag}
+        <span class="group-label">${group}</span>
+      </div>
+      <span class="group-est">est. ${fmtMin(groupEstMin)}</span>
+    </div>`;
+    items.forEach(({ task, idx }, localIdx) => {
+      const row = document.createElement('div');
+      row.className = 'task-row' +
+        (canReorder() ? ' draggable' : '') +
+        (task.status === 'active' ? ' active' : '') +
+        (task.status === 'done' ? ' done' : '');
+      if (canReorder()) {
+        row.dataset.group = group;
+        row.dataset.localIdx = localIdx;
+        row.dataset.taskIdx = idx;
+      }
+
+      let deltaHtml = '<span class="task-delta neutral">—</span>';
+      if (task.status === 'done') {
+        const estSec = task.estimatedMin * 60;
+        const delta = estSec - task.realSec;
+        const cls = delta >= 0 ? 'ahead' : 'behind';
+        const sign = delta >= 0 ? '-' : '+';
+        deltaHtml = `<span class="task-delta ${cls}">${sign}${fmtSec(Math.abs(delta))}</span>`;
+      }
+
+      const realDisplay = task.status === 'done' ? fmtSec(task.realSec) : '—';
+      const activeBar = task.status === 'active' ? '<div class="active-bar"></div>' : '';
+      const canDelete = canDeleteTasks();
+      const canEdit = canEditTasks();
+      const btnLabel = task.status === 'done' ? '✓ Listo' : 'Marcar listo';
+      const btnClass = task.status === 'done' ? 'btn-done done-btn-active' : 'btn-done';
+      const btnDisabled = task.status === 'done' || state.status !== 'running' ? 'disabled' : '';
+      const actionsHtml = canDelete
+        ? `<button class="btn-del-task" onclick="removeTask(${idx})" title="Eliminar tarea">Eliminar</button>`
+        : `<button class="${btnClass}" onclick="markDone(${idx})" ${btnDisabled}>${btnLabel}</button>`;
+      const taskDrag = canReorder()
+        ? `<span class="drag-handle" draggable="true" title="Arrastrar para reordenar o cambiar de grupo">⋮⋮</span>`
+        : '';
+      const nameHtml = canEdit
+        ? `<div class="task-name-cell"><input class="task-input task-input-name" type="text" value="${escHtml(task.name)}" onblur="updateTaskField(${idx}, 'name', this.value)">${taskDatesHtml(task)}</div>`
+        : `<div class="task-name-cell"><span class="task-name" title="${escHtml(task.name)}">${escHtml(task.name)}</span>${taskDatesHtml(task)}</div>`;
+      const estHtml = canEdit
+        ? `<input class="task-input task-input-est" type="number" min="1" value="${task.estimatedMin}" onchange="updateTaskField(${idx}, 'estimatedMin', this.value)">`
+        : `<span class="task-est">${fmtMin(task.estimatedMin)}</span>`;
+
+      row.innerHTML = `
+        ${activeBar}
+        ${taskDrag}
+        ${nameHtml}
+        ${estHtml}
+        <span class="task-real">${realDisplay}</span>
+        ${deltaHtml}
+        <div class="task-actions">
+          ${actionsHtml}
+        </div>
+      `;
+      block.appendChild(row);
+    });
+    container.appendChild(block);
+  });
+}
+
+// ─── SESSION CONTROL ────────────────────────────────────────
+function startSession() {
+  if (state.tasks.length === 0) { alert('Agrega al menos una tarea antes de iniciar.'); return; }
+  const isResume = state.status === 'stopped';
+
+  state.status = 'running';
+  state.lastTick = Date.now();
+
+  if (isResume) {
+    const activeIdx = state.tasks.findIndex(t => t.status === 'active');
+    if (activeIdx !== -1) {
+      state.currentTaskIndex = activeIdx;
+    } else {
+      const first = state.tasks.findIndex(t => t.status === 'pending');
+      if (first !== -1) {
+        activateTask(state.tasks[first]);
+        state.currentTaskIndex = first;
+      }
+    }
+  } else {
+    state.sessionId = 'ws_' + Date.now();
+    state.startTime = Date.now();
+    state.totalElapsed = 0;
+    state.taskElapsed = 0;
+    state.afkElapsed = 0;
+    const first = state.tasks.findIndex(t => t.status === 'pending');
+    if (first !== -1) {
+      activateTask(state.tasks[first]);
+      state.currentTaskIndex = first;
+    }
+  }
+
+  document.getElementById('addForm').style.display = 'none';
+  updateButtons(); renderTasks(); updateStatus(); saveLocal();
+  startAutoSave();
+  tick();
+}
+
+function toggleAfk() {
+  if (state.status === 'running') {
+    state.status = 'afk';
+    state.afkStart = Date.now();
+  } else if (state.status === 'afk') {
+    state.afkElapsed += Date.now() - state.afkStart;
+    state.afkStart = null;
+    state.status = 'running';
+    state.lastTick = Date.now();
+  }
+  updateButtons(); updateStatus(); saveLocal();
+}
+
+function stopSession() {
+  if (!confirm('¿Detener la sesión? Los contadores se pausarán. Puedes reanudar más tarde.')) return;
+  if (state.status === 'afk') {
+    state.afkElapsed += Date.now() - state.afkStart;
+    state.afkStart = null;
+  }
+  state.status = 'stopped';
+  stopAutoSave();
+  saveLocal();
+  updateButtons(); updateStatus();
+}
+
+function finishSession() {
+  state.status = 'done';
+  stopAutoSave();
+  updateButtons(); updateStatus(); renderTasks();
+  showModal();
+  saveLocal();
+}
+
+function newSession() {
+  if (state.status === 'running' || state.status === 'afk') return;
+  if (state.status !== 'idle' && !confirm('¿Empezar de nuevo? Se conservan las tareas, pero se reinician tiempos y progreso.')) return;
+  state.status = 'idle';
+  state.sessionId = null;
+  state.startTime = null;
+  state.totalElapsed = 0;
+  state.taskElapsed = 0;
+  state.afkElapsed = 0;
+  state.lastTick = null;
+  state.afkStart = null;
+  state.currentTaskIndex = null;
+  state.tasks.forEach(t => {
+    t.status = 'pending';
+    t.realSec = 0;
+    t.startedAt = null;
+    t.endedAt = null;
+  });
+  stopAutoSave();
+  document.getElementById('addForm').style.display = '';
+  saveLocal(); renderTasks(); updateButtons(); updateStatus(); updateSummary(); updateClocks();
+}
+
+// ─── TICK ───────────────────────────────────────────────────
+function tick() {
+  if (state.status === 'running') {
+    const now = Date.now();
+    const delta = now - state.lastTick;
+    state.totalElapsed += delta;
+    state.taskElapsed += delta;
+    state.lastTick = now;
+  }
+  updateClocks();
+  updateSummary();
+  requestAnimationFrame(tick);
+}
+
+// ─── CLOCK DISPLAY ──────────────────────────────────────────
+function updateClocks() {
+  const afkMs = state.status === 'afk'
+    ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
+    : state.afkElapsed;
+
+  document.getElementById('mainClock').textContent = fmtMs(state.taskElapsed);
+  document.getElementById('mainClock').className = 'clock-value' + (state.status === 'afk' ? ' paused-clock' : '');
+  document.getElementById('taskClock').textContent = fmtMs(state.totalElapsed);
+  document.getElementById('afkClock').textContent = fmtMs(afkMs);
+
+  const task = state.currentTaskIndex != null ? state.tasks[state.currentTaskIndex] : null;
+  const taskEstMs = task ? task.estimatedMin * 60000 : 0;
+  const diff = taskEstMs - state.taskElapsed;
+  const sign = diff >= 0 ? '-' : '+';
+  document.getElementById('mainClockSub').textContent =
+    taskEstMs > 0 ? `${sign}${fmtMs(Math.abs(diff))} vs estimado` : '—';
+}
+
+function updateSummary() {
+  const estMin = state.tasks.reduce((s, t) => s + t.estimatedMin, 0);
+  const realSec = Math.round(state.totalElapsed / 1000);
+  const afkMs = state.status === 'afk'
+    ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
+    : state.afkElapsed;
+  const afkSec = Math.round(afkMs / 1000);
+  const deltaSec = (estMin * 60) - realSec;
+  const deltaClass = deltaSec >= 0 ? 'ahead' : 'behind';
+  const sign = deltaSec >= 0 ? '-' : '+';
+
+  document.getElementById('sumEst').textContent = estMin > 0 ? fmtMin(estMin) : '—';
+  document.getElementById('sumReal').textContent = realSec > 0 ? fmtSec(realSec) : '—';
+  document.getElementById('sumAfk').textContent = afkSec > 0 ? fmtSec(afkSec) : '—';
+
+  const dEl = document.getElementById('sumDelta');
+  if (estMin > 0 && realSec > 0) {
+    dEl.textContent = `${sign}${fmtSec(Math.abs(deltaSec))}`;
+    dEl.className = 'summary-card-value ' + deltaClass;
+  } else {
+    dEl.textContent = '—';
+    dEl.className = 'summary-card-value';
+  }
+}
+
+function totalEstMs() {
+  return state.tasks.reduce((s, t) => s + t.estimatedMin * 60000, 0);
+}
+
+// ─── BUTTONS / STATUS ───────────────────────────────────────
+function updateButtons() {
+  const s = state.status;
+  document.getElementById('btnStart').disabled = s !== 'idle' && s !== 'stopped';
+  document.getElementById('btnStart').textContent = s === 'stopped' ? '▶ Reanudar' : '▶ Iniciar sesión';
+  document.getElementById('btnAfk').disabled = s !== 'running' && s !== 'afk';
+  document.getElementById('btnAfk').textContent = s === 'afk' ? '▶ Continuar' : '⏸ AFK / Pausa';
+  document.getElementById('btnStop').disabled = s !== 'running' && s !== 'afk';
+  document.getElementById('btnNewSession').style.display = (s === 'stopped' || s === 'done') ? '' : 'none';
+  updateSessionMetaFields();
+}
+
+function updateStatus() {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  const map = {
+    idle: ['', 'Listo'],
+    running: ['running', 'En sesión'],
+    afk: ['paused', 'AFK'],
+    stopped: ['', 'Detenido'],
+    done: ['done', 'Finalizado'],
+  };
+  const [cls, text] = map[state.status] || ['', ''];
+  dot.className = 'status-dot ' + cls;
+  label.textContent = text;
+}
+
+// ─── MODAL ──────────────────────────────────────────────────
+function showModal() {
+  const estMin = state.tasks.reduce((s, t) => s + t.estimatedMin, 0);
+  const realSec = Math.round(state.totalElapsed / 1000);
+  const afkMs = state.afkElapsed;
+  const afkSec = Math.round(afkMs / 1000);
+  const deltaSec = (estMin * 60) - realSec;
+  const sign = deltaSec >= 0 ? '-' : '+';
+  const cls = deltaSec >= 0 ? 'ahead' : 'behind';
+
+  document.getElementById('mEst').textContent = fmtMin(estMin);
+  document.getElementById('mReal').textContent = fmtSec(realSec);
+  document.getElementById('mAfk').textContent = fmtSec(afkSec);
+  document.getElementById('mDelta').textContent = `${sign}${fmtSec(Math.abs(deltaSec))}`;
+  document.getElementById('mDelta').className = 'modal-stat-value ' + cls;
+  document.getElementById('finishModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('finishModal').classList.remove('open');
+}
+
+// ─── GOOGLE: CONFIG & STORAGE HELPERS ───────────────────────
+function isGoogleConfigured() {
+  // El login depende del backend; aquí solo validamos la API key del Picker.
+  return GOOGLE_API_KEY && GOOGLE_API_KEY !== 'TU_API_KEY_AQUI';
+}
+function getFolderId() { return localStorage.getItem('worksplit_folder_id') || null; }
+function getSheetId() { return localStorage.getItem('worksplit_sheet_id') || null; }
+function getSheetName() { return localStorage.getItem('worksplit_sheet_name') || null; }
+function isGoogleReady() {
+  // Conectado (cookie con refresh token) + Sheet elegido. El access token se
+  // renueva solo dentro de gFetch()/ensureToken() si hiciera falta.
+  return !!(googleAuth.connected && getSheetId());
+}
+
+// ─── GOOGLE: LIBRARY LOADERS (onload callbacks) ─────────────
+function gapiLoaded() {
+  gapi.load('picker', () => { googleAuth.pickerInited = true; });
+}
+
+// ─── GOOGLE: TOKEN (vía backend /api/auth) ──────────────────
+// Pide al backend un access token fresco. El backend lo deriva del refresh token
+// guardado (cifrado) en la cookie httpOnly, así que se renueva solo durante días.
+// Devuelve el access token, o null si no hay sesión (el usuario debe reconectar).
+async function fetchAccessToken() {
+  let res;
+  try {
+    res = await fetch('/api/auth/token', { credentials: 'same-origin' });
+  } catch (e) {
+    throw new Error('No se pudo contactar al servidor de autenticación.');
+  }
+  if (res.status === 401) {
+    googleAuth.accessToken = null;
+    googleAuth.tokenExpiry = 0;
+    googleAuth.connected = false;
+    return null;
+  }
+  if (!res.ok) throw new Error('Error de autenticación (HTTP ' + res.status + ').');
+  const data = await res.json();
+  googleAuth.accessToken = data.access_token;
+  googleAuth.tokenExpiry = Date.now() + ((parseInt(data.expires_in, 10) || 3600) * 1000) - 60000;
+  if (data.email) googleAuth.email = data.email;
+  googleAuth.connected = true;
+  scheduleTokenRefresh();
+  return googleAuth.accessToken;
+}
+
+// Renovación proactiva: renueva el access token ~2 min antes de que caduque, para
+// que una pestaña abierta mucho tiempo nunca se quede sin token.
+function scheduleTokenRefresh() {
+  if (googleAuth.refreshTimer) clearTimeout(googleAuth.refreshTimer);
+  const lead = 2 * 60 * 1000;
+  const delay = Math.max(15000, googleAuth.tokenExpiry - Date.now() - lead);
+  googleAuth.refreshTimer = setTimeout(() => {
+    fetchAccessToken().catch(() => {});
+  }, delay);
+}
+
+async function ensureToken() {
+  if (googleAuth.accessToken && Date.now() < googleAuth.tokenExpiry) return googleAuth.accessToken;
+  const token = await fetchAccessToken();
+  if (!token) throw new Error('Sesión de Google no iniciada. Pulsa "Conectar con Google".');
+  return token;
+}
+async function gFetch(url, opts = {}) {
+  const token = await ensureToken();
+  const headers = Object.assign({}, opts.headers, { Authorization: 'Bearer ' + token });
+  const res = await fetch(url, Object.assign({}, opts, { headers }));
+  if (!res.ok) {
+    let detail = '';
+    try { detail = await res.text(); } catch (e) {}
+    throw new Error('HTTP ' + res.status + (detail ? ': ' + detail : ''));
+  }
+  if (res.status === 204) return {};
+  return res.json();
+}
+
+// ─── GOOGLE: ACCOUNT ────────────────────────────────────────
+async function fetchUserInfo() {
+  try {
+    const info = await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+    googleAuth.email = info.email || null;
+  } catch (e) {
+    googleAuth.email = null;
+  }
+}
+async function logoutGoogle() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  } catch (e) { /* ignore */ }
+  if (googleAuth.refreshTimer) { clearTimeout(googleAuth.refreshTimer); googleAuth.refreshTimer = null; }
+  googleAuth.accessToken = null;
+  googleAuth.email = null;
+  googleAuth.tokenExpiry = 0;
+  googleAuth.connected = false;
+  googleAuth.tabsEnsured = false;
+  setSheetStatus('Sesión de Google cerrada.', '');
+  updateGoogleUI();
+}
+
+// ─── GOOGLE: PICKER ─────────────────────────────────────────
+function pickFolder() {
+  return new Promise((resolve, reject) => {
+    if (!googleAuth.pickerInited || !window.google || !google.picker) {
+      reject(new Error('El selector de Google (Picker) aún no carga.')); return;
+    }
+    const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+      .setSelectFolderEnabled(true)
+      .setMimeTypes('application/vnd.google-apps.folder');
+    const picker = new google.picker.PickerBuilder()
+      .setTitle('Elige una carpeta para WorkSplit')
+      .setOAuthToken(googleAuth.accessToken)
+      .setDeveloperKey(GOOGLE_API_KEY)
+      .addView(view)
+      .setCallback((data) => {
+        const action = data[google.picker.Response.ACTION];
+        if (action === google.picker.Action.PICKED) {
+          const doc = data[google.picker.Response.DOCUMENTS][0];
+          const folderId = doc[google.picker.Document.ID];
+          localStorage.setItem('worksplit_folder_id', folderId);
+          resolve(folderId);
+        } else if (action === google.picker.Action.CANCEL) {
+          reject(new Error('Selección de carpeta cancelada.'));
+        }
+      })
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+// ─── GOOGLE: SHEETS / DRIVE LOW-LEVEL ───────────────────────
+function valuesUpdate(id, range, values) {
+  return gFetch(
+    `${SHEETS_BASE}/${id}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,
+    { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) }
+  );
+}
+function valuesClear(id, range) {
+  return gFetch(`${SHEETS_BASE}/${id}/values/${encodeURIComponent(range)}:clear`, { method: 'POST' });
+}
+function valuesGet(id, range) {
+  return gFetch(`${SHEETS_BASE}/${id}/values/${encodeURIComponent(range)}`);
+}
+function batchUpdate(id, requests) {
+  return gFetch(`${SHEETS_BASE}/${id}:batchUpdate`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requests }) });
+}
+
+async function ensureTabs(sheetId) {
+  const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
+  const titles = (meta.sheets || []).map(s => s.properties.title);
+  const requests = [];
+  if (!titles.includes('sessions')) requests.push({ addSheet: { properties: { title: 'sessions' } } });
+  if (!titles.includes('tasks')) requests.push({ addSheet: { properties: { title: 'tasks' } } });
+  if (!titles.includes('summary')) requests.push({ addSheet: { properties: { title: 'summary' } } });
+  if (requests.length) await batchUpdate(sheetId, requests);
+  await valuesUpdate(sheetId, 'sessions!A1:I1', [SESSION_HEADERS]);
+  await valuesUpdate(sheetId, 'tasks!A1:J1', [TASK_HEADERS]);
+  googleAuth.tabsEnsured = true;
+}
+
+async function createSheet(folderId) {
+  const dateStr = new Date().toLocaleDateString('es-MX');
+  const body = {
+    name: 'WorkSplit - ' + dateStr,
+    mimeType: 'application/vnd.google-apps.spreadsheet',
+  };
+  if (folderId) body.parents = [folderId];
+  const file = await gFetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const sheetId = file.id;
+  // Get the default sheet so we can replace it with sessions/tasks.
+  const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
+  const defaultId = meta.sheets[0].properties.sheetId;
+  await batchUpdate(sheetId, [
+    { addSheet: { properties: { title: 'sessions' } } },
+    { addSheet: { properties: { title: 'tasks' } } },
+    { addSheet: { properties: { title: 'summary' } } },
+    { deleteSheet: { sheetId: defaultId } },
+  ]);
+  await valuesUpdate(sheetId, 'sessions!A1:I1', [SESSION_HEADERS]);
+  await valuesUpdate(sheetId, 'tasks!A1:J1', [TASK_HEADERS]);
+  localStorage.setItem('worksplit_sheet_id', sheetId);
+  localStorage.setItem('worksplit_sheet_name', file.name);
+  googleAuth.tabsEnsured = true;
+  return sheetId;
+}
+
+// Construye y escribe la pestaña 'summary' (resumen legible por grupos).
+// taskData = [{ group, name, estimatedMin, realSec, status, startedAt, endedAt }]
+async function writeSummary(sheetId, taskData) {
+  const rows = [];
+  rows.push([state.title || '', '', '', '', '']);
+  rows.push([state.description || '', '', '', '', '']);
+  rows.push(['', '', '', '', '']);
+  rows.push(['', 'Tiempo estimado', 'Tiempo real', 'Inicio', 'Fin']);
+
+  // Orden de grupos: primero los de state.groups con tareas, luego cualquier
+  // grupo huérfano (con tareas) que no esté en la lista.
+  const groupsWithTasks = state.groups.filter(g => taskData.some(t => t.group === g));
+  taskData.forEach(t => { if (!groupsWithTasks.includes(t.group)) groupsWithTasks.push(t.group); });
+
+  let totalEstMin = 0;
+  let totalRealSec = 0;
+  groupsWithTasks.forEach((group, gi) => {
+    const gTasks = taskData.filter(t => t.group === group);
+    rows.push([group, '', '', '', '']);
+    gTasks.forEach(t => {
+      const estMin = parseInt(t.estimatedMin, 10) || 0;
+      totalEstMin += estMin;
+      let realMin = '';
+      if (t.status !== 'pending') {
+        const realSec = parseInt(t.realSec, 10) || 0;
+        totalRealSec += realSec;
+        realMin = Math.round(realSec / 60);
+      }
+      const startDisplay = t.startedAt ? fmtDateTime(t.startedAt) : '';
+      const endDisplay = (t.status === 'done' && t.endedAt) ? fmtDateTime(t.endedAt) : '';
+      rows.push([t.name || '', estMin, realMin, startDisplay, endDisplay]);
+    });
+    if (gi < groupsWithTasks.length - 1) rows.push(['', '', '', '', '']);
+  });
+  rows.push(['TOTAL', totalEstMin, Math.round(totalRealSec / 60), '', '']);
+
+  await valuesClear(sheetId, 'summary!A1:Z10000');
+  await valuesUpdate(sheetId, 'summary!A1', rows);
+}
+
+// ─── GOOGLE: SETUP ORCHESTRATION ────────────────────────────
+async function ensureSetup(opts = {}) {
+  if (!isGoogleConfigured()) {
+    setSheetStatus('Falta configurar GOOGLE_API_KEY (para el selector de carpeta).', 'err');
+    updateGoogleUI();
+    return false;
+  }
+  // Asegura un access token desde el backend. Si no hay sesión, el usuario debe
+  // pulsar "Conectar con Google" (que redirige al consentimiento OAuth).
+  if (!googleAuth.accessToken || Date.now() >= googleAuth.tokenExpiry) {
+    const token = await fetchAccessToken();
+    if (!token) {
+      setSheetStatus('Conéctate con Google para guardar.', 'err');
+      updateGoogleUI();
+      return false;
+    }
+  }
+  updateGoogleUI();
+
+  let folderId = getFolderId();
+  if (!folderId) {
+    setSheetStatus('Elige una carpeta en tu Drive...', '');
+    folderId = await pickFolder();
+  }
+  if (!getSheetId()) {
+    setSheetStatus('Creando Sheet...', '');
+    await createSheet(folderId);
+  } else if (!googleAuth.tabsEnsured) {
+    await ensureTabs(getSheetId());
+  }
+  updateGoogleUI();
+  return true;
+}
+
+// Inicia el login OAuth redirigiendo al backend. Tras el consentimiento, Google
+// vuelve a /api/auth/callback y luego a / con ?connected=1.
+function connectGoogle() {
+  window.location.href = '/api/auth/login';
+}
+
+async function resetGoogleTarget() {
+  localStorage.removeItem('worksplit_folder_id');
+  localStorage.removeItem('worksplit_sheet_id');
+  localStorage.removeItem('worksplit_sheet_name');
+  googleAuth.tabsEnsured = false;
+  updateGoogleUI();
+  try {
+    const ok = await ensureSetup({ interactive: false });
+    if (ok) setSheetStatus('✓ Nueva carpeta / Sheet configurado.', 'ok');
+  } catch (e) {
+    setSheetStatus('Error: ' + e.message, 'err');
+  }
+}
+
+// ─── GOOGLE: PUSH / LOAD ────────────────────────────────────
+async function pushToSheet(silent) {
+  if (silent && !isGoogleReady()) return;
+  try {
+    if (!silent) {
+      const ok = await ensureSetup({ interactive: true });
+      if (!ok) return;
+    }
+    const sheetId = getSheetId();
+    if (!sheetId) { if (!silent) setSheetStatus('No hay Sheet configurado.', 'err'); return; }
+    if (!googleAuth.tabsEnsured) await ensureTabs(sheetId);
+    if (!silent) setSheetStatus('Guardando...', '');
+
+    state.title = document.getElementById('sessionTitle').value.trim();
+    state.description = document.getElementById('sessionDescription').value.trim();
+    const now = new Date().toISOString();
+    const afkMs = state.status === 'afk'
+      ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
+      : state.afkElapsed;
+    const sessionId = state.sessionId || ('ws_' + Date.now());
+    const sessionRow = [
+      sessionId,
+      new Date().toLocaleDateString('es-MX'),
+      state.status,
+      state.tasks.reduce((s, t) => s + t.estimatedMin, 0),
+      Math.round(state.totalElapsed / 1000),
+      Math.round(afkMs / 1000),
+      now,
+      state.title,
+      state.description,
+    ];
+    // Datos de tareas normalizados (reutilizados por la pestaña tasks y summary).
+    const taskData = state.tasks.map(t => ({
+      group: t.group || 'General',
+      name: t.name || '',
+      estimatedMin: t.estimatedMin || 0,
+      realSec: t.status === 'active' ? Math.round(state.taskElapsed / 1000) : (t.realSec || 0),
+      status: t.status || 'pending',
+      startedAt: t.startedAt || '',
+      endedAt: t.status === 'done' ? (t.endedAt || '') : '',
+    }));
+    const taskRows = taskData.map((t, idx) => [
+      sessionId, idx + 1, t.group, t.name, t.estimatedMin,
+      t.realSec, t.status, t.startedAt, t.endedAt, now,
+    ]);
+
+    await valuesUpdate(sheetId, 'sessions!A1:I2', [SESSION_HEADERS, sessionRow]);
+    await valuesClear(sheetId, 'tasks!A2:J');
+    await valuesUpdate(sheetId, 'tasks!A1', [TASK_HEADERS, ...taskRows]);
+    await writeSummary(sheetId, taskData);
+
+    if (!silent) setSheetStatus('✓ Guardado en Sheets.', 'ok');
+  } catch (e) {
+    setSheetStatus('Error al guardar: ' + e.message, 'err');
+  }
+}
+
+async function loadFromSheet() {
+  if (state.status === 'running' || state.status === 'afk') {
+    alert('No puedes cargar mientras hay una sesión activa.'); return;
+  }
+  try {
+    const ok = await ensureSetup({ interactive: true });
+    if (!ok) return;
+    const sheetId = getSheetId();
+    if (!sheetId) { setSheetStatus('No hay Sheet configurado.', 'err'); return; }
+    setSheetStatus('Cargando...', '');
+
+    const sRes = await valuesGet(sheetId, 'sessions!A2:I2');
+    const tRes = await valuesGet(sheetId, 'tasks!A2:J');
+    const sRow = (sRes.values && sRes.values[0]) || null;
+    if (!sRow) { setSheetStatus('No hay sesiones guardadas en el Sheet.', 'err'); return; }
+
+    const tRows = tRes.values || [];
+    state.tasks = tRows
+      .filter(r => r && r.length)
+      .sort((a, b) => (parseInt(a[1], 10) || 0) - (parseInt(b[1], 10) || 0))
+      .map(r => ({
+        id: Date.now() + Math.random(),
+        name: r[3] || '',
+        group: r[2] || 'General',
+        estimatedMin: parseInt(r[4], 10) || 30,
+        realSec: parseInt(r[5], 10) || 0,
+        status: r[6] || 'pending',
+        startedAt: r[7] || null,
+        endedAt: r[8] || null,
+      }));
+
+    state.sessionId = sRow[0] || null;
+    state.status = sRow[2] === 'done' ? 'stopped' : (sRow[2] || 'idle');
+    state.totalElapsed = (parseInt(sRow[4], 10) || 0) * 1000;
+    state.afkElapsed = (parseInt(sRow[5], 10) || 0) * 1000;
+    state.title = sRow[7] || '';
+    state.description = sRow[8] || '';
+
+    normalizeGroups();
+    saveLocal(); syncSessionMetaUI(); renderGroups(); renderTasks();
+    updateSummary(); updateButtons(); updateStatus();
+    setSheetStatus('✓ Sesión cargada.', 'ok');
+  } catch (e) {
+    setSheetStatus('Error al cargar: ' + e.message, 'err');
+  }
+}
+
+// ─── GOOGLE: UI ─────────────────────────────────────────────
+function updateGoogleUI() {
+  const configured = isGoogleConfigured();
+  const connected = !!googleAuth.connected;
+
+  document.getElementById('googleConfigWarn').style.display = configured ? 'none' : 'block';
+
+  const btnConnect = document.getElementById('btnConnectGoogle');
+  btnConnect.style.display = connected ? 'none' : 'block';
+  btnConnect.disabled = !configured;
+
+  document.getElementById('googleAccountRow').style.display = connected ? 'flex' : 'none';
+  document.getElementById('googleActions').style.display = connected ? 'flex' : 'none';
+  if (connected) {
+    document.getElementById('googleEmail').textContent = googleAuth.email || 'Conectado';
+  }
+
+  const sheetId = getSheetId();
+  const linkRow = document.getElementById('sheetLinkRow');
+  if (sheetId) {
+    linkRow.style.display = 'block';
+    const a = document.getElementById('sheetLink');
+    a.href = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/edit';
+    a.textContent = '📄 ' + (getSheetName() || 'Abrir Sheet');
+  } else {
+    linkRow.style.display = 'none';
+  }
+}
+
+function setSheetStatus(msg, type) {
+  const el = document.getElementById('sheetStatus');
+  el.textContent = msg;
+  el.className = 'sheet-status ' + (type || '');
+}
+
+// ─── FORMAT HELPERS ─────────────────────────────────────────
+function fmtMs(ms) {
+  const s = Math.floor(ms / 1000);
+  return fmtSec(s);
+}
+function fmtSec(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  return `${pad(h)}:${pad(m)}:${pad(ss)}`;
+}
+function fmtMin(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const date = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${date} ${time}`;
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+
+// ─── KEYBOARD ───────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' ||
+      e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  if (e.key === ' ') { e.preventDefault(); if (!document.getElementById('btnAfk').disabled) toggleAfk(); }
+});
+
+// ─── INIT ───────────────────────────────────────────────────
+loadLocal();
+setupDragDrop();
+renderGroups();
+renderTasks();
+updateButtons();
+updateStatus();
+updateSummary();
+updateGoogleUI();
+if (state.status === 'running' || state.status === 'afk') {
+  // restore: mark as stopped since timers can't resume from localStorage
+  state.status = 'stopped';
+  updateButtons();
+  updateStatus();
+}
+document.getElementById('addForm').style.display =
+  (state.status === 'idle' || state.status === 'stopped') ? '' : 'none';
+tick();
+initGoogleSession();
+
+// Comprueba si ya hay sesión de Google (cookie con refresh token en el backend).
+// Si la hay, el usuario sigue conectado tras recargar o días después.
+async function initGoogleSession() {
+  // Mensajes tras volver del consentimiento OAuth (?connected=1 o ?error=...).
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('error')) {
+    setSheetStatus('Error de conexión: ' + params.get('error'), 'err');
+  }
+  if (params.has('connected') || params.has('error')) {
+    history.replaceState(null, '', window.location.pathname);
+  }
+  try {
+    const token = await fetchAccessToken();
+    if (token) {
+      if (!googleAuth.email) await fetchUserInfo();
+      if (params.has('connected')) setSheetStatus('✓ Conectado con Google.', 'ok');
+    }
+  } catch (e) { /* sin sesión: el usuario verá el botón Conectar */ }
+  updateGoogleUI();
+}
+</script>
+
+<!-- Librería de Google API (solo para el Picker / selector de carpeta). -->
+<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
+</body>
+</html>
