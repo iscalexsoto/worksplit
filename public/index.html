@@ -882,6 +882,149 @@
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* LANGUAGE SWITCHER (escritorio: solo el select en el header) */
+  #langWrap { display: flex; align-items: center; gap: 8px; }
+  .lang-label { display: none; }
+  .lang-switcher {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    outline: none;
+  }
+  .lang-switcher:hover { border-color: var(--accent); color: var(--text); }
+
+  /* Mini-etiquetas por celda: ocultas en escritorio (las cabeceras hacen de etiqueta) */
+  .cell-label { display: none; }
+
+  /* MOBILE SHELL: oculto en escritorio */
+  .ws-mobile { display: none; }
+
+  /* ===== MÓVIL (≤ 860px): se muestra el rediseño de pestañas ===== */
+  @media (max-width: 860px) {
+    header, .layout { display: none !important; }
+    html, body { height: 100%; overflow: hidden; }
+
+    .ws-mobile {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      background: var(--bg);
+    }
+
+    /* Barra superior */
+    .ws-topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .ws-logo { display: flex; align-items: center; gap: 9px; }
+    .ws-logo-txt {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+    .ws-logo-txt span { color: var(--muted); font-weight: 300; }
+    .ws-logo-mark {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      display: flex; flex-direction: column; gap: 2.4px;
+      align-items: flex-start; justify-content: center; padding-left: 6px;
+    }
+    .ws-logo-mark i { display: block; height: 3px; border-radius: 2px; }
+    .ws-logo-mark i:nth-child(1) { width: 13px; background: var(--accent); }
+    .ws-logo-mark i:nth-child(2) { width: 10px; background: var(--accent-dim); }
+    .ws-logo-mark i:nth-child(3) { width: 7px; background: #5d6f26; }
+    .ws-topbar-right { display: flex; align-items: center; }
+
+    /* Cuerpo desplazable */
+    .ws-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 14px; }
+    .ws-panel { display: none; }
+    body.tab-sesion #panelSesion,
+    body.tab-resumen #panelResumen,
+    body.tab-ajustes #panelAjustes { display: block; }
+    /* Márgenes laterales para las secciones reubicadas */
+    .ws-panel > * { margin-left: 16px; margin-right: 16px; }
+    .ws-panel-head, .ws-panel > .panel-title { margin-top: 18px; margin-bottom: 4px; }
+    .ws-panel > .summary-grid { margin-top: 10px; }
+    .ws-panel > #addForm { margin-top: 14px; }
+
+    /* Barra de pestañas inferior */
+    .tabbar {
+      flex-shrink: 0;
+      display: flex;
+      padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .tabbar .tab {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 6px;
+    }
+    .tabbar .tab svg { width: 22px; height: 22px; }
+    .tabbar .tab.on { color: var(--accent); }
+
+    /* Reloj hero */
+    .ws-mobile .clock-block { margin-top: 14px; padding: 24px 16px; border-radius: 18px; }
+    .ws-mobile .clock-value { font-size: 46px; }
+    .ws-mobile .mini-clocks { margin-top: 10px; }
+
+    /* Botones de control a lo ancho */
+    .ws-mobile .ctrl-buttons { margin-top: 14px; gap: 10px; }
+    .ws-mobile .btn-ctrl { padding: 14px; font-size: 13px; }
+
+    /* Selector de idioma dentro de Ajustes */
+    .ws-mobile #langWrap { margin-top: 16px; justify-content: space-between; }
+    .ws-mobile .lang-label {
+      display: inline; font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+    }
+    .ws-mobile #langSwitcher { font-size: 12px; padding: 8px 10px; }
+
+    /* Lista de tareas apilada con mini-etiquetas */
+    .ws-mobile #tasksContainer { overflow-x: visible; padding-right: 0; }
+    .ws-mobile .task-headers { display: none; }
+    .ws-mobile .group-block { margin-bottom: 22px; }
+    .ws-mobile .task-row,
+    .ws-mobile .tasks-sortable .task-row {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 8px 14px; min-width: 0; padding: 12px 0;
+    }
+    .ws-mobile .drag-handle { display: none; }
+    .ws-mobile .task-name-cell { flex: 1 1 100%; }
+    .ws-mobile .task-input-name { font-size: 13px; }
+    .ws-mobile .cell-label {
+      display: inline-block; font-family: var(--mono); font-size: 8px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-right: 5px;
+    }
+    .ws-mobile .task-est, .ws-mobile .task-real, .ws-mobile .task-delta { text-align: left; }
+    .ws-mobile .task-input-est { width: 70px; text-align: center; }
+    .ws-mobile .task-actions { margin-left: auto; }
+    /* En modo edición (sesión idle) la fila es solo nombre + estimado + eliminar */
+    .ws-mobile .tasks-sortable .task-real,
+    .ws-mobile .tasks-sortable .task-delta { display: none; }
+
+    /* Tarjetas de secciones reubicadas */
+    .ws-mobile .groups-section, .ws-mobile .sheet-section { margin-top: 16px; }
+    .ws-mobile .session-meta { margin-top: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -889,12 +1032,16 @@
 <header>
   <div class="logo"><img src="/icons/icon-192.png" alt="WorkSplit">Work<span>Split</span></div>
   <div class="header-right">
+    <div id="langWrap">
+      <span class="lang-label" data-i18n="lang.label">Idioma</span>
+      <select class="lang-switcher" id="langSwitcher" data-i18n-aria-label="lang.aria" onchange="I18N.setLang(this.value)"></select>
+    </div>
     <a class="kofi-btn" href="https://ko-fi.com/A7L5211LO4" target="_blank" rel="noopener">
-      <span class="kofi-emoji">☕</span> Cómprame un café
+      <span class="kofi-emoji">☕</span> <span data-i18n="kofi.label">Cómprame un café</span>
     </a>
     <div class="header-status">
       <div class="status-dot" id="statusDot"></div>
-      <span id="statusLabel">Listo</span>
+      <span id="statusLabel" data-i18n="status.idle">Listo</span>
     </div>
   </div>
 </header>
@@ -902,42 +1049,42 @@
 <div class="layout">
   <!-- LEFT -->
   <div class="tasks-panel" id="tasksPanel">
-    <div class="panel-title">Tareas de la sesión</div>
+    <div class="panel-title" data-i18n="panel.tasksTitle">Tareas de la sesión</div>
 
     <div class="session-meta" id="sessionMeta">
       <div class="form-field">
-        <label class="form-label" for="sessionTitle">Título</label>
-        <input class="form-input" id="sessionTitle" placeholder="Nombre del proyecto o sesión" autocomplete="off" oninput="saveSessionMeta()">
+        <label class="form-label" for="sessionTitle" data-i18n="session.titleLabel">Título</label>
+        <input class="form-input" id="sessionTitle" data-i18n-placeholder="session.titlePlaceholder" placeholder="Nombre del proyecto o sesión" autocomplete="off" oninput="saveSessionMeta()">
       </div>
       <div class="form-field">
-        <label class="form-label" for="sessionDescription">Descripción</label>
-        <textarea class="form-input" id="sessionDescription" placeholder="Descripción general" rows="2" oninput="saveSessionMeta()"></textarea>
+        <label class="form-label" for="sessionDescription" data-i18n="session.descLabel">Descripción</label>
+        <textarea class="form-input" id="sessionDescription" data-i18n-placeholder="session.descPlaceholder" placeholder="Descripción general" rows="2" oninput="saveSessionMeta()"></textarea>
       </div>
     </div>
 
     <div id="tasksContainer">
-      <div class="empty-state" id="emptyState">No hay tareas. Agrega una abajo.</div>
+      <div class="empty-state" id="emptyState" data-i18n="empty.tasks">No hay tareas. Agrega una abajo.</div>
     </div>
 
     <!-- ADD FORM -->
     <div class="add-form" id="addForm">
-      <h3>Agregar tarea</h3>
+      <h3 data-i18n="add.heading">Agregar tarea</h3>
       <div class="form-row">
         <div class="form-field">
-          <label class="form-label">Nombre</label>
-          <input class="form-input" id="fName" placeholder="Descripción de la tarea" autocomplete="off">
+          <label class="form-label" data-i18n="add.nameLabel">Nombre</label>
+          <input class="form-input" id="fName" data-i18n-placeholder="add.namePlaceholder" placeholder="Descripción de la tarea" autocomplete="off">
         </div>
         <div class="form-field">
-          <label class="form-label">Grupo</label>
+          <label class="form-label" data-i18n="add.groupLabel">Grupo</label>
           <select class="form-input" id="fGroup">
             <option value="General">General</option>
           </select>
         </div>
         <div class="form-field">
-          <label class="form-label">Estimado (min)</label>
-          <input class="form-input" id="fEst" type="number" min="1" placeholder="30">
+          <label class="form-label" data-i18n="add.estLabel">Estimado (min)</label>
+          <input class="form-input" id="fEst" type="number" min="1" data-i18n-placeholder="add.estPlaceholder" placeholder="30">
         </div>
-        <button class="btn-add" onclick="addTask()">+ Agregar</button>
+        <button class="btn-add" data-i18n="add.button" onclick="addTask()">+ Agregar</button>
       </div>
     </div>
   </div>
@@ -946,7 +1093,7 @@
   <div class="control-panel">
     <!-- CLOCK -->
     <div class="clock-block">
-      <div class="clock-label">Tarea actual</div>
+      <div class="clock-label" data-i18n="clock.current">Tarea actual</div>
       <div class="clock-value" id="mainClock">00:00:00</div>
       <div class="clock-sub" id="mainClockSub">—</div>
     </div>
@@ -954,11 +1101,11 @@
     <!-- MINI CLOCKS -->
     <div class="mini-clocks">
       <div class="mini-clock">
-        <div class="mini-clock-label">Tiempo<br>total</div>
+        <div class="mini-clock-label" data-i18n="clock.total">Tiempo total</div>
         <div class="mini-clock-value" id="taskClock">00:00:00</div>
       </div>
       <div class="mini-clock afk-clock">
-        <div class="mini-clock-label">Ausente<br>acumulado</div>
+        <div class="mini-clock-label" data-i18n="clock.afkAccum">Ausente acumulado</div>
         <div class="mini-clock-value" id="afkClock">00:00:00</div>
       </div>
     </div>
@@ -974,82 +1121,114 @@
     <!-- SUMMARY -->
     <div class="summary-grid">
       <div class="summary-card">
-        <div class="summary-card-label">Total estimado</div>
+        <div class="summary-card-label" data-i18n="summary.totalEst">Total estimado</div>
         <div class="summary-card-value" id="sumEst">—</div>
       </div>
       <div class="summary-card">
-        <div class="summary-card-label">Tiempo real</div>
+        <div class="summary-card-label" data-i18n="summary.realTime">Tiempo real</div>
         <div class="summary-card-value" id="sumReal">—</div>
       </div>
       <div class="summary-card">
-        <div class="summary-card-label">Total ausente</div>
+        <div class="summary-card-label" data-i18n="summary.totalAfk">Total ausente</div>
         <div class="summary-card-value" id="sumAfk">—</div>
       </div>
       <div class="summary-card">
-        <div class="summary-card-label">Delta</div>
+        <div class="summary-card-label" data-i18n="summary.delta">Delta</div>
         <div class="summary-card-value" id="sumDelta">—</div>
       </div>
     </div>
 
     <!-- GROUPS -->
     <div class="groups-section">
-      <h4>Grupos</h4>
+      <h4 data-i18n="groups.heading">Grupos</h4>
       <div class="groups-list" id="groupsList"></div>
       <div class="group-add-row">
-        <input class="form-input" id="newGroupInput" placeholder="Nuevo grupo..." autocomplete="off">
-        <button class="btn-grp-add" onclick="addGroup()">+ Add</button>
+        <input class="form-input" id="newGroupInput" data-i18n-placeholder="groups.newPlaceholder" placeholder="Nuevo grupo..." autocomplete="off">
+        <button class="btn-grp-add" data-i18n="groups.add" onclick="addGroup()">+ Add</button>
       </div>
     </div>
 
     <!-- GOOGLE SHEETS -->
     <div class="sheet-section">
-      <h4>Google Sheets</h4>
-      <div class="sheet-status err" id="googleConfigWarn" style="display:none;">
+      <h4 data-i18n="sheets.heading">Google Sheets</h4>
+      <div class="sheet-status err" id="googleConfigWarn" style="display:none;" data-i18n="sheets.configWarn">
         El servidor de autenticación no está disponible.
       </div>
-      <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" onclick="connectGoogle()">Conectar con Google</button>
+      <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" data-i18n="sheets.connect" onclick="connectGoogle()">Conectar con Google</button>
       <div class="google-account" id="googleAccountRow" style="display:none;">
         <span class="google-email" id="googleEmail"></span>
-        <button class="btn-sheet" onclick="logoutGoogle()">Salir</button>
+        <button class="btn-sheet" data-i18n="sheets.logout" onclick="logoutGoogle()">Salir</button>
       </div>
       <div class="sheet-link-row" id="sheetLinkRow" style="display:none;">
-        <a id="sheetLink" href="#" target="_blank" rel="noopener">Abrir Sheet</a>
+        <a id="sheetLink" href="#" target="_blank" rel="noopener" data-i18n="sheets.open">Abrir Sheet</a>
       </div>
       <div id="googleActions" style="display:none; gap:8px; margin-top:8px; flex-direction:column;">
         <div style="display:flex; gap:8px;">
-          <button class="btn-sheet btn-sheet-push" onclick="pushToSheet()">↑ Guardar</button>
-          <button class="btn-sheet btn-sheet-load" onclick="loadFromSheet()">↓ Cargar</button>
+          <button class="btn-sheet btn-sheet-push" data-i18n="sheets.save" onclick="pushToSheet()">↑ Guardar</button>
+          <button class="btn-sheet btn-sheet-load" data-i18n="sheets.load" onclick="loadFromSheet()">↓ Cargar</button>
         </div>
-        <button class="btn-sheet" onclick="resetGoogleTarget()">Buscar / recrear Sheet</button>
+        <button class="btn-sheet" data-i18n="sheets.recreate" onclick="resetGoogleTarget()">Buscar / recrear Sheet</button>
       </div>
       <div class="sheet-status" id="sheetStatus"></div>
     </div>
   </div>
 </div>
 
+<!-- MOBILE SHELL (solo visible en móvil; las secciones se reubican aquí vía JS) -->
+<div class="ws-mobile" id="wsMobile">
+  <div class="ws-topbar">
+    <div class="ws-logo">
+      <span class="ws-logo-mark"><i></i><i></i><i></i></span>
+      <span class="ws-logo-txt">Work<span>Split</span></span>
+    </div>
+    <div class="ws-topbar-right" id="mTopbarRight"></div>
+  </div>
+  <div class="ws-body">
+    <section class="ws-panel" data-tab-panel="sesion" id="panelSesion"></section>
+    <section class="ws-panel" data-tab-panel="resumen" id="panelResumen">
+      <div class="panel-title ws-panel-head" data-i18n="summary.heading">Resumen de la sesión</div>
+    </section>
+    <section class="ws-panel" data-tab-panel="ajustes" id="panelAjustes"></section>
+  </div>
+  <nav class="tabbar" id="wsTabbar">
+    <button type="button" class="tab" data-tab="sesion" onclick="setMobileTab('sesion')">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span data-i18n="tab.session">Sesión</span>
+    </button>
+    <button type="button" class="tab" data-tab="resumen" onclick="setMobileTab('resumen')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 19V5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5 19h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><rect x="8" y="11" width="3" height="5" rx="1" fill="currentColor"/><rect x="13" y="7" width="3" height="9" rx="1" fill="currentColor"/></svg>
+      <span data-i18n="tab.summary">Resumen</span>
+    </button>
+    <button type="button" class="tab" data-tab="ajustes" onclick="setMobileTab('ajustes')">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2.5M12 18.5V21M21 12h-2.5M5.5 12H3M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8M18.4 18.4l-1.8-1.8M7.4 7.4 5.6 5.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span data-i18n="tab.settings">Ajustes</span>
+    </button>
+  </nav>
+</div>
+
 <!-- FINISH MODAL -->
 <div class="modal-overlay" id="finishModal">
   <div class="modal">
-    <h2>🏁 Sesión finalizada</h2>
+    <h2 data-i18n="finish.title">🏁 Sesión finalizada</h2>
     <div class="modal-stat">
-      <span class="modal-stat-label">Total estimado</span>
+      <span class="modal-stat-label" data-i18n="finish.totalEst">Total estimado</span>
       <span class="modal-stat-value" id="mEst">—</span>
     </div>
     <div class="modal-stat">
-      <span class="modal-stat-label">Tiempo real (activo)</span>
+      <span class="modal-stat-label" data-i18n="finish.realActive">Tiempo real (activo)</span>
       <span class="modal-stat-value" id="mReal">—</span>
     </div>
     <div class="modal-stat">
-      <span class="modal-stat-label">Tiempo ausente</span>
+      <span class="modal-stat-label" data-i18n="finish.afk">Tiempo ausente</span>
       <span class="modal-stat-value" id="mAfk">—</span>
     </div>
     <div class="modal-stat">
-      <span class="modal-stat-label">Delta</span>
+      <span class="modal-stat-label" data-i18n="finish.delta">Delta</span>
       <span class="modal-stat-value" id="mDelta">—</span>
     </div>
     <div class="modal-actions">
-      <button class="btn-modal" onclick="closeModal()">Cerrar</button>
-      <button class="btn-modal primary" onclick="pushToSheet(); closeModal()">Guardar en Sheets</button>
+      <button class="btn-modal" data-i18n="finish.close" onclick="closeModal()">Cerrar</button>
+      <button class="btn-modal primary" data-i18n="finish.saveSheets" onclick="pushToSheet(); closeModal()">Guardar en Sheets</button>
     </div>
   </div>
 </div>
@@ -1069,6 +1248,7 @@
   </div>
 </div>
 
+<script src="/i18n.js"></script>
 <script>
 // ─── GOOGLE CONFIG ──────────────────────────────────────────
 // El login OAuth lo maneja el backend serverless (/api/auth/*) usando el
@@ -1108,7 +1288,7 @@ let state = {
   currentTaskIndex: null,
 };
 
-const AUTO_SAVE_MS = 2 * 60 * 1000;
+const AUTO_SAVE_MS = 5 * 60 * 1000;
 let autoSaveTimer = null;
 const dragState = { type: null, groupIdx: null, taskIdx: null };
 
@@ -1130,6 +1310,13 @@ function stopAutoSave() {
 
 function autoSave() {
   if (!isSessionActive()) return;
+  saveLocal();
+  if (isGoogleReady()) pushToSheet(true);
+}
+
+// Guarda inmediatamente (local + Sheets) ante un cambio de estado:
+// iniciar, ausentarse/volver o detener.
+function persistNow() {
   saveLocal();
   if (isGoogleReady()) pushToSheet(true);
 }
@@ -1547,15 +1734,15 @@ function markDone(idx) {
 
 function taskDatesHtml(task) {
   const parts = [];
-  if (task.startedAt) parts.push('Inicio: ' + fmtDateTime(task.startedAt));
-  if (task.endedAt) parts.push('Fin: ' + fmtDateTime(task.endedAt));
+  if (task.startedAt) parts.push(t('task.startPrefix') + ': ' + fmtDateTime(task.startedAt));
+  if (task.endedAt) parts.push(t('task.endPrefix') + ': ' + fmtDateTime(task.endedAt));
   return parts.length ? `<span class="task-dates">${parts.join(' · ')}</span>` : '';
 }
 
 function renderTasks() {
   const container = document.getElementById('tasksContainer');
   if (state.tasks.length === 0) {
-    container.innerHTML = '<div class="empty-state" id="emptyState">No hay tareas. Agrega una abajo.</div>';
+    container.innerHTML = `<div class="empty-state" id="emptyState">${t('empty.tasks')}</div>`;
     container.classList.remove('tasks-sortable');
     return;
   }
@@ -1566,7 +1753,7 @@ function renderTasks() {
   const headers = document.createElement('div');
   headers.className = 'task-headers';
   const handleHeader = canReorder() ? '<span></span>' : '';
-  headers.innerHTML = `${handleHeader}<span>Tarea</span><span>Est.</span><span>Real</span><span>Delta</span><span>${canDeleteTasks() ? 'Eliminar' : 'Acción'}</span>`;
+  headers.innerHTML = `${handleHeader}<span>${t('col.task')}</span><span>${t('col.est')}</span><span>${t('col.real')}</span><span>${t('col.delta')}</span><span>${canDeleteTasks() ? t('col.delete') : t('col.action')}</span>`;
   container.appendChild(headers);
 
   state.groups.forEach((group, gi) => {
@@ -1580,13 +1767,13 @@ function renderTasks() {
       block.className = 'group-block group-block-empty';
       block.dataset.groupIdx = gi;
       block.dataset.group = group;
-      const groupDrag = `<span class="drag-handle" draggable="true" title="Arrastrar grupo">⋮⋮</span>`;
+      const groupDrag = `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">⋮⋮</span>`;
       block.innerHTML = `<div class="group-header draggable" data-group-idx="${gi}">
         <div class="group-header-left">
           ${groupDrag}
           <span class="group-label">${group}</span>
         </div>
-        <span class="group-est">sin tareas</span>
+        <span class="group-est">${t('group.noTasks')}</span>
       </div>`;
       container.appendChild(block);
       return;
@@ -1598,14 +1785,14 @@ function renderTasks() {
     block.dataset.groupIdx = gi;
     block.dataset.group = group;
     const groupDrag = canReorder()
-      ? `<span class="drag-handle" draggable="true" title="Arrastrar grupo">⋮⋮</span>`
+      ? `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">⋮⋮</span>`
       : '';
     block.innerHTML = `<div class="group-header${canReorder() ? ' draggable' : ''}" data-group-idx="${gi}">
       <div class="group-header-left">
         ${groupDrag}
         <span class="group-label">${group}</span>
       </div>
-      <span class="group-est">est. ${fmtMin(groupEstMin)}</span>
+      <span class="group-est">${t('group.est', { est: fmtMin(groupEstMin) })}</span>
     </div>`;
     items.forEach(({ task, idx }, localIdx) => {
       const row = document.createElement('div');
@@ -1620,13 +1807,17 @@ function renderTasks() {
         row.dataset.taskIdx = idx;
       }
 
-      let deltaHtml = '<span class="task-delta neutral">—</span>';
+      // Mini-etiqueta por celda: oculta en escritorio (las cabeceras hacen de etiqueta),
+      // visible en la vista móvil donde cada fila se apila.
+      const lbl = (k) => `<span class="cell-label">${t(k)}</span>`;
+
+      let deltaHtml = `<span class="task-delta neutral">${lbl('col.delta')}—</span>`;
       if (task.status === 'done') {
         const estSec = task.estimatedMin * 60;
         const delta = estSec - task.realSec;
         const cls = delta >= 0 ? 'ahead' : 'behind';
         const sign = delta >= 0 ? '-' : '+';
-        deltaHtml = `<span class="task-delta ${cls}">${sign}${fmtSec(Math.abs(delta))}</span>`;
+        deltaHtml = `<span class="task-delta ${cls}">${lbl('col.delta')}${sign}${fmtSec(Math.abs(delta))}</span>`;
       }
 
       const realDisplay = (task.status === 'done' || task.status === 'paused') ? fmtSec(task.realSec) : '—';
@@ -1636,31 +1827,32 @@ function renderTasks() {
       const isRunning = state.status === 'running';
       let sessionBtn;
       if (task.status === 'done') {
-        sessionBtn = `<button class="btn-done done-btn-active" disabled>✓ Listo</button>`;
+        sessionBtn = `<button class="btn-done done-btn-active" disabled>${t('task.done')}</button>`;
       } else if (task.status === 'active') {
-        sessionBtn = `<button class="btn-done" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'}>Marcar listo</button>`;
+        sessionBtn = `<button class="btn-done" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.markDone')}</button>`;
       } else {
-        sessionBtn = `<button class="btn-activate" onclick="focusTask(${idx})" ${isRunning ? '' : 'disabled'}>Activar</button>`;
+        sessionBtn = `<button class="btn-activate" onclick="focusTask(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.activate')}</button>`;
       }
       const actionsHtml = canDelete
-        ? `<button class="btn-del-task" onclick="removeTask(${idx})" title="Eliminar tarea">Eliminar</button>`
+        ? `<button class="btn-del-task" onclick="removeTask(${idx})" title="${t('task.deleteTitle')}">${t('task.delete')}</button>`
         : sessionBtn;
       const taskDrag = canReorder()
-        ? `<span class="drag-handle" draggable="true" title="Arrastrar para reordenar o cambiar de grupo">⋮⋮</span>`
+        ? `<span class="drag-handle" draggable="true" title="${t('task.dragTitle')}">⋮⋮</span>`
         : '';
       const nameHtml = canEdit
         ? `<div class="task-name-cell"><input class="task-input task-input-name" type="text" value="${escHtml(task.name)}" onblur="updateTaskField(${idx}, 'name', this.value)">${taskDatesHtml(task)}</div>`
         : `<div class="task-name-cell"><span class="task-name" title="${escHtml(task.name)}">${escHtml(task.name)}</span>${taskDatesHtml(task)}</div>`;
       const estHtml = canEdit
         ? `<input class="task-input task-input-est" type="number" min="1" value="${task.estimatedMin}" onchange="updateTaskField(${idx}, 'estimatedMin', this.value)">`
-        : `<span class="task-est">${fmtMin(task.estimatedMin)}</span>`;
+        : `<span class="task-est">${lbl('col.est')}${fmtMin(task.estimatedMin)}</span>`;
+      const realHtml = `<span class="task-real">${lbl('col.real')}${realDisplay}</span>`;
 
       row.innerHTML = `
         ${activeBar}
         ${taskDrag}
         ${nameHtml}
         ${estHtml}
-        <span class="task-real">${realDisplay}</span>
+        ${realHtml}
         ${deltaHtml}
         <div class="task-actions">
           ${actionsHtml}
@@ -1674,7 +1866,7 @@ function renderTasks() {
 
 // ─── SESSION CONTROL ────────────────────────────────────────
 function startSession() {
-  if (state.tasks.length === 0) { notify('Agrega al menos una tarea antes de iniciar.', 'err'); return; }
+  if (state.tasks.length === 0) { notify(t('toast.addTaskFirst'), 'err'); return; }
   const isResume = state.status === 'stopped';
 
   state.status = 'running';
@@ -1699,7 +1891,7 @@ function startSession() {
   }
 
   document.getElementById('addForm').style.display = 'none';
-  updateButtons(); renderTasks(); updateStatus(); saveLocal();
+  updateButtons(); renderTasks(); updateStatus(); persistNow();
   startAutoSave();
   tick();
 }
@@ -1714,14 +1906,14 @@ function toggleAfk() {
     state.status = 'running';
     state.lastTick = Date.now();
   }
-  updateButtons(); updateStatus(); saveLocal();
+  updateButtons(); updateStatus(); persistNow();
 }
 
 async function stopSession() {
   const ok = await confirmDialog({
-    title: 'Detener sesión',
-    message: 'Los contadores se pausarán. Puedes reanudar más tarde.',
-    confirmText: 'Detener',
+    title: t('confirm.stopTitle'),
+    message: t('confirm.stopBody'),
+    confirmText: t('confirm.stopConfirm'),
     danger: true,
   });
   if (!ok) return;
@@ -1731,7 +1923,7 @@ async function stopSession() {
   }
   state.status = 'stopped';
   stopAutoSave();
-  saveLocal();
+  persistNow();
   updateButtons(); updateStatus();
 }
 
@@ -1747,9 +1939,9 @@ async function newSession() {
   if (state.status === 'running' || state.status === 'afk') return;
   if (state.status !== 'idle') {
     const ok = await confirmDialog({
-      title: 'Restablecer',
-      message: 'Se conservan las tareas, pero se reinician los tiempos y el progreso.',
-      confirmText: 'Restablecer',
+      title: t('confirm.resetTitle'),
+      message: t('confirm.resetBody'),
+      confirmText: t('confirm.resetConfirm'),
       danger: true,
     });
     if (!ok) return;
@@ -1803,7 +1995,7 @@ function updateClocks() {
   const diff = taskEstMs - state.taskElapsed;
   const sign = diff >= 0 ? '-' : '+';
   document.getElementById('mainClockSub').textContent =
-    taskEstMs > 0 ? `${sign}${fmtMs(Math.abs(diff))} vs estimado` : '—';
+    taskEstMs > 0 ? t('clock.vsEstimate', { sign, time: fmtMs(Math.abs(diff)) }) : '—';
 }
 
 function updateSummary() {
@@ -1840,13 +2032,14 @@ function updateButtons() {
   const s = state.status;
   document.getElementById('btnStart').disabled = s !== 'idle' && s !== 'stopped';
   document.getElementById('btnStart').textContent =
-    (s === 'running' || s === 'afk') ? '▶ Activo'
-    : s === 'stopped' ? '▶ Reanudar'
-    : '▶ Iniciar';
+    (s === 'running' || s === 'afk') ? t('ctrl.activeRunning')
+    : s === 'stopped' ? t('ctrl.resume')
+    : t('ctrl.start');
   document.getElementById('btnAfk').disabled = s !== 'running' && s !== 'afk';
-  document.getElementById('btnAfk').textContent = s === 'afk' ? '▶ Volver' : '⏸ Ausentarme';
+  document.getElementById('btnAfk').textContent = s === 'afk' ? t('ctrl.return') : t('ctrl.afk');
   document.getElementById('btnStop').disabled = s !== 'running' && s !== 'afk';
-  document.getElementById('btnStop').textContent = s === 'stopped' ? '■ Detenido' : '■ Detener';
+  document.getElementById('btnStop').textContent = s === 'stopped' ? t('ctrl.stopped') : t('ctrl.stop');
+  document.getElementById('btnNewSession').textContent = t('ctrl.reset');
   document.getElementById('btnNewSession').style.display = (s === 'stopped' || s === 'done') ? '' : 'none';
   updateSessionMetaFields();
 }
@@ -1855,13 +2048,14 @@ function updateStatus() {
   const dot = document.getElementById('statusDot');
   const label = document.getElementById('statusLabel');
   const map = {
-    idle: ['', 'Listo'],
-    running: ['running', 'Activo'],
-    afk: ['paused', 'Ausente'],
-    stopped: ['', 'Detenido'],
-    done: ['done', 'Finalizado'],
+    idle: ['', 'status.idle'],
+    running: ['running', 'status.running'],
+    afk: ['paused', 'status.afk'],
+    stopped: ['', 'status.stopped'],
+    done: ['done', 'status.done'],
   };
-  const [cls, text] = map[state.status] || ['', ''];
+  const [cls, key] = map[state.status] || ['', ''];
+  const text = key ? t(key) : '';
   dot.className = 'status-dot ' + cls;
   label.textContent = text;
 }
@@ -1905,7 +2099,7 @@ function notify(message, type = '', duration = 3500) {
 
 // Diálogo de confirmación personalizado (reemplaza al confirm() nativo).
 // Devuelve una promesa que resuelve true (aceptar) o false (cancelar).
-function confirmDialog({ title = 'Confirmar', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}) {
+function confirmDialog({ title = t('confirm.title'), message = '', confirmText = t('confirm.confirm'), cancelText = t('confirm.cancel'), danger = false } = {}) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirmModal');
     const okBtn = document.getElementById('confirmOk');
@@ -1965,7 +2159,7 @@ async function fetchAccessToken() {
   try {
     res = await fetch('/api/auth/token', { credentials: 'same-origin' });
   } catch (e) {
-    throw new Error('No se pudo contactar al servidor de autenticación.');
+    throw new Error(t('err.noAuthServer'));
   }
   if (res.status === 401) {
     googleAuth.accessToken = null;
@@ -1973,7 +2167,7 @@ async function fetchAccessToken() {
     googleAuth.connected = false;
     return null;
   }
-  if (!res.ok) throw new Error('Error de autenticación (HTTP ' + res.status + ').');
+  if (!res.ok) throw new Error(t('err.authHttp', { status: res.status }));
   const data = await res.json();
   googleAuth.accessToken = data.access_token;
   googleAuth.tokenExpiry = Date.now() + ((parseInt(data.expires_in, 10) || 3600) * 1000) - 60000;
@@ -1997,7 +2191,7 @@ function scheduleTokenRefresh() {
 async function ensureToken() {
   if (googleAuth.accessToken && Date.now() < googleAuth.tokenExpiry) return googleAuth.accessToken;
   const token = await fetchAccessToken();
-  if (!token) throw new Error('Sesión de Google no iniciada. Pulsa "Conectar con Google".');
+  if (!token) throw new Error(t('err.noGoogleSession'));
   return token;
 }
 async function gFetch(url, opts = {}) {
@@ -2032,7 +2226,7 @@ async function logoutGoogle() {
   googleAuth.tokenExpiry = 0;
   googleAuth.connected = false;
   googleAuth.tabsEnsured = false;
-  setSheetStatus('Sesión de Google cerrada.', '');
+  setSheetStatus(t('sheets.statusClosed'), '');
   updateGoogleUI();
 }
 
@@ -2154,7 +2348,7 @@ async function writeSummary(sheetId, taskData) {
   rows.push([state.title || '', '', '', '', '']);
   rows.push([state.description || '', '', '', '', '']);
   rows.push(['', '', '', '', '']);
-  rows.push(['', 'Tiempo estimado', 'Tiempo real', 'Inicio', 'Fin']);
+  rows.push(['', t('sheet.colEstTime'), t('sheet.colRealTime'), t('sheet.colStart'), t('sheet.colEnd')]);
 
   // Orden de grupos: primero los de state.groups con tareas, luego cualquier
   // grupo huérfano (con tareas) que no esté en la lista.
@@ -2181,7 +2375,7 @@ async function writeSummary(sheetId, taskData) {
     });
     if (gi < groupsWithTasks.length - 1) rows.push(['', '', '', '', '']);
   });
-  rows.push(['TOTAL', totalEstMin, Math.round(totalRealSec / 60), '', '']);
+  rows.push([t('sheet.total'), totalEstMin, Math.round(totalRealSec / 60), '', '']);
 
   await valuesClear(sheetId, 'summary!A1:Z10000');
   await valuesUpdate(sheetId, 'summary!A1', rows);
@@ -2194,14 +2388,14 @@ async function ensureSetup() {
   if (!googleAuth.accessToken || Date.now() >= googleAuth.tokenExpiry) {
     const token = await fetchAccessToken();
     if (!token) {
-      setSheetStatus('Conéctate con Google para guardar.', 'err');
+      setSheetStatus(t('sheets.statusConnectToSave'), 'err');
       updateGoogleUI();
       return false;
     }
   }
   updateGoogleUI();
 
-  if (!getSheetId()) setSheetStatus('Preparando tu Sheet en Drive...', '');
+  if (!getSheetId()) setSheetStatus(t('sheets.statusPreparing'), '');
   await ensureWorkspace();
   updateGoogleUI();
   return true;
@@ -2221,9 +2415,9 @@ async function resetGoogleTarget() {
   updateGoogleUI();
   try {
     const ok = await ensureSetup();
-    if (ok) setSheetStatus('✓ Sheet de WorkSplit listo.', 'ok');
+    if (ok) setSheetStatus(t('sheets.statusReady'), 'ok');
   } catch (e) {
-    setSheetStatus('Error: ' + e.message, 'err');
+    setSheetStatus(t('sheets.errGeneric', { msg: e.message }), 'err');
   }
 }
 
@@ -2236,9 +2430,9 @@ async function pushToSheet(silent) {
       if (!ok) return;
     }
     const sheetId = getSheetId();
-    if (!sheetId) { if (!silent) setSheetStatus('No hay Sheet configurado.', 'err'); return; }
+    if (!sheetId) { if (!silent) setSheetStatus(t('sheets.statusNoSheet'), 'err'); return; }
     if (!googleAuth.tabsEnsured) await ensureTabs(sheetId);
-    if (!silent) setSheetStatus('Guardando...', '');
+    if (!silent) setSheetStatus(t('sheets.statusSaving'), '');
 
     state.title = document.getElementById('sessionTitle').value.trim();
     state.description = document.getElementById('sessionDescription').value.trim();
@@ -2247,7 +2441,7 @@ async function pushToSheet(silent) {
       ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
       : state.afkElapsed;
     const sessionRow = [
-      new Date().toLocaleDateString('es-MX'),
+      new Date().toLocaleDateString(I18N.localeFor()),
       state.status,
       state.tasks.reduce((s, t) => s + t.estimatedMin, 0),
       Math.round(state.totalElapsed / 1000),
@@ -2276,27 +2470,27 @@ async function pushToSheet(silent) {
     await valuesUpdate(sheetId, 'tasks!A1', [TASK_HEADERS, ...taskRows]);
     await writeSummary(sheetId, taskData);
 
-    if (!silent) setSheetStatus('✓ Guardado en Sheets.', 'ok');
+    if (!silent) setSheetStatus(t('sheets.statusSaved'), 'ok');
   } catch (e) {
-    setSheetStatus('Error al guardar: ' + e.message, 'err');
+    setSheetStatus(t('sheets.errSave', { msg: e.message }), 'err');
   }
 }
 
 async function loadFromSheet() {
   if (state.status === 'running' || state.status === 'afk') {
-    notify('No puedes cargar mientras hay una sesión activa.', 'err'); return;
+    notify(t('toast.cannotLoadActive'), 'err'); return;
   }
   try {
     const ok = await ensureSetup();
     if (!ok) return;
     const sheetId = getSheetId();
-    if (!sheetId) { setSheetStatus('No hay Sheet configurado.', 'err'); return; }
-    setSheetStatus('Cargando...', '');
+    if (!sheetId) { setSheetStatus(t('sheets.statusNoSheet'), 'err'); return; }
+    setSheetStatus(t('sheets.statusLoading'), '');
 
     const sRes = await valuesGet(sheetId, 'sessions!A2:H2');
     const tRes = await valuesGet(sheetId, 'tasks!A2:I');
     const sRow = (sRes.values && sRes.values[0]) || null;
-    if (!sRow) { setSheetStatus('No hay sesiones guardadas en el Sheet.', 'err'); return; }
+    if (!sRow) { setSheetStatus(t('sheets.statusNoSessions'), 'err'); return; }
 
     const tRows = tRes.values || [];
     state.tasks = tRows
@@ -2322,9 +2516,9 @@ async function loadFromSheet() {
     normalizeGroups();
     saveLocal(); syncSessionMetaUI(); renderGroups(); renderTasks();
     updateSummary(); updateButtons(); updateStatus();
-    setSheetStatus('✓ Sesión cargada.', 'ok');
+    setSheetStatus(t('sheets.statusLoaded'), 'ok');
   } catch (e) {
-    setSheetStatus('Error al cargar: ' + e.message, 'err');
+    setSheetStatus(t('sheets.errLoad', { msg: e.message }), 'err');
   }
 }
 
@@ -2342,7 +2536,7 @@ function updateGoogleUI() {
   document.getElementById('googleAccountRow').style.display = connected ? 'flex' : 'none';
   document.getElementById('googleActions').style.display = connected ? 'flex' : 'none';
   if (connected) {
-    document.getElementById('googleEmail').textContent = googleAuth.email || 'Conectado';
+    document.getElementById('googleEmail').textContent = googleAuth.email || t('sheets.connected');
   }
 
   const sheetId = getSheetId();
@@ -2351,7 +2545,7 @@ function updateGoogleUI() {
     linkRow.style.display = 'block';
     const a = document.getElementById('sheetLink');
     a.href = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/edit';
-    a.textContent = '📄 ' + (getSheetName() || 'Abrir Sheet');
+    a.textContent = '📄 ' + (getSheetName() || t('sheets.open'));
   } else {
     linkRow.style.display = 'none';
   }
@@ -2377,14 +2571,15 @@ function fmtSec(s) {
 function fmtMin(min) {
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  return h > 0 ? `${h}${t('fmt.hour')} ${m}${t('fmt.min')}` : `${m}${t('fmt.min')}`;
 }
 function fmtDateTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
-  const date = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const loc = I18N.localeFor();
+  const date = d.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const time = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', hour12: false });
   return `${date} ${time}`;
 }
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -2396,25 +2591,127 @@ document.addEventListener('keydown', e => {
   if (e.key === ' ') { e.preventDefault(); if (!document.getElementById('btnAfk').disabled) toggleAfk(); }
 });
 
+// ─── RESPONSIVE / MOBILE SHELL ──────────────────────────────
+// El layout de escritorio no se toca: en móvil se reubican los MISMOS nodos de
+// sección dentro del shell de pestañas (.ws-mobile). Como son los mismos nodos,
+// los IDs, listeners y funciones de render siguen funcionando igual.
+// Orden = orden visual dentro de cada panel móvil.
+const MOBILE_LAYOUT = [
+  ['.header-status', 'mTopbarRight'],
+  ['.clock-block', 'panelSesion'],
+  ['.mini-clocks', 'panelSesion'],
+  ['.ctrl-buttons', 'panelSesion'],
+  ['.panel-title', 'panelSesion'],
+  ['#tasksContainer', 'panelSesion'],
+  ['#addForm', 'panelSesion'],
+  ['.summary-grid', 'panelResumen'],
+  ['#langWrap', 'panelAjustes'],
+  ['.session-meta', 'panelAjustes'],
+  ['.groups-section', 'panelAjustes'],
+  ['.sheet-section', 'panelAjustes'],
+  ['.kofi-btn', 'panelAjustes'],
+];
+const mobileAnchors = [];
+let mobileMQ = null;
+let currentMobileTab = 'sesion';
+
+function setupResponsive() {
+  // Ancla cada nodo movible con un comentario en su posición original; restaurar
+  // = insertarlo antes de su comentario (independiente del orden, robusto).
+  MOBILE_LAYOUT.forEach(([sel, target]) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    const ph = document.createComment('ws-anchor');
+    el.parentNode.insertBefore(ph, el);
+    mobileAnchors.push({ el, ph, target });
+  });
+  mobileMQ = window.matchMedia('(max-width: 860px)');
+  applyLayout();
+  mobileMQ.addEventListener('change', applyLayout);
+  setMobileTab(currentMobileTab);
+}
+
+function applyLayout() {
+  const mobile = mobileMQ.matches;
+  document.body.classList.toggle('is-mobile', mobile);
+  mobileAnchors.forEach(({ el, ph, target }) => {
+    if (mobile) {
+      document.getElementById(target).appendChild(el);
+    } else {
+      ph.parentNode.insertBefore(el, ph);
+    }
+  });
+  // Re-render: el markup de filas es el mismo, pero así se refrescan handles y
+  // mini-etiquetas tras mover #tasksContainer.
+  renderTasks();
+}
+
+function setMobileTab(tab) {
+  currentMobileTab = tab;
+  document.body.classList.remove('tab-sesion', 'tab-resumen', 'tab-ajustes');
+  document.body.classList.add('tab-' + tab);
+  document.querySelectorAll('#wsTabbar .tab').forEach((b) => {
+    b.classList.toggle('on', b.dataset.tab === tab);
+  });
+}
+
+function populateLangSwitcher() {
+  const sel = document.getElementById('langSwitcher');
+  if (!sel) return;
+  sel.innerHTML = '';
+  I18N.availableLangs().forEach((l) => {
+    const o = document.createElement('option');
+    o.value = l;
+    o.textContent = I18N.langName(l);
+    sel.appendChild(o);
+  });
+  sel.value = I18N.getLang();
+}
+
 // ─── INIT ───────────────────────────────────────────────────
-loadLocal();
-setupDragDrop();
-renderGroups();
-renderTasks();
-updateButtons();
-updateStatus();
-updateSummary();
-updateGoogleUI();
-if (state.status === 'running' || state.status === 'afk') {
-  // restore: mark as stopped since timers can't resume from localStorage
-  state.status = 'stopped';
+function init() {
+  loadLocal();
+  setupDragDrop();
+  setupResponsive();
+  renderGroups();
+  renderTasks();
   updateButtons();
   updateStatus();
+  updateSummary();
+  updateGoogleUI();
+  if (state.status === 'running' || state.status === 'afk') {
+    // restore: mark as stopped since timers can't resume from localStorage
+    state.status = 'stopped';
+    updateButtons();
+    updateStatus();
+  }
+  document.getElementById('addForm').style.display =
+    (state.status === 'idle' || state.status === 'stopped') ? '' : 'none';
+  tick();
+  initGoogleSession();
 }
-document.getElementById('addForm').style.display =
-  (state.status === 'idle' || state.status === 'stopped') ? '' : 'none';
-tick();
-initGoogleSession();
+
+// Re-render de las partes generadas en JS al cambiar de idioma (lo estático lo
+// re-aplica I18N.applyTranslations dentro de setLang).
+window.onLangChange = function () {
+  syncSessionMetaUI();
+  renderGroups();
+  renderTasks();
+  updateButtons();
+  updateStatus();
+  updateSummary();
+  updateClocks();
+  updateGoogleUI();
+};
+
+// Arranque: primero cargar traducciones (CSV), luego inicializar la app.
+async function boot() {
+  await I18N.load();
+  populateLangSwitcher();
+  I18N.applyTranslations(document);
+  init();
+}
+boot();
 
 // PWA: registra el service worker (permite instalar la app y abrir offline).
 if ('serviceWorker' in navigator) {
@@ -2429,7 +2726,7 @@ async function initGoogleSession() {
   // Mensajes tras volver del consentimiento OAuth (?connected=1 o ?error=...).
   const params = new URLSearchParams(window.location.search);
   if (params.get('error')) {
-    setSheetStatus('Error de conexión: ' + params.get('error'), 'err');
+    setSheetStatus(t('sheets.errConnReturn', { error: params.get('error') }), 'err');
   }
   if (params.has('connected') || params.has('error')) {
     history.replaceState(null, '', window.location.pathname);
@@ -2443,9 +2740,9 @@ async function initGoogleSession() {
       if (params.has('connected')) {
         try {
           await ensureWorkspace();
-          setSheetStatus('✓ Conectado. Tu Sheet está listo.', 'ok');
+          setSheetStatus(t('sheets.statusConnectedReady'), 'ok');
         } catch (e) {
-          setSheetStatus('Conectado, pero no se pudo preparar el Sheet: ' + e.message, 'err');
+          setSheetStatus(t('sheets.errConnPrepare', { msg: e.message }), 'err');
         }
       }
     }

@@ -2,10 +2,12 @@
 // Estrategia: network-first para el contenido propio (así la app se auto-actualiza
 // al recargar) con respaldo en caché para que abra estando offline. Las llamadas a
 // /api/* y a las APIs de Google NUNCA se cachean.
-const CACHE = 'worksplit-v1';
+const CACHE = 'worksplit-v2';
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
+  '/i18n.js',
+  '/i18n/translations.csv',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];

@@ -1,0 +1,115 @@
+key|es|en
+kofi.label|Cómprame un café|Buy me a coffee
+lang.aria|Cambiar idioma|Change language
+status.idle|Listo|Ready
+status.running|Activo|Active
+status.afk|Ausente|Away
+status.stopped|Detenido|Stopped
+status.done|Finalizado|Finished
+panel.tasksTitle|Tareas de la sesión|Session tasks
+session.titleLabel|Título|Title
+session.titlePlaceholder|Nombre del proyecto o sesión|Project or session name
+session.descLabel|Descripción|Description
+session.descPlaceholder|Descripción general|General description
+add.heading|Agregar tarea|Add task
+add.nameLabel|Nombre|Name
+add.namePlaceholder|Descripción de la tarea|Task description
+add.groupLabel|Grupo|Group
+add.estLabel|Estimado (min)|Estimated (min)
+add.estPlaceholder|30|30
+add.button|+ Agregar|+ Add
+col.task|Tarea|Task
+col.est|Est.|Est.
+col.real|Real|Actual
+col.delta|Delta|Delta
+col.delete|Eliminar|Delete
+col.action|Acción|Action
+task.activate|Activar|Activate
+task.markDone|Marcar listo|Mark done
+task.done|✓ Listo|✓ Done
+task.delete|Eliminar|Delete
+task.deleteTitle|Eliminar tarea|Delete task
+task.dragTitle|Arrastrar para reordenar o cambiar de grupo|Drag to reorder or move between groups
+task.groupDragTitle|Arrastrar grupo|Drag group
+task.startPrefix|Inicio|Start
+task.endPrefix|Fin|End
+group.est|est. {est}|est. {est}
+group.noTasks|sin tareas|no tasks
+empty.tasks|No hay tareas. Agrega una abajo.|No tasks yet. Add one below.
+clock.current|Tarea actual|Current task
+clock.total|Tiempo total|Total time
+clock.afkAccum|Ausente acumulado|Accumulated away
+clock.vsEstimate|{sign}{time} vs estimado|{sign}{time} vs estimate
+summary.totalEst|Total estimado|Total estimated
+summary.realTime|Tiempo real|Real time
+summary.totalAfk|Total ausente|Total away
+summary.delta|Delta|Delta
+ctrl.start|▶ Iniciar|▶ Start
+ctrl.activeRunning|▶ Activo|▶ Active
+ctrl.resume|▶ Reanudar|▶ Resume
+ctrl.afk|⏸ Ausentarme|⏸ Step away
+ctrl.return|▶ Volver|▶ Return
+ctrl.stop|■ Detener|■ Stop
+ctrl.stopped|■ Detenido|■ Stopped
+ctrl.reset|↺ Restablecer|↺ Reset
+groups.heading|Grupos|Groups
+groups.newPlaceholder|Nuevo grupo...|New group...
+groups.add|+ Add|+ Add
+sheets.heading|Google Sheets|Google Sheets
+sheets.configWarn|El servidor de autenticación no está disponible.|The authentication server is unavailable.
+sheets.connect|Conectar con Google|Connect with Google
+sheets.logout|Salir|Sign out
+sheets.open|Abrir Sheet|Open Sheet
+sheets.save|↑ Guardar|↑ Save
+sheets.load|↓ Cargar|↓ Load
+sheets.recreate|Buscar / recrear Sheet|Find / recreate Sheet
+sheets.connected|Conectado|Connected
+sheets.statusPreparing|Preparando tu Sheet en Drive...|Preparing your Sheet in Drive...
+sheets.statusConnectToSave|Conéctate con Google para guardar.|Connect with Google to save.
+sheets.statusSaving|Guardando...|Saving...
+sheets.statusSaved|✓ Guardado en Sheets.|✓ Saved to Sheets.
+sheets.statusNoSheet|No hay Sheet configurado.|No Sheet configured.
+sheets.statusLoading|Cargando...|Loading...
+sheets.statusNoSessions|No hay sesiones guardadas en el Sheet.|No sessions saved in the Sheet.
+sheets.statusLoaded|✓ Sesión cargada.|✓ Session loaded.
+sheets.statusReady|✓ Sheet de WorkSplit listo.|✓ WorkSplit Sheet ready.
+sheets.statusClosed|Sesión de Google cerrada.|Google session closed.
+sheets.statusConnectedReady|✓ Conectado. Tu Sheet está listo.|✓ Connected. Your Sheet is ready.
+sheets.errSave|Error al guardar: {msg}|Error saving: {msg}
+sheets.errLoad|Error al cargar: {msg}|Error loading: {msg}
+sheets.errGeneric|Error: {msg}|Error: {msg}
+sheets.errConnPrepare|Conectado, pero no se pudo preparar el Sheet: {msg}|Connected, but the Sheet could not be prepared: {msg}
+sheets.errConnReturn|Error de conexión: {error}|Connection error: {error}
+err.noAuthServer|No se pudo contactar al servidor de autenticación.|Could not reach the authentication server.
+err.authHttp|Error de autenticación (HTTP {status}).|Authentication error (HTTP {status}).
+err.noGoogleSession|Sesión de Google no iniciada. Pulsa "Conectar con Google".|Google session not started. Tap "Connect with Google".
+sheet.colEstTime|Tiempo estimado|Estimated time
+sheet.colRealTime|Tiempo real|Real time
+sheet.colStart|Inicio|Start
+sheet.colEnd|Fin|End
+sheet.total|TOTAL|TOTAL
+finish.title|🏁 Sesión finalizada|🏁 Session finished
+finish.totalEst|Total estimado|Total estimated
+finish.realActive|Tiempo real (activo)|Real time (active)
+finish.afk|Tiempo ausente|Away time
+finish.delta|Delta|Delta
+finish.close|Cerrar|Close
+finish.saveSheets|Guardar en Sheets|Save to Sheets
+confirm.title|Confirmar|Confirm
+confirm.confirm|Confirmar|Confirm
+confirm.cancel|Cancelar|Cancel
+confirm.stopTitle|Detener sesión|Stop session
+confirm.stopBody|Los contadores se pausarán. Puedes reanudar más tarde.|The timers will pause. You can resume later.
+confirm.stopConfirm|Detener|Stop
+confirm.resetTitle|Restablecer|Reset
+confirm.resetBody|Se conservan las tareas, pero se reinician los tiempos y el progreso.|Tasks are kept, but times and progress are reset.
+confirm.resetConfirm|Restablecer|Reset
+toast.addTaskFirst|Agrega al menos una tarea antes de iniciar.|Add at least one task before starting.
+toast.cannotLoadActive|No puedes cargar mientras hay una sesión activa.|You can't load while a session is active.
+fmt.hour|h|h
+fmt.min|m|m
+summary.heading|Resumen de la sesión|Session summary
+tab.session|Sesión|Session
+tab.summary|Resumen|Summary
+tab.settings|Ajustes|Settings
+lang.label|Idioma|Language
