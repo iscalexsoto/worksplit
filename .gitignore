@@ -10,3 +10,5 @@ legacy/
 .claude/*
 res/*
 CLAUDE.md
+.vercel
+.env*

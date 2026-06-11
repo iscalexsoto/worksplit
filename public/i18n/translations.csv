@@ -113,3 +113,20 @@ tab.session|Sesión|Session
 tab.summary|Resumen|Summary
 tab.settings|Ajustes|Settings
 lang.label|Idioma|Language
+transition.closeTitle|Split terminado|Split finished
+transition.closeDuration|Duró {time}|Took {time}
+transition.breathTitle|Tómate un momento|Take a moment
+transition.breathBody|Respira antes del siguiente bloque.|Breathe before the next block.
+transition.pauseStart|Tomar una pausa ({sec}s)|Take a pause ({sec}s)
+transition.pauseSkip|Saltar pausa|Skip pause
+transition.continue|Continuar →|Continue →
+transition.nextLabel|Tu siguiente tarea es…|Your next task is…
+transition.priorLabel|O retomar las tareas anteriores…|Or resume an earlier task…
+transition.start|▶ Empezar|▶ Start
+transition.finalTitle|¡Felicidades!|Congratulations!
+transition.finalBody|Has terminado todas tus actividades.|You've finished all your activities.
+transition.goSummary|Ir al resumen|Go to summary
+prefs.heading|Preferencias|Preferences
+prefs.transitions|Señales de transición|Transition signals
+prefs.transitionsHint|Pantalla de cierre, pausa e intención entre tareas.|Closure, pause and intention screen between tasks.
+prefs.pauseDuration|Duración de la pausa|Pause duration

@@ -832,6 +832,111 @@
     line-height: 1.5;
   }
 
+  /* Señal de transición (cierre · pausa · intención) */
+  .modal-transition { text-align: center; }
+  .modal-transition .t-stage { display: none; }
+  .modal-transition[data-stage="closure"] .t-stage[data-stage="closure"],
+  .modal-transition[data-stage="breath"]  .t-stage[data-stage="breath"],
+  .modal-transition[data-stage="choose"]  .t-stage[data-stage="choose"] { display: block; }
+  .modal-transition h2 { margin-bottom: 16px; }
+  .modal-transition .confirm-text { margin-bottom: 8px; }
+  .modal-transition .modal-actions { justify-content: center; }
+  .t-close-check {
+    font-size: 56px;
+    line-height: 1;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .t-close-name {
+    font-family: var(--sans);
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .t-close-dur {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .t-pause-count {
+    font-family: var(--mono);
+    font-size: 40px;
+    font-weight: 500;
+    color: var(--accent);
+    margin: 16px 0;
+  }
+  .t-next-name {
+    font-family: var(--sans);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+  .t-prior {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .t-prior-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .t-prior-list { display: flex; flex-direction: column; gap: 8px; }
+  .t-prior-btn {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+    text-align: left;
+  }
+  .t-prior-name { font-family: var(--sans); font-size: 13px; }
+  .t-prior-group {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* Preferencias */
+  .prefs-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .prefs-section h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .pref-row { display: flex; gap: 10px; align-items: flex-start; }
+  .pref-row + .pref-row { margin-top: 14px; }
+  .pref-row input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    cursor: pointer;
+    flex: none;
+  }
+  .pref-text { display: flex; flex-direction: column; gap: 3px; }
+  .pref-label { font-family: var(--sans); font-size: 13px; color: var(--text); }
+  .pref-hint { font-family: var(--sans); font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .pref-row-inline { align-items: center; justify-content: space-between; }
+  .pref-select { width: auto; padding: 6px 8px; }
+
   /* Toast (avisos flotantes) */
   .toast-container {
     position: fixed;
@@ -1154,6 +1259,26 @@
       </div>
     </div>
 
+    <!-- PREFERENCIAS -->
+    <div class="prefs-section">
+      <h4 data-i18n="prefs.heading">Preferencias</h4>
+      <label class="pref-row">
+        <input type="checkbox" id="prefTransitions" onchange="setPrefTransitions(this.checked)">
+        <span class="pref-text">
+          <span class="pref-label" data-i18n="prefs.transitions">Señales de transición</span>
+          <span class="pref-hint" data-i18n="prefs.transitionsHint">Pantalla de cierre, pausa e intención entre tareas.</span>
+        </span>
+      </label>
+      <div class="pref-row pref-row-inline">
+        <span class="pref-label" data-i18n="prefs.pauseDuration">Duración de la pausa</span>
+        <select class="form-input pref-select" id="prefPauseSec" onchange="setPrefPauseSec(this.value)">
+          <option value="30">30s</option>
+          <option value="45">45s</option>
+          <option value="60">60s</option>
+        </select>
+      </div>
+    </div>
+
     <!-- GROUPS -->
     <div class="groups-section">
       <h4 data-i18n="groups.heading">Grupos</h4>
@@ -1249,6 +1374,39 @@
   </div>
 </div>
 
+<!-- TRANSITION MODAL (señal de transición autism-friendly: cierre · pausa · intención) -->
+<div class="modal-overlay" id="transitionModal">
+  <div class="modal modal-transition" id="transitionBox" data-stage="closure">
+    <!-- Beat 1 · Cierre -->
+    <div class="t-stage" data-stage="closure">
+      <div class="t-close-check" id="tCloseCheck">✓</div>
+      <h2 class="t-close-title" id="tCloseTitle"></h2>
+      <div class="t-close-name" id="tCloseName"></div>
+      <div class="t-close-dur" id="tCloseDur"></div>
+      <div class="modal-actions" id="tCloseActions"></div>
+    </div>
+    <!-- Beat 2 · Pausa intencional -->
+    <div class="t-stage" data-stage="breath">
+      <h2 data-i18n="transition.breathTitle">Tómate un momento</h2>
+      <p class="confirm-text" data-i18n="transition.breathBody">Respira antes del siguiente bloque.</p>
+      <div class="t-pause-count" id="tPauseCount" style="display:none;"></div>
+      <div class="modal-actions" id="tBreathActions"></div>
+    </div>
+    <!-- Beat 3 · Intención / Elección -->
+    <div class="t-stage" data-stage="choose">
+      <h2 data-i18n="transition.nextLabel">Tu siguiente tarea es…</h2>
+      <div class="t-next-name" id="tNextName"></div>
+      <div class="modal-actions">
+        <button class="btn-modal primary" id="tStartBtn"></button>
+      </div>
+      <div class="t-prior" id="tPrior" style="display:none;">
+        <div class="t-prior-label" data-i18n="transition.priorLabel">O retomar las tareas anteriores…</div>
+        <div class="t-prior-list" id="tPriorList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -1302,7 +1460,13 @@ let state = {
   lastTick: null,
   afkStart: null,
   currentTaskIndex: null,
+  prefs: { transitions: true, pauseSec: 45 }, // señales de transición autism-friendly
 };
+
+// Estado efímero de la señal de transición entre tareas. Vive fuera de `state`
+// para que saveLocal() (que serializa todo `state`) no lo persista; tras un
+// reload no tiene sentido reanudar una transición a medias.
+let transition = null; // { stage, doneName, doneSec, suggestedIdx, priorIdxs, isFinal, closeTimer, pauseRaf, pauseEndsAt }
 
 const AUTO_SAVE_MS = 5 * 60 * 1000;
 let autoSaveTimer = null;
@@ -1351,6 +1515,9 @@ function loadLocal() {
       state = s;
       if (state.title == null) state.title = '';
       if (state.description == null) state.description = '';
+      if (!state.prefs) state.prefs = {};
+      if (state.prefs.transitions == null) state.prefs.transitions = true;
+      if (state.prefs.pauseSec == null) state.prefs.pauseSec = 45;
       normalizeGroups();
     } catch(e) {}
   }
@@ -1725,6 +1892,15 @@ function removeTask(idx) {
   saveLocal(); renderTasks(); updateSummary();
 }
 
+// Avance clásico (sin señal de transición): activa la siguiente tarea no
+// terminada o finaliza la sesión si no quedan.
+function advanceOrFinish(idx) {
+  let next = state.tasks.findIndex((t, i) => i > idx && t.status !== 'done');
+  if (next === -1) next = state.tasks.findIndex(t => t.status !== 'done');
+  if (next !== -1) setActive(next);
+  else finishSession();
+}
+
 function markDone(idx) {
   if (state.status !== 'running') return;
   // Solo se puede marcar como terminada la tarea activa.
@@ -1737,15 +1913,172 @@ function markDone(idx) {
   task.status = 'done';
   state.taskElapsed = 0;
   state.currentTaskIndex = null;
-  // auto-avanza a la siguiente tarea no terminada (primero tras idx, si no, cualquiera)
-  let next = state.tasks.findIndex((t, i) => i > idx && t.status !== 'done');
-  if (next === -1) next = state.tasks.findIndex(t => t.status !== 'done');
-  if (next !== -1) {
-    setActive(next);
-  } else {
-    finishSession();
-  }
+  const doneSec = task.realSec;
   saveLocal(); renderTasks(); updateSummary();
+
+  // Modo clásico: sin overlay, auto-avance inmediato.
+  if (!state.prefs || !state.prefs.transitions) {
+    advanceOrFinish(idx);
+    saveLocal(); renderTasks(); updateSummary();
+    return;
+  }
+
+  // Señal de transición en tres beats. La sugerida es la siguiente hacia
+  // adelante; si no hay, la primera pendiente anterior. Las "anteriores" son
+  // tareas con índice < idx aún no terminadas (menos la sugerida).
+  const forwardNext = state.tasks.findIndex((t, i) => i > idx && t.status !== 'done');
+  const priorIdxs = state.tasks
+    .map((t, i) => ({ t, i }))
+    .filter(o => o.i < idx && o.t.status !== 'done')
+    .map(o => o.i);
+  const remaining = state.tasks.some(t => t.status !== 'done');
+
+  if (!remaining) {
+    startTransition({ doneName: task.name, doneSec, isFinal: true });
+  } else {
+    const suggestedIdx = forwardNext !== -1 ? forwardNext : priorIdxs[0];
+    const others = priorIdxs.filter(i => i !== suggestedIdx);
+    startTransition({ doneName: task.name, doneSec, suggestedIdx, priorIdxs: others, isFinal: false });
+  }
+}
+
+// ─── SEÑAL DE TRANSICIÓN ─────────────────────────────────────
+// Tres beats entre tareas: cierre (lo que terminó) → pausa intencional opcional
+// → intención (elegir qué sigue). El cronómetro queda congelado vía la guarda de
+// tick() mientras `transition` exista.
+function startTransition(cfg) {
+  transition = Object.assign(
+    { stage: 'closure', priorIdxs: [], closeTimer: null, pauseRaf: null, pauseEndsAt: 0 },
+    cfg
+  );
+  document.getElementById('transitionModal').classList.add('open');
+  renderTransition();
+  // El cierre se muestra unos segundos y avanza al respiro; el final no avanza.
+  if (!transition.isFinal) {
+    transition.closeTimer = setTimeout(() => transitionGoto('breath'), 10000);
+  }
+}
+
+function transitionGoto(stage) {
+  if (!transition) return;
+  if (transition.closeTimer) { clearTimeout(transition.closeTimer); transition.closeTimer = null; }
+  if (stage !== 'breath' && transition.pauseRaf) { cancelAnimationFrame(transition.pauseRaf); transition.pauseRaf = null; }
+  transition.stage = stage;
+  renderTransition();
+}
+
+function startPause() {
+  if (!transition) return;
+  const sec = (state.prefs && state.prefs.pauseSec) || 45;
+  transition.pauseEndsAt = Date.now() + sec * 1000;
+  document.getElementById('tPauseCount').textContent = fmtSec(sec);
+  const loop = () => {
+    if (!transition) return;
+    const remMs = transition.pauseEndsAt - Date.now();
+    if (remMs <= 0) { transition.pauseRaf = null; transitionGoto('choose'); return; }
+    document.getElementById('tPauseCount').textContent = fmtSec(Math.ceil(remMs / 1000));
+    transition.pauseRaf = requestAnimationFrame(loop);
+  };
+  transition.pauseRaf = requestAnimationFrame(loop);
+  renderTransition();
+}
+
+function renderTransition() {
+  if (!transition) return;
+  const box = document.getElementById('transitionBox');
+  box.setAttribute('data-stage', transition.stage);
+
+  // Beat 1 · Cierre (o felicitación final)
+  if (transition.isFinal) {
+    document.getElementById('tCloseCheck').textContent = '🎉';
+    document.getElementById('tCloseTitle').textContent = t('transition.finalTitle');
+    document.getElementById('tCloseName').textContent = t('transition.finalBody');
+    document.getElementById('tCloseDur').textContent = '';
+    document.getElementById('tCloseActions').innerHTML =
+      `<button class="btn-modal primary" onclick="transitionFinish()">${t('transition.goSummary')}</button>`;
+    return; // el final solo usa el beat de cierre
+  }
+
+  document.getElementById('tCloseCheck').textContent = '✓';
+  document.getElementById('tCloseTitle').textContent = t('transition.closeTitle');
+  document.getElementById('tCloseName').textContent = transition.doneName;
+  document.getElementById('tCloseDur').textContent = t('transition.closeDuration', { time: fmtSec(transition.doneSec) });
+  document.getElementById('tCloseActions').innerHTML =
+    `<button class="btn-modal" onclick="transitionGoto('breath')">${t('transition.continue')}</button>`;
+
+  // Beat 2 · Pausa intencional
+  const sec = (state.prefs && state.prefs.pauseSec) || 45;
+  const counting = transition.pauseRaf != null;
+  document.getElementById('tPauseCount').style.display = counting ? '' : 'none';
+  document.getElementById('tBreathActions').innerHTML = counting
+    ? `<button class="btn-modal" onclick="transitionGoto('choose')">${t('transition.pauseSkip')}</button>`
+    : `<button class="btn-modal" onclick="startPause()">${t('transition.pauseStart', { sec })}</button>`
+      + `<button class="btn-modal primary" onclick="transitionGoto('choose')">${t('transition.continue')}</button>`;
+
+  // Beat 3 · Intención / Elección
+  const next = state.tasks[transition.suggestedIdx];
+  document.getElementById('tNextName').textContent = next ? next.name : '';
+  const startBtn = document.getElementById('tStartBtn');
+  startBtn.textContent = t('transition.start');
+  startBtn.onclick = () => commitTransition(transition.suggestedIdx);
+
+  const priorWrap = document.getElementById('tPrior');
+  const list = document.getElementById('tPriorList');
+  list.innerHTML = '';
+  const priors = (transition.priorIdxs || []).filter(i => state.tasks[i]);
+  if (priors.length) {
+    priorWrap.style.display = '';
+    priors.forEach(i => {
+      const tk = state.tasks[i];
+      const btn = document.createElement('button');
+      btn.className = 'btn-modal t-prior-btn';
+      btn.innerHTML = `<span class="t-prior-name"></span><span class="t-prior-group"></span>`;
+      btn.querySelector('.t-prior-name').textContent = tk.name;
+      btn.querySelector('.t-prior-group').textContent = tk.group;
+      btn.onclick = () => commitTransition(i);
+      list.appendChild(btn);
+    });
+  } else {
+    priorWrap.style.display = 'none';
+  }
+}
+
+function commitTransition(idx) {
+  if (!transition) return;
+  closeTransition();
+  setActive(idx);
+  state.lastTick = Date.now(); // descarta el tiempo congelado de la transición
+  saveLocal(); renderTasks(); updateButtons(); updateStatus(); updateSummary(); updateClocks();
+}
+
+function transitionFinish() {
+  closeTransition();
+  finishSession();
+}
+
+function closeTransition() {
+  if (transition) {
+    if (transition.closeTimer) clearTimeout(transition.closeTimer);
+    if (transition.pauseRaf) cancelAnimationFrame(transition.pauseRaf);
+  }
+  transition = null;
+  document.getElementById('transitionModal').classList.remove('open');
+}
+
+// ─── PREFERENCIAS ────────────────────────────────────────────
+function setPrefTransitions(on) {
+  state.prefs.transitions = !!on;
+  saveLocal();
+}
+function setPrefPauseSec(val) {
+  const n = parseInt(val, 10);
+  if (n > 0) { state.prefs.pauseSec = n; saveLocal(); }
+}
+function syncPrefsUI() {
+  const cb = document.getElementById('prefTransitions');
+  const sel = document.getElementById('prefPauseSec');
+  if (cb) cb.checked = !!(state.prefs && state.prefs.transitions);
+  if (sel) sel.value = String((state.prefs && state.prefs.pauseSec) || 45);
 }
 
 function taskDatesHtml(task) {
@@ -1983,7 +2316,9 @@ async function newSession() {
 
 // ─── TICK ───────────────────────────────────────────────────
 function tick() {
-  if (state.status === 'running') {
+  // Durante la señal de transición el cronómetro se congela: ni el total ni el
+  // tiempo de tarea avanzan mientras el usuario cierra/respira/elige.
+  if (state.status === 'running' && !transition) {
     const now = Date.now();
     const delta = now - state.lastTick;
     state.totalElapsed += delta;
@@ -2604,6 +2939,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' ||
       e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+  if (transition) return; // el overlay de transición captura la interacción
   if (e.key === ' ') { e.preventDefault(); if (!document.getElementById('btnAfk').disabled) toggleAfk(); }
 });
 
@@ -2623,6 +2959,7 @@ const MOBILE_LAYOUT = [
   ['.summary-grid', 'panelResumen'],
   ['#langWrap', 'panelAjustes'],
   ['.session-meta', 'panelAjustes'],
+  ['.prefs-section', 'panelAjustes'],
   ['.groups-section', 'panelAjustes'],
   ['.sheet-section', 'panelAjustes'],
   ['.kofi-btn', 'panelAjustes'],
@@ -2687,6 +3024,7 @@ function populateLangSwitcher() {
 // ─── INIT ───────────────────────────────────────────────────
 function init() {
   loadLocal();
+  syncPrefsUI();
   setupDragDrop();
   setupResponsive();
   renderGroups();
@@ -2718,6 +3056,7 @@ window.onLangChange = function () {
   updateSummary();
   updateClocks();
   updateGoogleUI();
+  if (transition) renderTransition();
 };
 
 // Arranque: primero cargar traducciones (CSV), luego inicializar la app.
