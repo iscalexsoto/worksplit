@@ -923,6 +923,8 @@
   }
   .pref-row { display: flex; gap: 10px; align-items: flex-start; }
   .pref-row + .pref-row { margin-top: 14px; }
+  /* Separa visualmente cada feature independiente */
+  .pref-row-sep { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
   .pref-row input[type="checkbox"] {
     accent-color: var(--accent);
     width: 16px;
@@ -936,6 +938,17 @@
   .pref-hint { font-family: var(--sans); font-size: 11px; color: var(--muted); line-height: 1.4; }
   .pref-row-inline { align-items: center; justify-content: space-between; }
   .pref-select { width: auto; padding: 6px 8px; }
+  /* Sub-opciones anidadas bajo "Señales de transición" */
+  .pref-sub {
+    margin-top: 12px;
+    margin-left: 8px;
+    padding-left: 18px;
+    border-left: 2px solid var(--border2);
+    transition: opacity 0.15s;
+  }
+  .pref-sub .pref-row + .pref-row { margin-top: 12px; }
+  .pref-sub.disabled { opacity: 0.4; }
+  .pref-sub.disabled .pref-select { cursor: not-allowed; }
 
   /* Toast (avisos flotantes) */
   .toast-container {
@@ -1262,21 +1275,56 @@
     <!-- PREFERENCIAS -->
     <div class="prefs-section">
       <h4 data-i18n="prefs.heading">Preferencias</h4>
+
+      <!-- Notificación al terminar split -->
       <label class="pref-row">
-        <input type="checkbox" id="prefTransitions" onchange="setPrefTransitions(this.checked)">
+        <input type="checkbox" id="prefNotify" onchange="setPrefNotify(this.checked)">
         <span class="pref-text">
-          <span class="pref-label" data-i18n="prefs.transitions">Señales de transición</span>
-          <span class="pref-hint" data-i18n="prefs.transitionsHint">Pantalla de cierre, pausa e intención entre tareas.</span>
+          <span class="pref-label" data-i18n="prefs.notify">Notificación al terminar split</span>
+          <span class="pref-hint" data-i18n="prefs.notifyHint">Aviso breve de que el split terminó.</span>
         </span>
       </label>
-      <div class="pref-row pref-row-inline">
-        <span class="pref-label" data-i18n="prefs.pauseDuration">Duración de la pausa</span>
-        <select class="form-input pref-select" id="prefPauseSec" onchange="setPrefPauseSec(this.value)">
-          <option value="30">30s</option>
-          <option value="45">45s</option>
-          <option value="60">60s</option>
-        </select>
+      <div class="pref-sub" id="prefNotifySub">
+        <div class="pref-row pref-row-inline">
+          <span class="pref-label" data-i18n="prefs.notifyDuration">Duración de la notificación</span>
+          <select class="form-input pref-select" id="prefNotifySec" onchange="setPrefNotifySec(this.value)">
+            <option value="3">3s</option>
+            <option value="5">5s</option>
+            <option value="7">7s</option>
+            <option value="10">10s</option>
+          </select>
+        </div>
       </div>
+
+      <!-- Pausa entre splits -->
+      <label class="pref-row pref-row-sep">
+        <input type="checkbox" id="prefPause" onchange="setPrefPause(this.checked)">
+        <span class="pref-text">
+          <span class="pref-label" data-i18n="prefs.pause">Pausa entre splits</span>
+          <span class="pref-hint" data-i18n="prefs.pauseHint">Un respiro opcional antes del siguiente bloque.</span>
+        </span>
+      </label>
+      <div class="pref-sub" id="prefPauseSub">
+        <div class="pref-row pref-row-inline">
+          <span class="pref-label" data-i18n="prefs.pauseDuration">Duración de la pausa</span>
+          <select class="form-input pref-select" id="prefPauseSec" onchange="setPrefPauseSec(this.value)">
+            <option value="30">30s</option>
+            <option value="60">60s</option>
+            <option value="120">2min</option>
+            <option value="300">5min</option>
+            <option value="600">10min</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Elegir siguiente tarea -->
+      <label class="pref-row pref-row-sep">
+        <input type="checkbox" id="prefChooseNext" onchange="setPrefChooseNext(this.checked)">
+        <span class="pref-text">
+          <span class="pref-label" data-i18n="prefs.chooseNext">Elegir siguiente tarea</span>
+          <span class="pref-hint" data-i18n="prefs.chooseNextHint">Decide qué tarea sigue o retoma una anterior.</span>
+        </span>
+      </label>
     </div>
 
     <!-- GROUPS -->
@@ -1460,7 +1508,7 @@ let state = {
   lastTick: null,
   afkStart: null,
   currentTaskIndex: null,
-  prefs: { transitions: true, pauseSec: 45 }, // señales de transición autism-friendly
+  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true }, // señales de transición autism-friendly
 };
 
 // Estado efímero de la señal de transición entre tareas. Vive fuera de `state`
@@ -1515,13 +1563,26 @@ function loadLocal() {
       state = s;
       if (state.title == null) state.title = '';
       if (state.description == null) state.description = '';
-      if (!state.prefs) state.prefs = {};
-      if (state.prefs.transitions == null) state.prefs.transitions = true;
-      if (state.prefs.pauseSec == null) state.prefs.pauseSec = 45;
+      normalizePrefs();
       normalizeGroups();
     } catch(e) {}
   }
   syncSessionMetaUI();
+}
+
+// Asegura/normaliza state.prefs y migra desde el modelo anterior (master
+// `transitions` + `closureSec`) a las tres features independientes.
+function normalizePrefs() {
+  const P = state.prefs || (state.prefs = {});
+  const legacy = P.transitions; // bool del modelo anterior, o undefined
+  if (P.notify == null) P.notify = legacy != null ? legacy : true;
+  if (P.pause == null) P.pause = legacy != null ? legacy : true;
+  if (P.chooseNext == null) P.chooseNext = legacy != null ? legacy : true;
+  if (P.notifySec == null) P.notifySec = [3, 5, 7, 10].includes(P.closureSec) ? P.closureSec : 5;
+  const PAUSE_OPTS = [30, 60, 120, 300, 600];
+  if (P.pauseSec == null || !PAUSE_OPTS.includes(P.pauseSec)) P.pauseSec = 60;
+  delete P.transitions;
+  delete P.closureSec;
 }
 
 function canEditSessionMeta() {
@@ -1916,66 +1977,111 @@ function markDone(idx) {
   const doneSec = task.realSec;
   saveLocal(); renderTasks(); updateSummary();
 
-  // Modo clásico: sin overlay, auto-avance inmediato.
-  if (!state.prefs || !state.prefs.transitions) {
+  const P = state.prefs || {};
+  const remaining = state.tasks.some(t => t.status !== 'done');
+
+  // Última tarea: solo aplica la notificación (felicitación + ir al resumen).
+  if (!remaining) {
+    if (P.notify) {
+      startTransition({ doneName: task.name, doneSec, isFinal: true });
+    } else {
+      advanceOrFinish(idx);
+      saveLocal(); renderTasks(); updateSummary();
+    }
+    return;
+  }
+
+  // Tres features independientes; cada beat aparece solo si su preferencia está
+  // activa. Si ninguna lo está, avance clásico sin overlay.
+  const stages = [];
+  if (P.notify) stages.push('closure');
+  if (P.pause) stages.push('breath');
+  if (P.chooseNext) stages.push('choose');
+  if (stages.length === 0) {
     advanceOrFinish(idx);
     saveLocal(); renderTasks(); updateSummary();
     return;
   }
 
-  // Señal de transición en tres beats. La sugerida es la siguiente hacia
-  // adelante; si no hay, la primera pendiente anterior. Las "anteriores" son
-  // tareas con índice < idx aún no terminadas (menos la sugerida).
+  // La sugerida es la siguiente hacia adelante; si no hay, la primera pendiente
+  // anterior. Las "anteriores" son tareas con índice < idx aún no terminadas
+  // (menos la sugerida).
   const forwardNext = state.tasks.findIndex((t, i) => i > idx && t.status !== 'done');
   const priorIdxs = state.tasks
     .map((t, i) => ({ t, i }))
     .filter(o => o.i < idx && o.t.status !== 'done')
     .map(o => o.i);
-  const remaining = state.tasks.some(t => t.status !== 'done');
-
-  if (!remaining) {
-    startTransition({ doneName: task.name, doneSec, isFinal: true });
-  } else {
-    const suggestedIdx = forwardNext !== -1 ? forwardNext : priorIdxs[0];
-    const others = priorIdxs.filter(i => i !== suggestedIdx);
-    startTransition({ doneName: task.name, doneSec, suggestedIdx, priorIdxs: others, isFinal: false });
-  }
+  const suggestedIdx = forwardNext !== -1 ? forwardNext : priorIdxs[0];
+  const others = priorIdxs.filter(i => i !== suggestedIdx);
+  startTransition({ doneName: task.name, doneSec, suggestedIdx, priorIdxs: others, isFinal: false, stages });
 }
 
 // ─── SEÑAL DE TRANSICIÓN ─────────────────────────────────────
-// Tres beats entre tareas: cierre (lo que terminó) → pausa intencional opcional
-// → intención (elegir qué sigue). El cronómetro queda congelado vía la guarda de
-// tick() mientras `transition` exista.
+// Pipeline de hasta tres beats independientes entre tareas, según preferencias:
+// 'closure' (notificación) → 'breath' (pausa) → 'choose' (elegir siguiente).
+// El cronómetro queda congelado vía la guarda de tick() mientras `transition`
+// exista. La etapa 'choose' es terminal (espera elección del usuario); las demás
+// avanzan con advanceStage(); al agotar el pipeline sin 'choose', se auto-activa
+// la tarea sugerida.
 function startTransition(cfg) {
   transition = Object.assign(
-    { stage: 'closure', priorIdxs: [], closeTimer: null, pauseRaf: null, pauseEndsAt: 0 },
+    { stage: 'closure', stages: ['closure'], stageIdx: 0, priorIdxs: [], closeTimer: null, pauseRaf: null, pauseEndsAt: 0 },
     cfg
   );
   document.getElementById('transitionModal').classList.add('open');
+  if (transition.isFinal) {
+    transition.stage = 'closure';
+    renderTransition();
+    return; // la felicitación final no avanza sola
+  }
+  transition.stageIdx = 0;
+  playStage();
+}
+
+// Pinta la etapa actual y arranca su temporizador si corresponde.
+function playStage() {
+  if (!transition) return;
+  clearTransitionTimers();
+  transition.stage = transition.stages[transition.stageIdx];
   renderTransition();
-  // El cierre se muestra unos segundos y avanza al respiro; el final no avanza.
-  if (!transition.isFinal) {
-    transition.closeTimer = setTimeout(() => transitionGoto('breath'), 10000);
+  if (transition.stage === 'closure') {
+    const notifySec = (state.prefs && state.prefs.notifySec) || 5;
+    transition.closeTimer = setTimeout(advanceStage, notifySec * 1000);
   }
 }
 
-function transitionGoto(stage) {
+// Avanza a la siguiente etapa del pipeline; si no quedan, activa la sugerida.
+function advanceStage() {
+  if (!transition) return;
+  clearTransitionTimers();
+  transition.stageIdx++;
+  if (transition.stageIdx < transition.stages.length) {
+    playStage();
+  } else {
+    commitTransition(transition.suggestedIdx);
+  }
+}
+
+function clearTransitionTimers() {
   if (!transition) return;
   if (transition.closeTimer) { clearTimeout(transition.closeTimer); transition.closeTimer = null; }
-  if (stage !== 'breath' && transition.pauseRaf) { cancelAnimationFrame(transition.pauseRaf); transition.pauseRaf = null; }
-  transition.stage = stage;
-  renderTransition();
+  if (transition.pauseRaf) { cancelAnimationFrame(transition.pauseRaf); transition.pauseRaf = null; }
+}
+
+// Etiqueta amigable para la duración de la pausa (30s, 1 min, 2 min…).
+function pauseDurLabel(sec) {
+  return sec % 60 === 0 ? (sec / 60) + ' min' : sec + 's';
 }
 
 function startPause() {
   if (!transition) return;
-  const sec = (state.prefs && state.prefs.pauseSec) || 45;
+  const sec = (state.prefs && state.prefs.pauseSec) || 60;
   transition.pauseEndsAt = Date.now() + sec * 1000;
   document.getElementById('tPauseCount').textContent = fmtSec(sec);
   const loop = () => {
     if (!transition) return;
     const remMs = transition.pauseEndsAt - Date.now();
-    if (remMs <= 0) { transition.pauseRaf = null; transitionGoto('choose'); return; }
+    if (remMs <= 0) { transition.pauseRaf = null; advanceStage(); return; }
     document.getElementById('tPauseCount').textContent = fmtSec(Math.ceil(remMs / 1000));
     transition.pauseRaf = requestAnimationFrame(loop);
   };
@@ -1988,7 +2094,7 @@ function renderTransition() {
   const box = document.getElementById('transitionBox');
   box.setAttribute('data-stage', transition.stage);
 
-  // Beat 1 · Cierre (o felicitación final)
+  // Beat 'closure' · Notificación (o felicitación final)
   if (transition.isFinal) {
     document.getElementById('tCloseCheck').textContent = '🎉';
     document.getElementById('tCloseTitle').textContent = t('transition.finalTitle');
@@ -1996,7 +2102,7 @@ function renderTransition() {
     document.getElementById('tCloseDur').textContent = '';
     document.getElementById('tCloseActions').innerHTML =
       `<button class="btn-modal primary" onclick="transitionFinish()">${t('transition.goSummary')}</button>`;
-    return; // el final solo usa el beat de cierre
+    return; // el final solo usa el beat de notificación
   }
 
   document.getElementById('tCloseCheck').textContent = '✓';
@@ -2004,18 +2110,18 @@ function renderTransition() {
   document.getElementById('tCloseName').textContent = transition.doneName;
   document.getElementById('tCloseDur').textContent = t('transition.closeDuration', { time: fmtSec(transition.doneSec) });
   document.getElementById('tCloseActions').innerHTML =
-    `<button class="btn-modal" onclick="transitionGoto('breath')">${t('transition.continue')}</button>`;
+    `<button class="btn-modal" onclick="advanceStage()">${t('transition.continue')}</button>`;
 
-  // Beat 2 · Pausa intencional
-  const sec = (state.prefs && state.prefs.pauseSec) || 45;
+  // Beat 'breath' · Pausa
+  const sec = (state.prefs && state.prefs.pauseSec) || 60;
   const counting = transition.pauseRaf != null;
   document.getElementById('tPauseCount').style.display = counting ? '' : 'none';
   document.getElementById('tBreathActions').innerHTML = counting
-    ? `<button class="btn-modal" onclick="transitionGoto('choose')">${t('transition.pauseSkip')}</button>`
-    : `<button class="btn-modal" onclick="startPause()">${t('transition.pauseStart', { sec })}</button>`
-      + `<button class="btn-modal primary" onclick="transitionGoto('choose')">${t('transition.continue')}</button>`;
+    ? `<button class="btn-modal" onclick="advanceStage()">${t('transition.pauseSkip')}</button>`
+    : `<button class="btn-modal" onclick="startPause()">${t('transition.pauseStart', { dur: pauseDurLabel(sec) })}</button>`
+      + `<button class="btn-modal primary" onclick="advanceStage()">${t('transition.continue')}</button>`;
 
-  // Beat 3 · Intención / Elección
+  // Beat 'choose' · Elegir siguiente
   const next = state.tasks[transition.suggestedIdx];
   document.getElementById('tNextName').textContent = next ? next.name : '';
   const startBtn = document.getElementById('tStartBtn');
@@ -2066,19 +2172,52 @@ function closeTransition() {
 }
 
 // ─── PREFERENCIAS ────────────────────────────────────────────
-function setPrefTransitions(on) {
-  state.prefs.transitions = !!on;
+// Tres features independientes: notificación al terminar (closure), pausa entre
+// splits (breath) y elegir siguiente tarea (choose).
+function setPrefNotify(on) {
+  state.prefs.notify = !!on;
   saveLocal();
+  updatePrefSubState('prefNotifySub', on);
+}
+function setPrefNotifySec(val) {
+  const n = parseInt(val, 10);
+  if (n > 0) { state.prefs.notifySec = n; saveLocal(); }
+}
+function setPrefPause(on) {
+  state.prefs.pause = !!on;
+  saveLocal();
+  updatePrefSubState('prefPauseSub', on);
 }
 function setPrefPauseSec(val) {
   const n = parseInt(val, 10);
   if (n > 0) { state.prefs.pauseSec = n; saveLocal(); }
 }
+function setPrefChooseNext(on) {
+  state.prefs.chooseNext = !!on;
+  saveLocal();
+}
+// La duración de cada feature solo tiene sentido con su casilla activa:
+// se atenúa y deshabilita cuando está desmarcada.
+function updatePrefSubState(subId, on) {
+  const sub = document.getElementById(subId);
+  if (!sub) return;
+  sub.classList.toggle('disabled', !on);
+  sub.querySelectorAll('select').forEach(s => { s.disabled = !on; });
+}
 function syncPrefsUI() {
-  const cb = document.getElementById('prefTransitions');
-  const sel = document.getElementById('prefPauseSec');
-  if (cb) cb.checked = !!(state.prefs && state.prefs.transitions);
-  if (sel) sel.value = String((state.prefs && state.prefs.pauseSec) || 45);
+  const P = state.prefs || {};
+  const notifyCb = document.getElementById('prefNotify');
+  const notifySel = document.getElementById('prefNotifySec');
+  const pauseCb = document.getElementById('prefPause');
+  const pauseSel = document.getElementById('prefPauseSec');
+  const chooseCb = document.getElementById('prefChooseNext');
+  if (notifyCb) notifyCb.checked = !!P.notify;
+  if (notifySel) notifySel.value = String(P.notifySec || 5);
+  if (pauseCb) pauseCb.checked = !!P.pause;
+  if (pauseSel) pauseSel.value = String(P.pauseSec || 60);
+  if (chooseCb) chooseCb.checked = !!P.chooseNext;
+  updatePrefSubState('prefNotifySub', !!P.notify);
+  updatePrefSubState('prefPauseSub', !!P.pause);
 }
 
 function taskDatesHtml(task) {

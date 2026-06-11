@@ -117,7 +117,7 @@ transition.closeTitle|Split terminado|Split finished
 transition.closeDuration|Duró {time}|Took {time}
 transition.breathTitle|Tómate un momento|Take a moment
 transition.breathBody|Respira antes del siguiente bloque.|Breathe before the next block.
-transition.pauseStart|Tomar una pausa ({sec}s)|Take a pause ({sec}s)
+transition.pauseStart|Tomar una pausa ({dur})|Take a pause ({dur})
 transition.pauseSkip|Saltar pausa|Skip pause
 transition.continue|Continuar →|Continue →
 transition.nextLabel|Tu siguiente tarea es…|Your next task is…
@@ -127,6 +127,11 @@ transition.finalTitle|¡Felicidades!|Congratulations!
 transition.finalBody|Has terminado todas tus actividades.|You've finished all your activities.
 transition.goSummary|Ir al resumen|Go to summary
 prefs.heading|Preferencias|Preferences
-prefs.transitions|Señales de transición|Transition signals
-prefs.transitionsHint|Pantalla de cierre, pausa e intención entre tareas.|Closure, pause and intention screen between tasks.
+prefs.notify|Notificación al terminar split|Split-finished notification
+prefs.notifyHint|Aviso breve de que el split terminó.|A brief notice that the split ended.
+prefs.notifyDuration|Duración de la notificación|Notification duration
+prefs.pause|Pausa entre splits|Pause between splits
+prefs.pauseHint|Un respiro opcional antes del siguiente bloque.|An optional breather before the next block.
 prefs.pauseDuration|Duración de la pausa|Pause duration
+prefs.chooseNext|Elegir siguiente tarea|Choose next task
+prefs.chooseNextHint|Decide qué tarea sigue o retoma una anterior.|Decide what's next or resume an earlier one.
