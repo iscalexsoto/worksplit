@@ -104,6 +104,10 @@ confirm.stopConfirm|Detener|Stop
 confirm.resetTitle|Restablecer|Reset
 confirm.resetBody|Se conservan las tareas, pero se reinician los tiempos y el progreso.|Tasks are kept, but times and progress are reset.
 confirm.resetConfirm|Restablecer|Reset
+history.askTitle|Restablecer sesión|Reset session
+history.askBody|¿Guardar esta sesión en el historial antes de restablecer?|Save this session to history before resetting?
+history.askSave|Guardar y restablecer|Save and reset
+history.askDiscard|Restablecer sin guardar|Reset without saving
 toast.addTaskFirst|Agrega al menos una tarea antes de iniciar.|Add at least one task before starting.
 toast.cannotLoadActive|No puedes cargar mientras hay una sesión activa.|You can't load while a session is active.
 fmt.hour|h|h
@@ -138,6 +142,11 @@ prefs.chooseNextHint|Decide qué tarea sigue o retoma una anterior.|Decide what'
 prefs.stuck|Alerta "¿Estás atorado?"|Stuck detection
 prefs.stuckHint|Aviso cuando un split supera su estimado.|Heads-up when a split runs over its estimate.
 prefs.stuckMargin|Margen sobre el estimado|Margin over estimate
+prefs.saveOnReset|Guardar en historial al restablecer|Save to history on reset
+prefs.saveOnResetHint|Decide si se guarda un registro al restablecer una sesión sin terminar.|Whether to log a record when resetting an unfinished session.
+prefs.saveAsk|Preguntar cada vez|Ask each time
+prefs.saveAlways|Guardar siempre|Always save
+prefs.saveNever|Nunca guardar|Never save
 stuck.askTitle|¿TODO BIEN?|ALL GOOD?
 stuck.askBody|Llevas más tiempo del estimado en este split.|You've spent more than the estimate on this split.
 stuck.continue|Continuar|Continue

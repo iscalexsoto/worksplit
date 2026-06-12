@@ -1402,6 +1402,18 @@
           </select>
         </div>
       </div>
+
+      <div class="pref-row pref-row-sep pref-row-inline">
+        <span class="pref-text">
+          <span class="pref-label" data-i18n="prefs.saveOnReset">Guardar en historial al restablecer</span>
+          <span class="pref-hint" data-i18n="prefs.saveOnResetHint">Decide si se guarda un registro al restablecer una sesión sin terminar.</span>
+        </span>
+        <select class="form-input pref-select" id="prefSaveOnReset" onchange="setPrefSaveHistoryOnReset(this.value)">
+          <option value="ask" data-i18n="prefs.saveAsk">Preguntar cada vez</option>
+          <option value="always" data-i18n="prefs.saveAlways">Guardar siempre</option>
+          <option value="never" data-i18n="prefs.saveNever">Nunca guardar</option>
+        </select>
+      </div>
     </div>
   </div>
 </div>
@@ -1536,6 +1548,7 @@
     <p class="confirm-text" id="confirmText"></p>
     <div class="modal-actions">
       <button class="btn-modal" id="confirmCancel">Cancelar</button>
+      <button class="btn-modal" id="confirmThird" style="display:none;"></button>
       <button class="btn-modal primary" id="confirmOk">Confirmar</button>
     </div>
   </div>
@@ -1556,6 +1569,8 @@ const SESSION_HEADERS = ['date','status','total_estimated_min',
   'total_real_sec','total_afk_sec','updated_at','title','description'];
 const TASK_HEADERS = ['order','group','name','estimated_min',
   'real_sec','status','started_at','ended_at','updated_at'];
+const HISTORY_HEADERS = ['closed_at','type','total_estimated_min','total_real_sec',
+  'total_afk_sec','task_count','completed_count','current_task','tasks_json'];
 let googleAuth = {
   accessToken: null,
   tokenExpiry: 0,
@@ -1579,7 +1594,7 @@ let state = {
   lastTick: null,
   afkStart: null,
   currentTaskIndex: null,
-  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20 }, // señales de transición autism-friendly
+  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20, saveHistoryOnReset: 'ask' }, // señales de transición autism-friendly
 };
 
 // Estado efímero de la señal de transición entre tareas. Vive fuera de `state`
@@ -1661,6 +1676,7 @@ function normalizePrefs() {
   if (P.stuck == null) P.stuck = true;
   const MARGIN_OPTS = [10, 20, 30, 50];
   if (P.stuckMargin == null || !MARGIN_OPTS.includes(P.stuckMargin)) P.stuckMargin = 20;
+  if (!['ask', 'always', 'never'].includes(P.saveHistoryOnReset)) P.saveHistoryOnReset = 'ask';
   delete P.transitions;
   delete P.closureSec;
 }
@@ -2345,6 +2361,9 @@ function setPrefStuckMargin(val) {
   const n = parseInt(val, 10);
   if (n > 0) { state.prefs.stuckMargin = n; saveLocal(); }
 }
+function setPrefSaveHistoryOnReset(val) {
+  if (['ask', 'always', 'never'].includes(val)) { state.prefs.saveHistoryOnReset = val; saveLocal(); }
+}
 // La duración de cada feature solo tiene sentido con su casilla activa:
 // se atenúa y deshabilita cuando está desmarcada.
 function updatePrefSubState(subId, on) {
@@ -2362,6 +2381,7 @@ function syncPrefsUI() {
   const chooseCb = document.getElementById('prefChooseNext');
   const stuckCb = document.getElementById('prefStuck');
   const stuckSel = document.getElementById('prefStuckMargin');
+  const saveResetSel = document.getElementById('prefSaveOnReset');
   if (notifyCb) notifyCb.checked = !!P.notify;
   if (notifySel) notifySel.value = String(P.notifySec || 5);
   if (pauseCb) pauseCb.checked = !!P.pause;
@@ -2369,6 +2389,7 @@ function syncPrefsUI() {
   if (chooseCb) chooseCb.checked = !!P.chooseNext;
   if (stuckCb) stuckCb.checked = !!P.stuck;
   if (stuckSel) stuckSel.value = String(P.stuckMargin || 20);
+  if (saveResetSel) saveResetSel.value = P.saveHistoryOnReset || 'ask';
   updatePrefSubState('prefNotifySub', !!P.notify);
   updatePrefSubState('prefPauseSub', !!P.pause);
   updatePrefSubState('prefStuckSub', !!P.stuck);
@@ -2572,6 +2593,10 @@ async function stopSession() {
 function finishSession() {
   state.status = 'done';
   stopAutoSave();
+  // Snapshot al historial: una sesión completada se guarda siempre (silencioso).
+  // El estado aún está intacto, así que el snapshot es correcto. Fire-and-forget
+  // para no bloquear el modal de resumen.
+  appendHistory('completada');
   updateButtons(); updateStatus(); renderTasks();
   showModal();
   saveLocal();
@@ -2579,15 +2604,37 @@ function finishSession() {
 
 async function newSession() {
   if (state.status === 'running' || state.status === 'afk') return;
+  let saveToHistory = false;
+  let snap = null;
   if (state.status !== 'idle') {
-    const ok = await confirmDialog({
-      title: t('confirm.resetTitle'),
-      message: t('confirm.resetBody'),
-      confirmText: t('confirm.resetConfirm'),
-      danger: true,
-    });
-    if (!ok) return;
+    const pref = (state.prefs && state.prefs.saveHistoryOnReset) || 'ask';
+    // Una sesión 'done' ya quedó registrada como 'completada'; no la dupliques.
+    const eligible = state.status !== 'done';
+    // Captura el snapshot ANTES de cualquier reset, para no leer estado limpiado.
+    if (eligible && pref !== 'never') snap = buildHistoryRow('reestablecida');
+
+    if (eligible && pref === 'ask') {
+      const r = await confirmDialog({
+        title: t('history.askTitle'),
+        message: t('history.askBody'),
+        confirmText: t('history.askSave'),
+        thirdText: t('history.askDiscard'),
+        cancelText: t('confirm.cancel'),
+      });
+      if (r === 'cancel') return;
+      saveToHistory = r === 'confirm';
+    } else {
+      const ok = await confirmDialog({
+        title: t('confirm.resetTitle'),
+        message: t('confirm.resetBody'),
+        confirmText: t('confirm.resetConfirm'),
+        danger: true,
+      });
+      if (!ok) return;
+      saveToHistory = eligible && pref === 'always';
+    }
   }
+  if (saveToHistory && snap) appendHistoryRow(snap);
   state.status = 'idle';
   state.startTime = null;
   state.totalElapsed = 0;
@@ -2744,36 +2791,50 @@ function notify(message, type = '', duration = 3500) {
 
 // Diálogo de confirmación personalizado (reemplaza al confirm() nativo).
 // Devuelve una promesa que resuelve true (aceptar) o false (cancelar).
-function confirmDialog({ title = t('confirm.title'), message = '', confirmText = t('confirm.confirm'), cancelText = t('confirm.cancel'), danger = false } = {}) {
+// Diálogo de confirmación. Modo binario por defecto (resuelve true/false). Si se
+// pasa `thirdText`, aparece un botón intermedio y la promesa resuelve un string:
+// 'confirm' (botón primario) | 'third' (botón intermedio) | 'cancel'.
+function confirmDialog({ title = t('confirm.title'), message = '', confirmText = t('confirm.confirm'), cancelText = t('confirm.cancel'), thirdText = null, danger = false } = {}) {
+  const tri = thirdText != null;
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirmModal');
     const okBtn = document.getElementById('confirmOk');
     const cancelBtn = document.getElementById('confirmCancel');
+    const thirdBtn = document.getElementById('confirmThird');
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmText').textContent = message;
     okBtn.textContent = confirmText;
     cancelBtn.textContent = cancelText;
     okBtn.classList.toggle('danger', danger);
     okBtn.classList.toggle('primary', !danger);
+    if (tri) {
+      thirdBtn.textContent = thirdText;
+      thirdBtn.style.display = '';
+    } else {
+      thirdBtn.style.display = 'none';
+    }
 
     function cleanup(result) {
       overlay.classList.remove('open');
       okBtn.removeEventListener('click', onOk);
       cancelBtn.removeEventListener('click', onCancel);
+      thirdBtn.removeEventListener('click', onThird);
       overlay.removeEventListener('mousedown', onBackdrop);
       document.removeEventListener('keydown', onKey);
       resolve(result);
     }
-    function onOk() { cleanup(true); }
-    function onCancel() { cleanup(false); }
-    function onBackdrop(e) { if (e.target === overlay) cleanup(false); }
+    function onOk() { cleanup(tri ? 'confirm' : true); }
+    function onCancel() { cleanup(tri ? 'cancel' : false); }
+    function onThird() { cleanup('third'); }
+    function onBackdrop(e) { if (e.target === overlay) onCancel(); }
     function onKey(e) {
-      if (e.key === 'Escape') cleanup(false);
-      else if (e.key === 'Enter') cleanup(true);
+      if (e.key === 'Escape') onCancel();
+      else if (e.key === 'Enter') onOk();
     }
 
     okBtn.addEventListener('click', onOk);
     cancelBtn.addEventListener('click', onCancel);
+    if (tri) thirdBtn.addEventListener('click', onThird);
     overlay.addEventListener('mousedown', onBackdrop);
     document.addEventListener('keydown', onKey);
     overlay.classList.add('open');
@@ -2892,6 +2953,14 @@ function batchUpdate(id, requests) {
   return gFetch(`${SHEETS_BASE}/${id}:batchUpdate`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requests }) });
 }
+// Añade filas al final de un rango (append-only). Usado por el historial.
+function valuesAppend(id, range, values) {
+  return gFetch(
+    `${SHEETS_BASE}/${id}/values/${encodeURIComponent(range)}:append`
+      + `?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) }
+  );
+}
 
 async function ensureTabs(sheetId) {
   const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
@@ -2900,9 +2969,11 @@ async function ensureTabs(sheetId) {
   if (!titles.includes('sessions')) requests.push({ addSheet: { properties: { title: 'sessions' } } });
   if (!titles.includes('tasks')) requests.push({ addSheet: { properties: { title: 'tasks' } } });
   if (!titles.includes('summary')) requests.push({ addSheet: { properties: { title: 'summary' } } });
+  if (!titles.includes('history')) requests.push({ addSheet: { properties: { title: 'history' } } });
   if (requests.length) await batchUpdate(sheetId, requests);
   await valuesUpdate(sheetId, 'sessions!A1:H1', [SESSION_HEADERS]);
   await valuesUpdate(sheetId, 'tasks!A1:I1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
   googleAuth.tabsEnsured = true;
 }
 
@@ -2949,10 +3020,12 @@ async function createSheet(folderId) {
     { addSheet: { properties: { title: 'sessions' } } },
     { addSheet: { properties: { title: 'tasks' } } },
     { addSheet: { properties: { title: 'summary' } } },
+    { addSheet: { properties: { title: 'history' } } },
     { deleteSheet: { sheetId: defaultId } },
   ]);
   await valuesUpdate(sheetId, 'sessions!A1:H1', [SESSION_HEADERS]);
   await valuesUpdate(sheetId, 'tasks!A1:I1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
   localStorage.setItem('worksplit_sheet_id', sheetId);
   localStorage.setItem('worksplit_sheet_name', file.name);
   googleAuth.tabsEnsured = true;
@@ -3066,6 +3139,69 @@ async function resetGoogleTarget() {
   }
 }
 
+// Normaliza las tareas del estado vivo a un shape estable. La regla del tiempo
+// real de la tarea ACTIVA (derivado de state.taskElapsed) vive aquí, compartida
+// por la pestaña tasks, el summary y el historial.
+function buildTaskData() {
+  return state.tasks.map(t => ({
+    group: t.group || 'General',
+    name: t.name || '',
+    estimatedMin: t.estimatedMin || 0,
+    realSec: t.status === 'active' ? Math.round(state.taskElapsed / 1000) : (t.realSec || 0),
+    status: t.status || 'pending',
+    startedAt: t.startedAt || '',
+    endedAt: t.status === 'done' ? (t.endedAt || '') : '',
+  }));
+}
+
+// ─── GOOGLE: HISTORIAL (append-only) ────────────────────────
+// Construye la fila de snapshot a partir del estado vivo. Debe llamarse ANTES de
+// cualquier reset, para capturar contadores y estados antes de limpiarlos.
+function buildHistoryRow(type) {
+  const taskData = buildTaskData();
+  const afkMs = state.status === 'afk'
+    ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
+    : state.afkElapsed;
+  const current = (type === 'reestablecida' && state.currentTaskIndex != null)
+    ? (state.tasks[state.currentTaskIndex] && state.tasks[state.currentTaskIndex].name) || ''
+    : '';
+  const tasksJson = JSON.stringify(taskData.map(t => ({
+    name: t.name, group: t.group, estimatedMin: t.estimatedMin,
+    realSec: t.realSec, done: t.status === 'done',
+  })));
+  return [
+    new Date().toISOString(),
+    type,
+    taskData.reduce((s, t) => s + (parseInt(t.estimatedMin, 10) || 0), 0),
+    Math.round(state.totalElapsed / 1000),
+    Math.round(afkMs / 1000),
+    taskData.length,
+    taskData.filter(t => t.status === 'done').length,
+    current,
+    tasksJson,
+  ];
+}
+
+// Hace el append de una fila ya construida. Tolerante a fallos: nunca debe
+// romper ni bloquear el cierre de sesión. Si no hay Sheet conectado, omite en
+// silencio (el historial vive solo en el Sheet).
+async function appendHistoryRow(row) {
+  if (!isGoogleReady()) return;
+  try {
+    const sheetId = getSheetId();
+    if (!sheetId) return;
+    if (!googleAuth.tabsEnsured) await ensureTabs(sheetId);
+    await valuesAppend(sheetId, 'history!A1', [row]);
+  } catch (e) {
+    console.warn('appendHistory failed', e);
+  }
+}
+
+// Atajo: captura el snapshot del estado vivo y lo appendea (fire-and-forget).
+function appendHistory(type) {
+  appendHistoryRow(buildHistoryRow(type));
+}
+
 // ─── GOOGLE: PUSH / LOAD ────────────────────────────────────
 async function pushToSheet(silent) {
   if (silent && !isGoogleReady()) return;
@@ -3096,15 +3232,7 @@ async function pushToSheet(silent) {
       state.description,
     ];
     // Datos de tareas normalizados (reutilizados por la pestaña tasks y summary).
-    const taskData = state.tasks.map(t => ({
-      group: t.group || 'General',
-      name: t.name || '',
-      estimatedMin: t.estimatedMin || 0,
-      realSec: t.status === 'active' ? Math.round(state.taskElapsed / 1000) : (t.realSec || 0),
-      status: t.status || 'pending',
-      startedAt: t.startedAt || '',
-      endedAt: t.status === 'done' ? (t.endedAt || '') : '',
-    }));
+    const taskData = buildTaskData();
     const taskRows = taskData.map((t, idx) => [
       idx + 1, t.group, t.name, t.estimatedMin,
       t.realSec, t.status, t.startedAt, t.endedAt, now,
