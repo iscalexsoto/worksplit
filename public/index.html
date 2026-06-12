@@ -960,6 +960,10 @@
   .pref-label { font-family: var(--sans); font-size: 13px; color: var(--text); }
   .pref-hint { font-family: var(--sans); font-size: 11px; color: var(--muted); line-height: 1.4; }
   .pref-row-inline { align-items: center; justify-content: space-between; }
+  /* Etiqueta arriba (ancho completo) y control debajo: para selects con opciones
+     largas que no caben junto al texto en la columna estrecha. */
+  .pref-row-stack { flex-direction: column; align-items: stretch; gap: 8px; }
+  .pref-row-stack .pref-select { width: 100%; }
   .pref-select { width: auto; padding: 6px 8px; }
   /* Sub-opciones anidadas bajo "Señales de transición" */
   .pref-sub {
@@ -1403,7 +1407,7 @@
         </div>
       </div>
 
-      <div class="pref-row pref-row-sep pref-row-inline">
+      <div class="pref-row pref-row-sep pref-row-stack">
         <span class="pref-text">
           <span class="pref-label" data-i18n="prefs.saveOnReset">Guardar en historial al restablecer</span>
           <span class="pref-hint" data-i18n="prefs.saveOnResetHint">Decide si se guarda un registro al restablecer una sesión sin terminar.</span>
@@ -1566,11 +1570,11 @@ const SHEET_FILE_NAME = 'WorkSplit';
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_FILES = 'https://www.googleapis.com/drive/v3/files';
 const SESSION_HEADERS = ['date','status','total_estimated_min',
-  'total_real_sec','total_afk_sec','updated_at','title','description'];
+  'total_real_sec','total_away_sec','updated_at','title','description'];
 const TASK_HEADERS = ['order','group','name','estimated_min',
   'real_sec','status','started_at','ended_at','updated_at'];
 const HISTORY_HEADERS = ['closed_at','type','total_estimated_min','total_real_sec',
-  'total_afk_sec','task_count','completed_count','current_task','tasks_json'];
+  'total_away_sec','task_count','completed_count','current_task','tasks_json'];
 let googleAuth = {
   accessToken: null,
   tokenExpiry: 0,
@@ -2596,7 +2600,7 @@ function finishSession() {
   // Snapshot al historial: una sesión completada se guarda siempre (silencioso).
   // El estado aún está intacto, así que el snapshot es correcto. Fire-and-forget
   // para no bloquear el modal de resumen.
-  appendHistory('completada');
+  appendHistory('completed');
   updateButtons(); updateStatus(); renderTasks();
   showModal();
   saveLocal();
@@ -2608,10 +2612,10 @@ async function newSession() {
   let snap = null;
   if (state.status !== 'idle') {
     const pref = (state.prefs && state.prefs.saveHistoryOnReset) || 'ask';
-    // Una sesión 'done' ya quedó registrada como 'completada'; no la dupliques.
+    // Una sesión 'done' ya quedó registrada como 'completed'; no la dupliques.
     const eligible = state.status !== 'done';
     // Captura el snapshot ANTES de cualquier reset, para no leer estado limpiado.
-    if (eligible && pref !== 'never') snap = buildHistoryRow('reestablecida');
+    if (eligible && pref !== 'never') snap = buildHistoryRow('reset');
 
     if (eligible && pref === 'ask') {
       const r = await confirmDialog({
@@ -2964,15 +2968,31 @@ function valuesAppend(id, range, values) {
 
 async function ensureTabs(sheetId) {
   const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
-  const titles = (meta.sheets || []).map(s => s.properties.title);
+  const props = (meta.sheets || []).map(s => s.properties);
+  let titles = props.map(p => p.title);
+
+  // Migración de nombres antiguos → nuevos, preservando los datos de la hoja.
+  // Solo renombra si existe el viejo y aún no el nuevo (idempotente).
+  const renames = [];
+  const renameIfNeeded = (oldName, newName) => {
+    if (titles.includes(oldName) && !titles.includes(newName)) {
+      const id = props.find(p => p.title === oldName).sheetId;
+      renames.push({ updateSheetProperties: { properties: { sheetId: id, title: newName }, fields: 'title' } });
+      titles = titles.map(t => t === oldName ? newName : t);
+    }
+  };
+  renameIfNeeded('sessions', 'session');
+  renameIfNeeded('tasks', 'splits');
+  if (renames.length) await batchUpdate(sheetId, renames);
+
   const requests = [];
-  if (!titles.includes('sessions')) requests.push({ addSheet: { properties: { title: 'sessions' } } });
-  if (!titles.includes('tasks')) requests.push({ addSheet: { properties: { title: 'tasks' } } });
+  if (!titles.includes('session')) requests.push({ addSheet: { properties: { title: 'session' } } });
+  if (!titles.includes('splits')) requests.push({ addSheet: { properties: { title: 'splits' } } });
   if (!titles.includes('summary')) requests.push({ addSheet: { properties: { title: 'summary' } } });
   if (!titles.includes('history')) requests.push({ addSheet: { properties: { title: 'history' } } });
   if (requests.length) await batchUpdate(sheetId, requests);
-  await valuesUpdate(sheetId, 'sessions!A1:H1', [SESSION_HEADERS]);
-  await valuesUpdate(sheetId, 'tasks!A1:I1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
+  await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
   await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
   googleAuth.tabsEnsured = true;
 }
@@ -3013,18 +3033,18 @@ async function createSheet(folderId) {
     body: JSON.stringify(body),
   });
   const sheetId = file.id;
-  // Get the default sheet so we can replace it with sessions/tasks/summary.
+  // Get the default sheet so we can replace it with session/splits/summary/history.
   const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
   const defaultId = meta.sheets[0].properties.sheetId;
   await batchUpdate(sheetId, [
-    { addSheet: { properties: { title: 'sessions' } } },
-    { addSheet: { properties: { title: 'tasks' } } },
+    { addSheet: { properties: { title: 'session' } } },
+    { addSheet: { properties: { title: 'splits' } } },
     { addSheet: { properties: { title: 'summary' } } },
     { addSheet: { properties: { title: 'history' } } },
     { deleteSheet: { sheetId: defaultId } },
   ]);
-  await valuesUpdate(sheetId, 'sessions!A1:H1', [SESSION_HEADERS]);
-  await valuesUpdate(sheetId, 'tasks!A1:I1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
+  await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
   await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
   localStorage.setItem('worksplit_sheet_id', sheetId);
   localStorage.setItem('worksplit_sheet_name', file.name);
@@ -3162,7 +3182,7 @@ function buildHistoryRow(type) {
   const afkMs = state.status === 'afk'
     ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
     : state.afkElapsed;
-  const current = (type === 'reestablecida' && state.currentTaskIndex != null)
+  const current = (type === 'reset' && state.currentTaskIndex != null)
     ? (state.tasks[state.currentTaskIndex] && state.tasks[state.currentTaskIndex].name) || ''
     : '';
   const tasksJson = JSON.stringify(taskData.map(t => ({
@@ -3238,9 +3258,9 @@ async function pushToSheet(silent) {
       t.realSec, t.status, t.startedAt, t.endedAt, now,
     ]);
 
-    await valuesUpdate(sheetId, 'sessions!A1:H2', [SESSION_HEADERS, sessionRow]);
-    await valuesClear(sheetId, 'tasks!A2:I');
-    await valuesUpdate(sheetId, 'tasks!A1', [TASK_HEADERS, ...taskRows]);
+    await valuesUpdate(sheetId, 'session!A1:H2', [SESSION_HEADERS, sessionRow]);
+    await valuesClear(sheetId, 'splits!A2:I');
+    await valuesUpdate(sheetId, 'splits!A1', [TASK_HEADERS, ...taskRows]);
     await writeSummary(sheetId, taskData);
 
     if (!silent) setSheetStatus(t('sheets.statusSaved'), 'ok');
@@ -3260,8 +3280,8 @@ async function loadFromSheet() {
     if (!sheetId) { setSheetStatus(t('sheets.statusNoSheet'), 'err'); return; }
     setSheetStatus(t('sheets.statusLoading'), '');
 
-    const sRes = await valuesGet(sheetId, 'sessions!A2:H2');
-    const tRes = await valuesGet(sheetId, 'tasks!A2:I');
+    const sRes = await valuesGet(sheetId, 'session!A2:H2');
+    const tRes = await valuesGet(sheetId, 'splits!A2:I');
     const sRow = (sRes.values && sRes.values[0]) || null;
     if (!sRow) { setSheetStatus(t('sheets.statusNoSessions'), 'err'); return; }
 
