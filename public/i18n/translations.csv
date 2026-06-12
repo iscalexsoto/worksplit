@@ -135,3 +135,16 @@ prefs.pauseHint|Un respiro opcional antes del siguiente bloque.|An optional brea
 prefs.pauseDuration|Duración de la pausa|Pause duration
 prefs.chooseNext|Elegir siguiente tarea|Choose next task
 prefs.chooseNextHint|Decide qué tarea sigue o retoma una anterior.|Decide what's next or resume an earlier one.
+prefs.stuck|¿Estás atorado?|Stuck detection
+prefs.stuckHint|Aviso cuando un split supera su estimado.|Heads-up when a split runs over its estimate.
+prefs.stuckMargin|Margen sobre el estimado|Margin over estimate
+stuck.askTitle|¿TODO BIEN?|ALL GOOD?
+stuck.askBody|Llevas más tiempo del estimado en este split.|You've spent more than the estimate on this split.
+stuck.continue|Continuar|Continue
+stuck.pause|Pausar|Pause
+stuck.pausedTitle|En pausa|Paused
+stuck.pausedIntro|Aprovecha este tiempo para…|Use this time to…
+stuck.opt1|Pedir ayuda|Ask for help
+stuck.opt2|Tomarte un descanso|Take a break
+stuck.opt3|Replantear el enfoque|Rethink the approach
+stuck.resume|▶ Reanudar|▶ Resume

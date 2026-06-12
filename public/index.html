@@ -411,7 +411,7 @@
     gap: 10px;
     align-items: end;
   }
-  .form-field { display: flex; flex-direction: column; gap: 4px; }
+  .form-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .form-label {
     font-family: var(--mono);
     font-size: 10px;
@@ -837,7 +837,9 @@
   .modal-transition .t-stage { display: none; }
   .modal-transition[data-stage="closure"] .t-stage[data-stage="closure"],
   .modal-transition[data-stage="breath"]  .t-stage[data-stage="breath"],
-  .modal-transition[data-stage="choose"]  .t-stage[data-stage="choose"] { display: block; }
+  .modal-transition[data-stage="choose"]  .t-stage[data-stage="choose"],
+  .modal-transition[data-stage="ask"]     .t-stage[data-stage="ask"],
+  .modal-transition[data-stage="paused"]  .t-stage[data-stage="paused"] { display: block; }
   .modal-transition h2 { margin-bottom: 16px; }
   .modal-transition .confirm-text { margin-bottom: 8px; }
   .modal-transition .modal-actions { justify-content: center; }
@@ -904,6 +906,27 @@
     font-size: 10px;
     color: var(--muted);
     letter-spacing: 0.06em;
+  }
+  /* Lista no interactiva del aviso "¿Estás atorado?" (pausa indefinida) */
+  .stuck-list {
+    list-style: none;
+    text-align: left;
+    margin: 4px auto 20px;
+    padding: 0;
+    display: inline-block;
+  }
+  .stuck-list li {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text);
+    padding: 6px 0 6px 20px;
+    position: relative;
+  }
+  .stuck-list li::before {
+    content: "•";
+    color: var(--accent);
+    position: absolute;
+    left: 4px;
   }
 
   /* Preferencias */
@@ -1138,7 +1161,7 @@
     .ws-mobile .tasks-sortable .task-delta { display: none; }
 
     /* Tarjetas de secciones reubicadas */
-    .ws-mobile .groups-section, .ws-mobile .sheet-section { margin-top: 16px; }
+    .ws-mobile .groups-section, .ws-mobile .sheet-section, .ws-mobile .prefs-section { margin-top: 16px; }
     .ws-mobile .session-meta { margin-top: 16px; }
 
     /* Formulario de agregar tarea: los elementos se apilan si no caben */
@@ -1272,6 +1295,40 @@
       </div>
     </div>
 
+    <!-- GROUPS -->
+    <div class="groups-section">
+      <h4 data-i18n="groups.heading">Grupos</h4>
+      <div class="groups-list" id="groupsList"></div>
+      <div class="group-add-row">
+        <input class="form-input" id="newGroupInput" data-i18n-placeholder="groups.newPlaceholder" placeholder="Nuevo grupo..." autocomplete="off">
+        <button class="btn-grp-add" data-i18n="groups.add" onclick="addGroup()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- GOOGLE SHEETS -->
+    <div class="sheet-section">
+      <h4 data-i18n="sheets.heading">Google Sheets</h4>
+      <div class="sheet-status err" id="googleConfigWarn" style="display:none;" data-i18n="sheets.configWarn">
+        El servidor de autenticación no está disponible.
+      </div>
+      <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" data-i18n="sheets.connect" onclick="connectGoogle()">Conectar con Google</button>
+      <div class="google-account" id="googleAccountRow" style="display:none;">
+        <span class="google-email" id="googleEmail"></span>
+        <button class="btn-sheet" data-i18n="sheets.logout" onclick="logoutGoogle()">Salir</button>
+      </div>
+      <div class="sheet-link-row" id="sheetLinkRow" style="display:none;">
+        <a id="sheetLink" href="#" target="_blank" rel="noopener" data-i18n="sheets.open">Abrir Sheet</a>
+      </div>
+      <div id="googleActions" style="display:none; gap:8px; margin-top:8px; flex-direction:column;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn-sheet btn-sheet-push" data-i18n="sheets.save" onclick="pushToSheet()">↑ Guardar</button>
+          <button class="btn-sheet btn-sheet-load" data-i18n="sheets.load" onclick="loadFromSheet()">↓ Cargar</button>
+        </div>
+        <button class="btn-sheet" data-i18n="sheets.recreate" onclick="resetGoogleTarget()">Buscar / recrear Sheet</button>
+      </div>
+      <div class="sheet-status" id="sheetStatus"></div>
+    </div>
+
     <!-- PREFERENCIAS -->
     <div class="prefs-section">
       <h4 data-i18n="prefs.heading">Preferencias</h4>
@@ -1325,40 +1382,26 @@
           <span class="pref-hint" data-i18n="prefs.chooseNextHint">Decide qué tarea sigue o retoma una anterior.</span>
         </span>
       </label>
-    </div>
 
-    <!-- GROUPS -->
-    <div class="groups-section">
-      <h4 data-i18n="groups.heading">Grupos</h4>
-      <div class="groups-list" id="groupsList"></div>
-      <div class="group-add-row">
-        <input class="form-input" id="newGroupInput" data-i18n-placeholder="groups.newPlaceholder" placeholder="Nuevo grupo..." autocomplete="off">
-        <button class="btn-grp-add" data-i18n="groups.add" onclick="addGroup()">+ Add</button>
-      </div>
-    </div>
-
-    <!-- GOOGLE SHEETS -->
-    <div class="sheet-section">
-      <h4 data-i18n="sheets.heading">Google Sheets</h4>
-      <div class="sheet-status err" id="googleConfigWarn" style="display:none;" data-i18n="sheets.configWarn">
-        El servidor de autenticación no está disponible.
-      </div>
-      <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" data-i18n="sheets.connect" onclick="connectGoogle()">Conectar con Google</button>
-      <div class="google-account" id="googleAccountRow" style="display:none;">
-        <span class="google-email" id="googleEmail"></span>
-        <button class="btn-sheet" data-i18n="sheets.logout" onclick="logoutGoogle()">Salir</button>
-      </div>
-      <div class="sheet-link-row" id="sheetLinkRow" style="display:none;">
-        <a id="sheetLink" href="#" target="_blank" rel="noopener" data-i18n="sheets.open">Abrir Sheet</a>
-      </div>
-      <div id="googleActions" style="display:none; gap:8px; margin-top:8px; flex-direction:column;">
-        <div style="display:flex; gap:8px;">
-          <button class="btn-sheet btn-sheet-push" data-i18n="sheets.save" onclick="pushToSheet()">↑ Guardar</button>
-          <button class="btn-sheet btn-sheet-load" data-i18n="sheets.load" onclick="loadFromSheet()">↓ Cargar</button>
+      <!-- ¿Estás atorado? (split excedido) -->
+      <label class="pref-row pref-row-sep">
+        <input type="checkbox" id="prefStuck" onchange="setPrefStuck(this.checked)">
+        <span class="pref-text">
+          <span class="pref-label" data-i18n="prefs.stuck">¿Estás atorado?</span>
+          <span class="pref-hint" data-i18n="prefs.stuckHint">Aviso cuando un split supera su estimado.</span>
+        </span>
+      </label>
+      <div class="pref-sub" id="prefStuckSub">
+        <div class="pref-row pref-row-inline">
+          <span class="pref-label" data-i18n="prefs.stuckMargin">Margen sobre el estimado</span>
+          <select class="form-input pref-select" id="prefStuckMargin" onchange="setPrefStuckMargin(this.value)">
+            <option value="10">10%</option>
+            <option value="20">20%</option>
+            <option value="30">30%</option>
+            <option value="50">50%</option>
+          </select>
         </div>
-        <button class="btn-sheet" data-i18n="sheets.recreate" onclick="resetGoogleTarget()">Buscar / recrear Sheet</button>
       </div>
-      <div class="sheet-status" id="sheetStatus"></div>
     </div>
   </div>
 </div>
@@ -1455,6 +1498,34 @@
   </div>
 </div>
 
+<!-- STUCK MODAL (aviso de split excedido · pausa indefinida) -->
+<div class="modal-overlay" id="stuckModal">
+  <div class="modal modal-transition" id="stuckBox" data-stage="ask">
+    <!-- Fase 'ask' · ¿Todo bien? -->
+    <div class="t-stage" data-stage="ask">
+      <h2 data-i18n="stuck.askTitle">¿TODO BIEN?</h2>
+      <p class="confirm-text" data-i18n="stuck.askBody">Llevas más tiempo del estimado en este split.</p>
+      <div class="modal-actions">
+        <button class="btn-modal" onclick="closeStuck()" data-i18n="stuck.continue">Continuar</button>
+        <button class="btn-modal" onclick="enterStuckPause()" data-i18n="stuck.pause">Pausar</button>
+      </div>
+    </div>
+    <!-- Fase 'paused' · Pausa indefinida (sin cuenta regresiva) -->
+    <div class="t-stage" data-stage="paused">
+      <h2 data-i18n="stuck.pausedTitle">En pausa</h2>
+      <p class="confirm-text" data-i18n="stuck.pausedIntro">Aprovecha este tiempo para…</p>
+      <ul class="stuck-list">
+        <li data-i18n="stuck.opt1">Pedir ayuda</li>
+        <li data-i18n="stuck.opt2">Tomarte un descanso</li>
+        <li data-i18n="stuck.opt3">Replantear el enfoque</li>
+      </ul>
+      <div class="modal-actions">
+        <button class="btn-modal primary" onclick="resumeStuckPause()" data-i18n="stuck.resume">▶ Reanudar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -1508,13 +1579,19 @@ let state = {
   lastTick: null,
   afkStart: null,
   currentTaskIndex: null,
-  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true }, // señales de transición autism-friendly
+  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20 }, // señales de transición autism-friendly
 };
 
 // Estado efímero de la señal de transición entre tareas. Vive fuera de `state`
 // para que saveLocal() (que serializa todo `state`) no lo persista; tras un
 // reload no tiene sentido reanudar una transición a medias.
 let transition = null; // { stage, doneName, doneSec, suggestedIdx, priorIdxs, isFinal, closeTimer, pauseRaf, pauseEndsAt }
+
+// Estado efímero del aviso "¿Estás atorado?" (split excedido). Tampoco se
+// serializa: tras un reload la sesión se fuerza a 'stopped' y no tiene sentido
+// reanudar un aviso a medias. `stuckPromptedIds` evita re-avisar la misma tarea.
+let stuckPrompt = null; // { stage: 'ask' | 'paused' }
+const stuckPromptedIds = new Set();
 
 const AUTO_SAVE_MS = 5 * 60 * 1000;
 let autoSaveTimer = null;
@@ -1581,6 +1658,9 @@ function normalizePrefs() {
   if (P.notifySec == null) P.notifySec = [3, 5, 7, 10].includes(P.closureSec) ? P.closureSec : 5;
   const PAUSE_OPTS = [30, 60, 120, 300, 600];
   if (P.pauseSec == null || !PAUSE_OPTS.includes(P.pauseSec)) P.pauseSec = 60;
+  if (P.stuck == null) P.stuck = true;
+  const MARGIN_OPTS = [10, 20, 30, 50];
+  if (P.stuckMargin == null || !MARGIN_OPTS.includes(P.stuckMargin)) P.stuckMargin = 20;
   delete P.transitions;
   delete P.closureSec;
 }
@@ -2171,6 +2251,66 @@ function closeTransition() {
   document.getElementById('transitionModal').classList.remove('open');
 }
 
+// ─── ¿ESTÁS ATORADO? (split excedido) ────────────────────────
+// Aviso durante una tarea cuando su tiempo supera el estimado por un margen
+// configurable. A diferencia de la señal de transición, NO congela el timer en
+// la fase 'ask' (sigue corriendo). "Pausar" reutiliza el mecanismo de AFK para
+// una pausa indefinida (sin cuenta regresiva); "Reanudar" la deshace y el split
+// continúa donde quedó, sin el flujo de "elegir siguiente tarea".
+function maybeTriggerStuck() {
+  const P = state.prefs || {};
+  if (!P.stuck || state.status !== 'running' || transition || stuckPrompt) return;
+  const idx = state.currentTaskIndex;
+  const task = idx != null ? state.tasks[idx] : null;
+  if (!task || task.status !== 'active' || !(task.estimatedMin > 0)) return;
+  if (stuckPromptedIds.has(task.id)) return;
+  const threshold = task.estimatedMin * 60000 * (1 + (P.stuckMargin || 20) / 100);
+  if (state.taskElapsed > threshold) {
+    stuckPromptedIds.add(task.id);
+    openStuckPrompt();
+  }
+}
+
+function openStuckPrompt() {
+  stuckPrompt = { stage: 'ask' };
+  document.getElementById('stuckModal').classList.add('open');
+  renderStuck();
+}
+
+function renderStuck() {
+  if (!stuckPrompt) return;
+  document.getElementById('stuckBox').setAttribute('data-stage', stuckPrompt.stage);
+}
+
+// "Pausar" → pausa indefinida reutilizando el tracking de AFK existente.
+function enterStuckPause() {
+  if (!stuckPrompt) return;
+  state.status = 'afk';
+  state.afkStart = Date.now();
+  stuckPrompt.stage = 'paused';
+  renderStuck();
+  updateButtons(); updateStatus(); persistNow();
+}
+
+// "Reanudar" → deshace el AFK (igual que el retorno de toggleAfk) y continúa el
+// split donde quedó.
+function resumeStuckPause() {
+  if (state.status === 'afk') {
+    state.afkElapsed += Date.now() - (state.afkStart || Date.now());
+    state.afkStart = null;
+  }
+  state.status = 'running';
+  state.lastTick = Date.now();
+  closeStuck();
+  updateButtons(); updateStatus(); persistNow();
+}
+
+// "Continuar" (y cierre tras reanudar): solo oculta el overlay.
+function closeStuck() {
+  stuckPrompt = null;
+  document.getElementById('stuckModal').classList.remove('open');
+}
+
 // ─── PREFERENCIAS ────────────────────────────────────────────
 // Tres features independientes: notificación al terminar (closure), pausa entre
 // splits (breath) y elegir siguiente tarea (choose).
@@ -2196,6 +2336,15 @@ function setPrefChooseNext(on) {
   state.prefs.chooseNext = !!on;
   saveLocal();
 }
+function setPrefStuck(on) {
+  state.prefs.stuck = !!on;
+  saveLocal();
+  updatePrefSubState('prefStuckSub', on);
+}
+function setPrefStuckMargin(val) {
+  const n = parseInt(val, 10);
+  if (n > 0) { state.prefs.stuckMargin = n; saveLocal(); }
+}
 // La duración de cada feature solo tiene sentido con su casilla activa:
 // se atenúa y deshabilita cuando está desmarcada.
 function updatePrefSubState(subId, on) {
@@ -2211,13 +2360,18 @@ function syncPrefsUI() {
   const pauseCb = document.getElementById('prefPause');
   const pauseSel = document.getElementById('prefPauseSec');
   const chooseCb = document.getElementById('prefChooseNext');
+  const stuckCb = document.getElementById('prefStuck');
+  const stuckSel = document.getElementById('prefStuckMargin');
   if (notifyCb) notifyCb.checked = !!P.notify;
   if (notifySel) notifySel.value = String(P.notifySec || 5);
   if (pauseCb) pauseCb.checked = !!P.pause;
   if (pauseSel) pauseSel.value = String(P.pauseSec || 60);
   if (chooseCb) chooseCb.checked = !!P.chooseNext;
+  if (stuckCb) stuckCb.checked = !!P.stuck;
+  if (stuckSel) stuckSel.value = String(P.stuckMargin || 20);
   updatePrefSubState('prefNotifySub', !!P.notify);
   updatePrefSubState('prefPauseSub', !!P.pause);
+  updatePrefSubState('prefStuckSub', !!P.stuck);
 }
 
 function taskDatesHtml(task) {
@@ -2463,6 +2617,7 @@ function tick() {
     state.totalElapsed += delta;
     state.taskElapsed += delta;
     state.lastTick = now;
+    maybeTriggerStuck();
   }
   updateClocks();
   updateSummary();
@@ -3079,6 +3234,7 @@ document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' ||
       e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
   if (transition) return; // el overlay de transición captura la interacción
+  if (stuckPrompt) return; // el overlay "¿estás atorado?" captura la interacción
   if (e.key === ' ') { e.preventDefault(); if (!document.getElementById('btnAfk').disabled) toggleAfk(); }
 });
 
@@ -3098,9 +3254,9 @@ const MOBILE_LAYOUT = [
   ['.summary-grid', 'panelResumen'],
   ['#langWrap', 'panelAjustes'],
   ['.session-meta', 'panelAjustes'],
-  ['.prefs-section', 'panelAjustes'],
   ['.groups-section', 'panelAjustes'],
   ['.sheet-section', 'panelAjustes'],
+  ['.prefs-section', 'panelAjustes'],
   ['.kofi-btn', 'panelAjustes'],
 ];
 const mobileAnchors = [];
