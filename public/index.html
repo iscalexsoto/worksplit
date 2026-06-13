@@ -111,7 +111,20 @@
   }
   .kofi-btn:hover { background: #d8ff5e; }
   .kofi-btn:active { transform: translateY(1px); }
-  .kofi-emoji { font-size: 14px; line-height: 1; }
+  .kofi-emoji { font-size: 14px; line-height: 1; display: inline-flex; }
+
+  /* ICONS (Lucide sprite) — heredan el tamaño (1em) y color (currentColor) del texto */
+  .icon {
+    width: 1em; height: 1em; flex: none; vertical-align: -0.14em;
+    stroke: currentColor; fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .icon-lg { width: 1em; height: 1em; }
+  /* Botones que combinan ícono + texto: alinear en fila y separar con gap */
+  .btn-ctrl, .btn-add, .btn-grp-add, .btn-sheet,
+  .btn-done, .btn-activate, .btn-modal {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.45em;
+  }
 
   /* LAYOUT */
   .layout {
@@ -563,6 +576,12 @@
     color: var(--muted);
   }
   .btn-new:hover { border-color: var(--text); color: var(--text); }
+  .btn-clear {
+    background: transparent;
+    border-color: var(--border2);
+    color: var(--danger);
+  }
+  .btn-clear:hover { border-color: var(--danger); background: rgba(255,90,90,0.08); }
   .btn-resume {
     background: transparent;
     border-color: var(--success);
@@ -1190,6 +1209,29 @@
 </head>
 <body>
 
+<!-- Sprite de íconos (Lucide, licencia ISC). Referenciar con <svg class="icon"><use href="#i-..."></use></svg> -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"></polygon></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="14" y="4" width="4" height="16" rx="1"></rect><rect x="6" y="4" width="4" height="16" rx="1"></rect></symbol>
+  <symbol id="i-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"></rect></symbol>
+  <symbol id="i-rotate-ccw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></symbol>
+  <symbol id="i-party" viewBox="0 0 24 24"><path d="M5.8 11.3 2 22l10.7-3.79"></path><path d="M4 3h.01"></path><path d="M22 8h.01"></path><path d="M15 2h.01"></path><path d="M22 20h.01"></path><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"></path><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"></path><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"></path><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"></path></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></symbol>
+  <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"></path><line x1="6" x2="6" y1="2" y2="4"></line><line x1="10" x2="10" y1="2" y2="4"></line><line x1="14" x2="14" y1="2" y2="4"></line></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></symbol>
+</svg>
+
 <header>
   <div class="logo"><img src="/icons/icon-192.png" alt="WorkSplit">Work<span>Split</span></div>
   <div class="header-right">
@@ -1198,7 +1240,7 @@
       <select class="lang-switcher" id="langSwitcher" data-i18n-aria-label="lang.aria" onchange="I18N.setLang(this.value)"></select>
     </div>
     <a class="kofi-btn" href="https://ko-fi.com/A7L5211LO4" target="_blank" rel="noopener">
-      <span class="kofi-emoji">☕</span> <span data-i18n="kofi.label">Cómprame un café</span>
+      <span class="kofi-emoji"><svg class="icon"><use href="#i-coffee"></use></svg></span> <span data-i18n="kofi.label">Cómprame un café</span>
     </a>
     <div class="header-status">
       <div class="status-dot" id="statusDot"></div>
@@ -1245,7 +1287,7 @@
           <label class="form-label" data-i18n="add.estLabel">Estimado (min)</label>
           <input class="form-input" id="fEst" type="number" min="1" data-i18n-placeholder="add.estPlaceholder" placeholder="30">
         </div>
-        <button class="btn-add" data-i18n="add.button" onclick="addTask()">+ Agregar</button>
+        <button class="btn-add" onclick="addTask()"><svg class="icon"><use href="#i-plus"></use></svg><span data-i18n="add.button">Agregar</span></button>
       </div>
     </div>
   </div>
@@ -1273,10 +1315,11 @@
 
     <!-- CONTROL BUTTONS -->
     <div class="ctrl-buttons">
-      <button class="btn-ctrl btn-start" id="btnStart" onclick="startSession()">▶ Iniciar</button>
-      <button class="btn-ctrl btn-afk" id="btnAfk" onclick="toggleAfk()" disabled>⏸ Ausentarme</button>
-      <button class="btn-ctrl btn-stop" id="btnStop" onclick="stopSession()" disabled>■ Detener</button>
-      <button class="btn-ctrl btn-new" id="btnNewSession" onclick="newSession()" style="display:none;">↺ Restablecer</button>
+      <button class="btn-ctrl btn-start" id="btnStart" onclick="startSession()"><svg class="icon"><use href="#i-play"></use></svg><span class="btn-label">Iniciar</span></button>
+      <button class="btn-ctrl btn-afk" id="btnAfk" onclick="toggleAfk()" disabled><svg class="icon"><use href="#i-pause"></use></svg><span class="btn-label">Ausentarme</span></button>
+      <button class="btn-ctrl btn-stop" id="btnStop" onclick="stopSession()" disabled><svg class="icon"><use href="#i-square"></use></svg><span class="btn-label">Detener</span></button>
+      <button class="btn-ctrl btn-new" id="btnNewSession" onclick="newSession()" style="display:none;"><svg class="icon"><use href="#i-rotate-ccw"></use></svg><span class="btn-label">Restablecer</span></button>
+      <button class="btn-ctrl btn-clear" id="btnClearTasks" onclick="clearTasks()" style="display:none;"><svg class="icon"><use href="#i-trash"></use></svg><span data-i18n="ctrl.clearTasks">Limpiar tareas</span></button>
     </div>
 
     <!-- SUMMARY -->
@@ -1305,7 +1348,7 @@
       <div class="groups-list" id="groupsList"></div>
       <div class="group-add-row">
         <input class="form-input" id="newGroupInput" data-i18n-placeholder="groups.newPlaceholder" placeholder="Nuevo grupo..." autocomplete="off">
-        <button class="btn-grp-add" data-i18n="groups.add" onclick="addGroup()">+ Add</button>
+        <button class="btn-grp-add" onclick="addGroup()"><svg class="icon"><use href="#i-plus"></use></svg><span data-i18n="groups.add">Add</span></button>
       </div>
     </div>
 
@@ -1325,8 +1368,8 @@
       </div>
       <div id="googleActions" style="display:none; gap:8px; margin-top:8px; flex-direction:column;">
         <div style="display:flex; gap:8px;">
-          <button class="btn-sheet btn-sheet-push" data-i18n="sheets.save" onclick="pushToSheet()">↑ Guardar</button>
-          <button class="btn-sheet btn-sheet-load" data-i18n="sheets.load" onclick="loadFromSheet()">↓ Cargar</button>
+          <button class="btn-sheet btn-sheet-push" onclick="pushToSheet()"><svg class="icon"><use href="#i-arrow-up"></use></svg><span data-i18n="sheets.save">Guardar</span></button>
+          <button class="btn-sheet btn-sheet-load" onclick="loadFromSheet()"><svg class="icon"><use href="#i-arrow-down"></use></svg><span data-i18n="sheets.load">Cargar</span></button>
         </div>
         <button class="btn-sheet" data-i18n="sheets.recreate" onclick="resetGoogleTarget()">Buscar / recrear Sheet</button>
       </div>
@@ -1457,7 +1500,7 @@
 <!-- FINISH MODAL -->
 <div class="modal-overlay" id="finishModal">
   <div class="modal">
-    <h2 data-i18n="finish.title">🏁 Sesión finalizada</h2>
+    <h2><svg class="icon"><use href="#i-flag"></use></svg> <span data-i18n="finish.title">Sesión finalizada</span></h2>
     <div class="modal-stat">
       <span class="modal-stat-label" data-i18n="finish.totalEst">Total estimado</span>
       <span class="modal-stat-value" id="mEst">—</span>
@@ -1486,7 +1529,7 @@
   <div class="modal modal-transition" id="transitionBox" data-stage="closure">
     <!-- Beat 1 · Cierre -->
     <div class="t-stage" data-stage="closure">
-      <div class="t-close-check" id="tCloseCheck">✓</div>
+      <div class="t-close-check" id="tCloseCheck"></div>
       <h2 class="t-close-title" id="tCloseTitle"></h2>
       <div class="t-close-name" id="tCloseName"></div>
       <div class="t-close-dur" id="tCloseDur"></div>
@@ -1536,7 +1579,7 @@
         <li data-i18n="stuck.opt3">Replantear el enfoque</li>
       </ul>
       <div class="modal-actions">
-        <button class="btn-modal primary" onclick="resumeStuckPause()" data-i18n="stuck.resume">▶ Reanudar</button>
+        <button class="btn-modal primary" onclick="resumeStuckPause()"><svg class="icon"><use href="#i-play"></use></svg><span data-i18n="stuck.resume">Reanudar</span></button>
       </div>
     </div>
   </div>
@@ -1970,7 +2013,7 @@ function renderGroups() {
       chip.dataset.groupIdx = gi;
       chip.draggable = true;
     }
-    chip.innerHTML = `<span>${g}</span><span class="del" onclick="removeGroup('${g.replace(/'/g, "\\'")}')">×</span>`;
+    chip.innerHTML = `<span>${g}</span><span class="del" onclick="removeGroup('${g.replace(/'/g, "\\'")}')">${icon('x')}</span>`;
     list.appendChild(chip);
     // select option
     const opt = document.createElement('option');
@@ -2011,7 +2054,7 @@ function addTask() {
   });
   document.getElementById('fName').value = '';
   document.getElementById('fEst').value = '';
-  saveLocal(); renderTasks(); updateSummary();
+  saveLocal(); renderTasks(); updateSummary(); updateButtons();
 }
 
 function canDeleteTasks() {
@@ -2050,7 +2093,25 @@ function updateTaskField(idx, field, value) {
 function removeTask(idx) {
   if (!canDeleteTasks()) return;
   state.tasks.splice(idx, 1);
-  saveLocal(); renderTasks(); updateSummary();
+  saveLocal(); renderTasks(); updateSummary(); updateButtons();
+}
+
+// Vacía todas las tareas para empezar un set de splits desde cero. Solo en estado
+// editable (idle); conserva grupos y metadatos de sesión. Operación local: la
+// pestaña splits se sincroniza en el próximo "Guardar"/autosave (igual que removeTask).
+async function clearTasks() {
+  if (state.status !== 'idle') return;
+  if (state.tasks.length === 0) return;
+  const ok = await confirmDialog({
+    title: t('confirm.clearTitle'),
+    message: t('confirm.clearBody'),
+    confirmText: t('confirm.clearConfirm'),
+    danger: true,
+  });
+  if (!ok) return;
+  state.tasks = [];
+  state.currentTaskIndex = null;
+  saveLocal(); renderTasks(); updateSummary(); updateButtons();
 }
 
 // Avance clásico (sin señal de transición): activa la siguiente tarea no
@@ -2196,7 +2257,7 @@ function renderTransition() {
 
   // Beat 'closure' · Notificación (o felicitación final)
   if (transition.isFinal) {
-    document.getElementById('tCloseCheck').textContent = '🎉';
+    document.getElementById('tCloseCheck').innerHTML = icon('party');
     document.getElementById('tCloseTitle').textContent = t('transition.finalTitle');
     document.getElementById('tCloseName').textContent = t('transition.finalBody');
     document.getElementById('tCloseDur').textContent = '';
@@ -2205,12 +2266,12 @@ function renderTransition() {
     return; // el final solo usa el beat de notificación
   }
 
-  document.getElementById('tCloseCheck').textContent = '✓';
+  document.getElementById('tCloseCheck').innerHTML = icon('check-circle');
   document.getElementById('tCloseTitle').textContent = t('transition.closeTitle');
   document.getElementById('tCloseName').textContent = transition.doneName;
   document.getElementById('tCloseDur').textContent = t('transition.closeDuration', { time: fmtSec(transition.doneSec) });
   document.getElementById('tCloseActions').innerHTML =
-    `<button class="btn-modal" onclick="advanceStage()">${t('transition.continue')}</button>`;
+    `<button class="btn-modal" onclick="advanceStage()">${t('transition.continue')}${icon('arrow-right')}</button>`;
 
   // Beat 'breath' · Pausa
   const sec = (state.prefs && state.prefs.pauseSec) || 60;
@@ -2219,13 +2280,13 @@ function renderTransition() {
   document.getElementById('tBreathActions').innerHTML = counting
     ? `<button class="btn-modal" onclick="advanceStage()">${t('transition.pauseSkip')}</button>`
     : `<button class="btn-modal" onclick="startPause()">${t('transition.pauseStart', { dur: pauseDurLabel(sec) })}</button>`
-      + `<button class="btn-modal primary" onclick="advanceStage()">${t('transition.continue')}</button>`;
+      + `<button class="btn-modal primary" onclick="advanceStage()">${t('transition.continue')}${icon('arrow-right')}</button>`;
 
   // Beat 'choose' · Elegir siguiente
   const next = state.tasks[transition.suggestedIdx];
   document.getElementById('tNextName').textContent = next ? next.name : '';
   const startBtn = document.getElementById('tStartBtn');
-  startBtn.textContent = t('transition.start');
+  startBtn.innerHTML = icon('play') + t('transition.start');
   startBtn.onclick = () => commitTransition(transition.suggestedIdx);
 
   const priorWrap = document.getElementById('tPrior');
@@ -2434,7 +2495,7 @@ function renderTasks() {
       block.className = 'group-block group-block-empty';
       block.dataset.groupIdx = gi;
       block.dataset.group = group;
-      const groupDrag = `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">⋮⋮</span>`;
+      const groupDrag = `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">${icon('grip')}</span>`;
       block.innerHTML = `<div class="group-header draggable" data-group-idx="${gi}">
         <div class="group-header-left">
           ${groupDrag}
@@ -2452,7 +2513,7 @@ function renderTasks() {
     block.dataset.groupIdx = gi;
     block.dataset.group = group;
     const groupDrag = canReorder()
-      ? `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">⋮⋮</span>`
+      ? `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">${icon('grip')}</span>`
       : '';
     block.innerHTML = `<div class="group-header${canReorder() ? ' draggable' : ''}" data-group-idx="${gi}">
       <div class="group-header-left">
@@ -2494,7 +2555,7 @@ function renderTasks() {
       const isRunning = state.status === 'running';
       let sessionBtn;
       if (task.status === 'done') {
-        sessionBtn = `<button class="btn-done done-btn-active" disabled>${t('task.done')}</button>`;
+        sessionBtn = `<button class="btn-done done-btn-active" disabled>${icon('check')}${t('task.done')}</button>`;
       } else if (task.status === 'active') {
         sessionBtn = `<button class="btn-done" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.markDone')}</button>`;
       } else {
@@ -2504,7 +2565,7 @@ function renderTasks() {
         ? `<button class="btn-del-task" onclick="removeTask(${idx})" title="${t('task.deleteTitle')}">${t('task.delete')}</button>`
         : sessionBtn;
       const taskDrag = canReorder()
-        ? `<span class="drag-handle" draggable="true" title="${t('task.dragTitle')}">⋮⋮</span>`
+        ? `<span class="drag-handle" draggable="true" title="${t('task.dragTitle')}">${icon('grip')}</span>`
         : '';
       const nameHtml = canEdit
         ? `<div class="task-name-cell"><input class="task-input task-input-name" type="text" value="${escHtml(task.name)}" onblur="updateTaskField(${idx}, 'name', this.value)">${taskDatesHtml(task)}</div>`
@@ -2723,20 +2784,35 @@ function totalEstMs() {
   return state.tasks.reduce((s, t) => s + t.estimatedMin * 60000, 0);
 }
 
+// ─── ICONS (sprite Lucide) ──────────────────────────────────
+// Devuelve el markup de un ícono del sprite para usar en plantillas/innerHTML.
+function icon(name, cls) {
+  return `<svg class="icon${cls ? ' ' + cls : ''}" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+}
+// Actualiza el ícono (<use>) y la etiqueta de un botón de control dinámico.
+function setBtn(id, iconName, label) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.querySelector('use').setAttribute('href', '#i-' + iconName);
+  b.querySelector('.btn-label').textContent = label;
+}
+
 // ─── BUTTONS / STATUS ───────────────────────────────────────
 function updateButtons() {
   const s = state.status;
   document.getElementById('btnStart').disabled = s !== 'idle' && s !== 'stopped';
-  document.getElementById('btnStart').textContent =
+  setBtn('btnStart', 'play',
     (s === 'running' || s === 'afk') ? t('ctrl.activeRunning')
     : s === 'stopped' ? t('ctrl.resume')
-    : t('ctrl.start');
+    : t('ctrl.start'));
   document.getElementById('btnAfk').disabled = s !== 'running' && s !== 'afk';
-  document.getElementById('btnAfk').textContent = s === 'afk' ? t('ctrl.return') : t('ctrl.afk');
+  setBtn('btnAfk', s === 'afk' ? 'play' : 'pause', s === 'afk' ? t('ctrl.return') : t('ctrl.afk'));
   document.getElementById('btnStop').disabled = s !== 'running' && s !== 'afk';
-  document.getElementById('btnStop').textContent = s === 'stopped' ? t('ctrl.stopped') : t('ctrl.stop');
-  document.getElementById('btnNewSession').textContent = t('ctrl.reset');
+  setBtn('btnStop', 'square', s === 'stopped' ? t('ctrl.stopped') : t('ctrl.stop'));
+  setBtn('btnNewSession', 'rotate-ccw', t('ctrl.reset'));
   document.getElementById('btnNewSession').style.display = (s === 'stopped' || s === 'done') ? '' : 'none';
+  const showClear = s === 'idle' && state.tasks.length > 0;
+  document.getElementById('btnClearTasks').style.display = showClear ? '' : 'none';
   updateSessionMetaFields();
 }
 
@@ -2782,8 +2858,8 @@ function notify(message, type = '', duration = 3500) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = 'toast' + (type ? ' ' + type : '');
-  const icons = { ok: '✓', err: '⚠', '': 'ℹ' };
-  toast.innerHTML = `<span class="toast-icon">${icons[type] || icons['']}</span><span></span>`;
+  const icons = { ok: 'check', err: 'alert', '': 'info' };
+  toast.innerHTML = `<span class="toast-icon">${icon(icons[type] || icons[''])}</span><span></span>`;
   toast.lastElementChild.textContent = message;
   container.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add('show'));
@@ -3338,7 +3414,8 @@ function updateGoogleUI() {
     linkRow.style.display = 'block';
     const a = document.getElementById('sheetLink');
     a.href = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/edit';
-    a.textContent = '📄 ' + (getSheetName() || t('sheets.open'));
+    a.textContent = getSheetName() || t('sheets.open');
+    a.insertAdjacentHTML('afterbegin', icon('file') + ' ');
   } else {
     linkRow.style.display = 'none';
   }
@@ -3347,6 +3424,8 @@ function updateGoogleUI() {
 function setSheetStatus(msg, type) {
   const el = document.getElementById('sheetStatus');
   el.textContent = msg;
+  const statusIcon = type === 'ok' ? 'check' : type === 'err' ? 'alert' : '';
+  if (statusIcon) el.insertAdjacentHTML('afterbegin', icon(statusIcon) + ' ');
   el.className = 'sheet-status ' + (type || '');
 }
 

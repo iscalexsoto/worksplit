@@ -17,7 +17,7 @@ add.namePlaceholder|Descripción de la tarea|Task description
 add.groupLabel|Grupo|Group
 add.estLabel|Estimado (min)|Estimated (min)
 add.estPlaceholder|30|30
-add.button|+ Agregar|+ Add
+add.button|Agregar|Add
 col.task|Tarea|Task
 col.est|Est.|Est.
 col.real|Real|Actual
@@ -26,7 +26,7 @@ col.delete|Eliminar|Delete
 col.action|Acción|Action
 task.activate|Activar|Activate
 task.markDone|Marcar listo|Mark done
-task.done|✓ Listo|✓ Done
+task.done|Listo|Done
 task.delete|Eliminar|Delete
 task.deleteTitle|Eliminar tarea|Delete task
 task.dragTitle|Arrastrar para reordenar o cambiar de grupo|Drag to reorder or move between groups
@@ -44,37 +44,38 @@ summary.totalEst|Total estimado|Total estimated
 summary.realTime|Tiempo real|Real time
 summary.totalAfk|Total ausente|Total away
 summary.delta|Delta|Delta
-ctrl.start|▶ Iniciar|▶ Start
-ctrl.activeRunning|▶ Activo|▶ Active
-ctrl.resume|▶ Reanudar|▶ Resume
-ctrl.afk|⏸ Ausentarme|⏸ Step away
-ctrl.return|▶ Volver|▶ Return
-ctrl.stop|■ Detener|■ Stop
-ctrl.stopped|■ Detenido|■ Stopped
-ctrl.reset|↺ Restablecer|↺ Reset
+ctrl.start|Iniciar|Start
+ctrl.activeRunning|Activo|Active
+ctrl.resume|Reanudar|Resume
+ctrl.afk|Ausentarme|Step away
+ctrl.return|Volver|Return
+ctrl.stop|Detener|Stop
+ctrl.stopped|Detenido|Stopped
+ctrl.reset|Restablecer|Reset
+ctrl.clearTasks|Limpiar tareas|Clear tasks
 groups.heading|Grupos|Groups
 groups.newPlaceholder|Nuevo grupo...|New group...
-groups.add|+ Add|+ Add
+groups.add|Add|Add
 sheets.heading|Google Sheets|Google Sheets
 sheets.configWarn|El servidor de autenticación no está disponible.|The authentication server is unavailable.
 sheets.connect|Conectar con Google|Connect with Google
 sheets.logout|Salir|Sign out
 sheets.open|Abrir Sheet|Open Sheet
-sheets.save|↑ Guardar|↑ Save
-sheets.load|↓ Cargar|↓ Load
+sheets.save|Guardar|Save
+sheets.load|Cargar|Load
 sheets.recreate|Buscar / recrear Sheet|Find / recreate Sheet
 sheets.connected|Conectado|Connected
 sheets.statusPreparing|Preparando tu Sheet en Drive...|Preparing your Sheet in Drive...
 sheets.statusConnectToSave|Conéctate con Google para guardar.|Connect with Google to save.
 sheets.statusSaving|Guardando...|Saving...
-sheets.statusSaved|✓ Guardado en Sheets.|✓ Saved to Sheets.
+sheets.statusSaved|Guardado en Sheets.|Saved to Sheets.
 sheets.statusNoSheet|No hay Sheet configurado.|No Sheet configured.
 sheets.statusLoading|Cargando...|Loading...
 sheets.statusNoSessions|No hay sesiones guardadas en el Sheet.|No sessions saved in the Sheet.
-sheets.statusLoaded|✓ Sesión cargada.|✓ Session loaded.
-sheets.statusReady|✓ Sheet de WorkSplit listo.|✓ WorkSplit Sheet ready.
+sheets.statusLoaded|Sesión cargada.|Session loaded.
+sheets.statusReady|Sheet de WorkSplit listo.|WorkSplit Sheet ready.
 sheets.statusClosed|Sesión de Google cerrada.|Google session closed.
-sheets.statusConnectedReady|✓ Conectado. Tu Sheet está listo.|✓ Connected. Your Sheet is ready.
+sheets.statusConnectedReady|Conectado. Tu Sheet está listo.|Connected. Your Sheet is ready.
 sheets.errSave|Error al guardar: {msg}|Error saving: {msg}
 sheets.errLoad|Error al cargar: {msg}|Error loading: {msg}
 sheets.errGeneric|Error: {msg}|Error: {msg}
@@ -88,7 +89,7 @@ sheet.colRealTime|Tiempo real|Real time
 sheet.colStart|Inicio|Start
 sheet.colEnd|Fin|End
 sheet.total|TOTAL|TOTAL
-finish.title|🏁 Sesión finalizada|🏁 Session finished
+finish.title|Sesión finalizada|Session finished
 finish.totalEst|Total estimado|Total estimated
 finish.realActive|Tiempo real (activo)|Real time (active)
 finish.afk|Tiempo ausente|Away time
@@ -104,6 +105,9 @@ confirm.stopConfirm|Detener|Stop
 confirm.resetTitle|Restablecer|Reset
 confirm.resetBody|Se conservan las tareas, pero se reinician los tiempos y el progreso.|Tasks are kept, but times and progress are reset.
 confirm.resetConfirm|Restablecer|Reset
+confirm.clearTitle|Limpiar tareas|Clear tasks
+confirm.clearBody|Se eliminarán todas las tareas de la sesión. Esta acción no se puede deshacer.|All session tasks will be removed. This can't be undone.
+confirm.clearConfirm|Limpiar|Clear
 history.askTitle|Restablecer sesión|Reset session
 history.askBody|¿Guardar esta sesión en el historial antes de restablecer?|Save this session to history before resetting?
 history.askSave|Guardar y restablecer|Save and reset
@@ -123,10 +127,10 @@ transition.breathTitle|Tómate un momento|Take a moment
 transition.breathBody|Respira antes del siguiente bloque.|Breathe before the next block.
 transition.pauseStart|Tomar una pausa ({dur})|Take a pause ({dur})
 transition.pauseSkip|Saltar pausa|Skip pause
-transition.continue|Continuar →|Continue →
+transition.continue|Continuar|Continue
 transition.nextLabel|Tu siguiente tarea es…|Your next task is…
 transition.priorLabel|O retomar las tareas anteriores…|Or resume an earlier task…
-transition.start|▶ Empezar|▶ Start
+transition.start|Empezar|Start
 transition.finalTitle|¡Felicidades!|Congratulations!
 transition.finalBody|Has terminado todas tus actividades.|You've finished all your activities.
 transition.goSummary|Ir al resumen|Go to summary
@@ -156,4 +160,4 @@ stuck.pausedIntro|Aprovecha este tiempo para…|Use this time to…
 stuck.opt1|Pedir ayuda|Ask for help
 stuck.opt2|Tomarte un descanso|Take a break
 stuck.opt3|Replantear el enfoque|Rethink the approach
-stuck.resume|▶ Reanudar|▶ Resume
+stuck.resume|Reanudar|Resume
