@@ -768,19 +768,14 @@
     text-transform: uppercase;
   }
   .btn-sheet:hover { border-color: var(--info); color: var(--info); }
+  .btn-sheet:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-sheet:disabled:hover { border-color: var(--border2); color: var(--muted); background: transparent; }
   .btn-sheet.btn-sheet-push { border-color: var(--info); color: var(--info); }
   .btn-sheet.btn-sheet-push:hover { background: rgba(96,165,250,0.08); }
   .btn-sheet.btn-sheet-load { border-color: var(--success); color: var(--success); }
   .btn-sheet.btn-sheet-load:hover { background: rgba(76,223,176,0.08); }
-  .sheet-status {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    margin-top: 4px;
-    min-height: 14px;
-  }
-  .sheet-status.ok { color: var(--success); }
-  .sheet-status.err { color: var(--danger); }
+  .btn-sheet.btn-sheet-push:disabled, .btn-sheet.btn-sheet-load:disabled { color: var(--muted); border-color: var(--border2); }
+
   .btn-connect-google {
     width: 100%;
     border-color: var(--accent);
@@ -789,12 +784,13 @@
   }
   .btn-connect-google:hover { background: rgba(200,245,66,0.08); }
   .btn-connect-google:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-connect-google { gap: 10px; }
+  .icon-google { width: 1.05em; height: 1.05em; stroke: none; }
   .google-account {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 4px;
   }
   .google-email {
     font-family: var(--mono);
@@ -805,16 +801,85 @@
     white-space: nowrap;
     min-width: 0;
   }
-  .sheet-link-row {
-    margin-top: 6px;
+  .google-account .btn-sheet { flex: none; }
+
+  /* Píldora del Sheet conectado */
+  .sheet-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
   }
-  .sheet-link-row a {
+  .sheet-pill-dot {
+    width: 7px; height: 7px; flex: none;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+  }
+  .sheet-pill-name {
     font-family: var(--mono);
     font-size: 11px;
-    color: var(--info);
-    text-decoration: none;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .sheet-link-row a:hover { text-decoration: underline; }
+
+  /* Guardar / Cargar: ícono apilado sobre etiqueta */
+  .sheet-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-sheet-stack {
+    position: relative;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 8px;
+  }
+  .btn-sheet-stack .icon-lg { font-size: 18px; }
+  .btn-sheet-content {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Botón "Ir a la hoja de cálculo" */
+  .btn-open-sheet {
+    position: relative;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 12px 14px;
+  }
+  .btn-open-sheet-content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    text-align: center;
+  }
+  .btn-open-sheet-ext { opacity: 0.7; }
+
+  /* Spinner de carga dentro de botones */
+  .btn-spinner {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-sheet.is-loading .btn-sheet-content,
+  .btn-sheet.is-loading .btn-open-sheet-content,
+  .btn-sheet.is-loading .btn-open-sheet-ext { visibility: hidden; }
+  .btn-sheet.is-loading .btn-spinner { display: flex; }
+  .icon.spin { animation: ws-spin 0.8s linear infinite; }
+  @keyframes ws-spin { to { transform: rotate(360deg); } }
 
   /* GROUPS MANAGER */
   .groups-section {
@@ -1339,6 +1404,12 @@
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></symbol>
+  <symbol id="i-cloud-upload" viewBox="0 0 24 24"><path d="M12 13v8"></path><path d="m8 17 4-4 4 4"></path><path d="M4.5 16.5A4.5 4.5 0 0 1 6 8a6 6 0 0 1 11.6 1.5A4 4 0 0 1 18 17"></path></symbol>
+  <symbol id="i-cloud-download" viewBox="0 0 24 24"><path d="M12 13v8"></path><path d="m8 17 4 4 4-4"></path><path d="M4.5 16.5A4.5 4.5 0 0 1 6 8a6 6 0 0 1 11.6 1.5A4 4 0 0 1 18 17"></path></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></symbol>
+  <symbol id="i-loader" viewBox="0 0 24 24"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></symbol>
+  <symbol id="i-google" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></symbol>
 </svg>
 
 <header>
@@ -1480,22 +1551,32 @@
       <div class="sheet-status err" id="googleConfigWarn" style="display:none;" data-i18n="sheets.configWarn">
         El servidor de autenticación no está disponible.
       </div>
-      <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" data-i18n="sheets.connect" onclick="connectGoogle()">Conectar con Google</button>
+      <button class="btn-sheet btn-connect-google" id="btnConnectGoogle" onclick="connectGoogle()"><svg class="icon icon-google"><use href="#i-google"></use></svg><span data-i18n="sheets.connect">Conectar con Google</span></button>
       <div class="google-account" id="googleAccountRow" style="display:none;">
         <span class="google-email" id="googleEmail"></span>
         <button class="btn-sheet" data-i18n="sheets.logout" onclick="logoutGoogle()">Salir</button>
       </div>
-      <div class="sheet-link-row" id="sheetLinkRow" style="display:none;">
-        <a id="sheetLink" href="#" target="_blank" rel="noopener" data-i18n="sheets.open">Abrir Sheet</a>
-      </div>
-      <div id="googleActions" style="display:none; gap:8px; margin-top:8px; flex-direction:column;">
-        <div style="display:flex; gap:8px;">
-          <button class="btn-sheet btn-sheet-push" onclick="pushToSheet()"><svg class="icon"><use href="#i-arrow-up"></use></svg><span data-i18n="sheets.save">Guardar</span></button>
-          <button class="btn-sheet btn-sheet-load" onclick="loadFromSheet()"><svg class="icon"><use href="#i-arrow-down"></use></svg><span data-i18n="sheets.load">Cargar</span></button>
+      <div id="googleActions" style="display:none; gap:10px; margin-top:10px; flex-direction:column;">
+        <div class="sheet-pill" id="sheetPill" style="display:none;">
+          <span class="sheet-pill-dot"></span>
+          <span class="sheet-pill-name" id="sheetPillName">WorkSplit</span>
         </div>
-        <button class="btn-sheet" data-i18n="sheets.recreate" onclick="resetGoogleTarget()">Buscar / recrear Sheet</button>
+        <div class="sheet-actions-grid">
+          <button class="btn-sheet btn-sheet-stack btn-sheet-push" id="btnSheetPush" onclick="pushToSheet()">
+            <span class="btn-sheet-content"><svg class="icon icon-lg"><use href="#i-cloud-upload"></use></svg><span data-i18n="sheets.save">Guardar</span></span>
+            <span class="btn-spinner"><svg class="icon spin"><use href="#i-loader"></use></svg></span>
+          </button>
+          <button class="btn-sheet btn-sheet-stack btn-sheet-load" id="btnSheetLoad" onclick="loadFromSheet()">
+            <span class="btn-sheet-content"><svg class="icon icon-lg"><use href="#i-cloud-download"></use></svg><span data-i18n="sheets.load">Cargar</span></span>
+            <span class="btn-spinner"><svg class="icon spin"><use href="#i-loader"></use></svg></span>
+          </button>
+        </div>
+        <button class="btn-sheet btn-open-sheet" id="btnOpenSheet" onclick="openSheet()" style="display:none;">
+          <span class="btn-open-sheet-content"><svg class="icon"><use href="#i-table"></use></svg><span data-i18n="sheets.openSheet">Ir a la hoja de cálculo</span></span>
+          <svg class="icon btn-open-sheet-ext"><use href="#i-external"></use></svg>
+          <span class="btn-spinner"><svg class="icon spin"><use href="#i-loader"></use></svg></span>
+        </button>
       </div>
-      <div class="sheet-status" id="sheetStatus"></div>
     </div>
 
     <!-- PREFERENCIAS -->
@@ -3505,7 +3586,7 @@ async function logoutGoogle() {
   googleAuth.tokenExpiry = 0;
   googleAuth.connected = false;
   googleAuth.tabsEnsured = false;
-  setSheetStatus(t('sheets.statusClosed'), '');
+  notify(t('sheets.statusClosed'), '');
   updateGoogleUI();
 }
 
@@ -3699,14 +3780,13 @@ async function ensureSetup() {
   if (!googleAuth.accessToken || Date.now() >= googleAuth.tokenExpiry) {
     const token = await fetchAccessToken();
     if (!token) {
-      setSheetStatus(t('sheets.statusConnectToSave'), 'err');
+      notify(t('sheets.statusConnectToSave'), 'err');
       updateGoogleUI();
       return false;
     }
   }
   updateGoogleUI();
 
-  if (!getSheetId()) setSheetStatus(t('sheets.statusPreparing'), '');
   await ensureWorkspace();
   updateGoogleUI();
   return true;
@@ -3718,17 +3798,39 @@ function connectGoogle() {
   window.location.href = '/api/auth/login';
 }
 
-async function resetGoogleTarget() {
+async function resetGoogleTarget(silent) {
   localStorage.removeItem('worksplit_folder_id');
   localStorage.removeItem('worksplit_sheet_id');
   localStorage.removeItem('worksplit_sheet_name');
   googleAuth.tabsEnsured = false;
   updateGoogleUI();
+  const ok = await ensureSetup();
+  if (ok && !silent) notify(t('sheets.statusReady'), 'ok');
+  return ok;
+}
+
+// Abre la hoja de cálculo en una pestaña nueva, recreándola siempre antes de
+// abrirla para garantizar que esté lista. La pestaña se abre de forma síncrona
+// (dentro del click) para evitar el bloqueo de popups del navegador.
+async function openSheet() {
+  const btn = document.getElementById('btnOpenSheet');
+  const win = window.open('', '_blank', 'noopener');
+  btn.disabled = true; btn.classList.add('is-loading');
   try {
-    const ok = await ensureSetup();
-    if (ok) setSheetStatus(t('sheets.statusReady'), 'ok');
+    const ok = await resetGoogleTarget(true);
+    const id = getSheetId();
+    if (ok && id && win) {
+      win.location.href = 'https://docs.google.com/spreadsheets/d/' + id + '/edit';
+    } else {
+      if (win) win.close();
+      if (!ok) return; // ensureSetup ya notificó el motivo (sin conexión, etc.)
+      notify(t('sheets.statusNoSheet'), 'err');
+    }
   } catch (e) {
-    setSheetStatus(t('sheets.errGeneric', { msg: e.message }), 'err');
+    if (win) win.close();
+    notify(t('sheets.errGeneric', { msg: e.message }), 'err');
+  } finally {
+    btn.disabled = false; btn.classList.remove('is-loading');
   }
 }
 
@@ -3799,15 +3901,15 @@ function appendHistory(type) {
 // ─── GOOGLE: PUSH / LOAD ────────────────────────────────────
 async function pushToSheet(silent) {
   if (silent && !isGoogleReady()) return;
+  if (!silent) setSheetBusy('btnSheetPush', true);
   try {
     if (!silent) {
       const ok = await ensureSetup();
       if (!ok) return;
     }
     const sheetId = getSheetId();
-    if (!sheetId) { if (!silent) setSheetStatus(t('sheets.statusNoSheet'), 'err'); return; }
+    if (!sheetId) { if (!silent) notify(t('sheets.statusNoSheet'), 'err'); return; }
     if (!googleAuth.tabsEnsured) await ensureTabs(sheetId);
-    if (!silent) setSheetStatus(t('sheets.statusSaving'), '');
 
     state.title = document.getElementById('sessionTitle').value.trim();
     state.description = document.getElementById('sessionDescription').value.trim();
@@ -3844,9 +3946,11 @@ async function pushToSheet(silent) {
     await valuesUpdate(sheetId, 'backlog!A1', [BACKLOG_HEADERS, ...backlogRows]);
     await writeSummary(sheetId, taskData);
 
-    if (!silent) setSheetStatus(t('sheets.statusSaved'), 'ok');
+    if (!silent) notify(t('sheets.statusSaved'), 'ok');
   } catch (e) {
-    setSheetStatus(t('sheets.errSave', { msg: e.message }), 'err');
+    if (!silent) notify(t('sheets.errSave', { msg: e.message }), 'err');
+  } finally {
+    if (!silent) setSheetBusy('btnSheetPush', false);
   }
 }
 
@@ -3854,19 +3958,19 @@ async function loadFromSheet() {
   if (state.status === 'running' || state.status === 'afk') {
     notify(t('toast.cannotLoadActive'), 'err'); return;
   }
+  setSheetBusy('btnSheetLoad', true);
   try {
     const ok = await ensureSetup();
     if (!ok) return;
     const sheetId = getSheetId();
-    if (!sheetId) { setSheetStatus(t('sheets.statusNoSheet'), 'err'); return; }
-    setSheetStatus(t('sheets.statusLoading'), '');
+    if (!sheetId) { notify(t('sheets.statusNoSheet'), 'err'); return; }
 
     const sRes = await valuesGet(sheetId, 'session!A2:H2');
     const tRes = await valuesGet(sheetId, 'splits!A2:I');
     let bRes = { values: [] };
     try { bRes = await valuesGet(sheetId, 'backlog!A2:E'); } catch (e) { /* hoja vieja sin backlog */ }
     const sRow = (sRes.values && sRes.values[0]) || null;
-    if (!sRow) { setSheetStatus(t('sheets.statusNoSessions'), 'err'); return; }
+    if (!sRow) { notify(t('sheets.statusNoSessions'), 'err'); return; }
 
     const tRows = tRes.values || [];
     const splitTasks = tRows
@@ -3911,9 +4015,11 @@ async function loadFromSheet() {
     reindexCurrentByActive();
     saveLocal(); syncSessionMetaUI(); renderGroups(); renderTasks();
     updateSummary(); updateButtons(); updateStatus();
-    setSheetStatus(t('sheets.statusLoaded'), 'ok');
+    notify(t('sheets.statusLoaded'), 'ok');
   } catch (e) {
-    setSheetStatus(t('sheets.errLoad', { msg: e.message }), 'err');
+    notify(t('sheets.errLoad', { msg: e.message }), 'err');
+  } finally {
+    setSheetBusy('btnSheetLoad', false);
   }
 }
 
@@ -3925,7 +4031,7 @@ function updateGoogleUI() {
   document.getElementById('googleConfigWarn').style.display = configured ? 'none' : 'block';
 
   const btnConnect = document.getElementById('btnConnectGoogle');
-  btnConnect.style.display = connected ? 'none' : 'block';
+  btnConnect.style.display = connected ? 'none' : 'inline-flex';
   btnConnect.disabled = !configured;
 
   document.getElementById('googleAccountRow').style.display = connected ? 'flex' : 'none';
@@ -3935,24 +4041,27 @@ function updateGoogleUI() {
   }
 
   const sheetId = getSheetId();
-  const linkRow = document.getElementById('sheetLinkRow');
+  const pill = document.getElementById('sheetPill');
+  const openBtn = document.getElementById('btnOpenSheet');
   if (sheetId) {
-    linkRow.style.display = 'block';
-    const a = document.getElementById('sheetLink');
-    a.href = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/edit';
-    a.textContent = getSheetName() || t('sheets.open');
-    a.insertAdjacentHTML('afterbegin', icon('file') + ' ');
+    pill.style.display = 'flex';
+    openBtn.style.display = 'grid';
+    document.getElementById('sheetPillName').textContent = getSheetName() || t('sheets.open');
   } else {
-    linkRow.style.display = 'none';
+    pill.style.display = 'none';
+    openBtn.style.display = 'none';
   }
 }
 
-function setSheetStatus(msg, type) {
-  const el = document.getElementById('sheetStatus');
-  el.textContent = msg;
-  const statusIcon = type === 'ok' ? 'check' : type === 'err' ? 'alert' : '';
-  if (statusIcon) el.insertAdjacentHTML('afterbegin', icon(statusIcon) + ' ');
-  el.className = 'sheet-status ' + (type || '');
+// Muestra el spinner centrado en el botón activo (Guardar/Cargar) y desactiva
+// ambos mientras dura la operación con Sheets.
+function setSheetBusy(activeBtnId, busy) {
+  const btns = [document.getElementById('btnSheetPush'), document.getElementById('btnSheetLoad')];
+  btns.forEach(b => {
+    if (!b) return;
+    b.disabled = busy;
+    b.classList.toggle('is-loading', busy && b.id === activeBtnId);
+  });
 }
 
 // ─── FORMAT HELPERS ─────────────────────────────────────────
@@ -4135,7 +4244,7 @@ async function initGoogleSession() {
   // Mensajes tras volver del consentimiento OAuth (?connected=1 o ?error=...).
   const params = new URLSearchParams(window.location.search);
   if (params.get('error')) {
-    setSheetStatus(t('sheets.errConnReturn', { error: params.get('error') }), 'err');
+    notify(t('sheets.errConnReturn', { error: params.get('error') }), 'err');
   }
   if (params.has('connected') || params.has('error')) {
     history.replaceState(null, '', window.location.pathname);
@@ -4149,9 +4258,9 @@ async function initGoogleSession() {
       if (params.has('connected')) {
         try {
           await ensureWorkspace();
-          setSheetStatus(t('sheets.statusConnectedReady'), 'ok');
+          notify(t('sheets.statusConnectedReady'), 'ok');
         } catch (e) {
-          setSheetStatus(t('sheets.errConnPrepare', { msg: e.message }), 'err');
+          notify(t('sheets.errConnPrepare', { msg: e.message }), 'err');
         }
       }
     }

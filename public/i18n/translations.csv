@@ -81,6 +81,7 @@ sheets.configWarn|El servidor de autenticación no está disponible.|The authent
 sheets.connect|Conectar con Google|Connect with Google
 sheets.logout|Salir|Sign out
 sheets.open|Abrir Sheet|Open Sheet
+sheets.openSheet|Ir a la hoja de cálculo|Open the spreadsheet
 sheets.save|Guardar|Save
 sheets.load|Cargar|Load
 sheets.recreate|Buscar / recrear Sheet|Find / recreate Sheet
