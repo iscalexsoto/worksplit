@@ -8,6 +8,8 @@ status.stopped|Detenido|Stopped
 status.done|Finalizado|Finished
 panel.tasksTitle|Tareas de la sesión|Session tasks
 tasks.heading|Tareas|Tasks
+tasks.countSelected|{sel} de {total} en sesión|{sel} of {total} in session
+tasks.countDone|{done} de {total} hechas|{done} of {total} done
 session.titleLabel|Título|Title
 session.titlePlaceholder|Nombre del proyecto o sesión|Project or session name
 session.descLabel|Descripción|Description

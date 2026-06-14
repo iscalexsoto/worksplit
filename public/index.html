@@ -470,6 +470,8 @@
     padding: 1px 8px;
     font-size: 10px;
     color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .backlog-body { margin-top: 8px; }
   /* Encabezado de la lista de tareas: mismo estilo que el toggle del Backlog. */
@@ -1326,6 +1328,18 @@
       letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
     }
     .ws-mobile #langSwitcher { font-size: 12px; padding: 8px 10px; }
+
+    /* El toggle "Tareas" se reubica como hijo directo de .ws-panel (margen lateral
+       de 16px). Con width:100% esos márgenes se suman al ancho y empujan el contador
+       fuera de pantalla; aquí pasamos el margen lateral a padding (con box-sizing)
+       para llenar el ancho sin desbordar y conservar el contador a la derecha. */
+    .ws-mobile #tasksToggle {
+      box-sizing: border-box;
+      margin-left: 0;
+      margin-right: 0;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
 
     /* Lista de tareas apilada con mini-etiquetas */
     .ws-mobile #tasksContainer { overflow-x: visible; padding-right: 0; }
@@ -2787,10 +2801,22 @@ function renderTasks() {
   const editing = state.status === 'idle';
   const mainPred = editing ? (() => true) : (tk => tk.inSession);
 
-  // Encabezado "Tareas (N)": N = filas mostradas en la lista principal.
-  const mainCount = editing ? state.tasks.length : sessionTasks().length;
+  // Encabezado "Tareas": en armado (idle) → cuántas hay y cuántas irán a la sesión;
+  // con la sesión en curso → cuántas hay en sesión y cuántas ya se terminaron.
   const countEl = document.getElementById('tasksCount');
-  if (countEl) countEl.textContent = String(mainCount);
+  if (countEl) {
+    if (editing) {
+      const total = state.tasks.length;
+      countEl.textContent = total === 0
+        ? '0'
+        : t('tasks.countSelected', { sel: sessionTasks().length, total });
+    } else {
+      const inSession = sessionTasks();
+      // Cerradas = terminadas o interrumpidas (ambas cuentan como "hechas").
+      const done = inSession.filter(isClosed).length;
+      countEl.textContent = t('tasks.countDone', { done, total: inSession.length });
+    }
+  }
   applyTasksCollapsed();
 
   if (state.tasks.length === 0) {
@@ -3013,7 +3039,7 @@ function toggleInSession(idx, checked) {
   const task = state.tasks[idx];
   if (!task || state.status !== 'idle') return;
   task.inSession = !!checked;
-  saveLocal(); updateSummary(); updateButtons();
+  saveLocal(); renderTasks(); updateSummary(); updateButtons();
 }
 
 // Mandar a Backlog una tarea pendiente de la sesión en curso (kebab). La activa
