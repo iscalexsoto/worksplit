@@ -11,6 +11,59 @@ por detrás), en lugar de expirar cada hora.
 Es además una **PWA instalable**: desde Chrome/Edge aparece el botón "Instalar" y se
 abre en su propia ventana, con ícono propio y auto-actualización.
 
+## ¿Qué puedo hacer en esta aplicación?
+
+### Organizar tu trabajo antes de empezar
+- **Crear una lista de tareas** con un nombre y un tiempo estimado en minutos para cada una.
+- **Ponerle un título y una descripción a la sesión** para identificar el proyecto o la jornada.
+- **Agrupar las tareas por categorías** y crear, renombrar o eliminar esos grupos.
+- **Reordenar tareas y grupos arrastrándolos**, e incluso mover una tarea de un grupo a otro.
+- **Editar el nombre o el tiempo estimado** de una tarea directamente en la lista.
+- **Eliminar tareas** sueltas o **limpiar toda la lista** de una vez.
+
+### Cronometrar tu sesión de trabajo
+- **Iniciar una sesión** y empezar a cronometrar la tarea en curso.
+- **Ver tres relojes a la vez**: tiempo de la tarea actual, tiempo total de la sesión y tiempo total ausente.
+- **Marcar tareas como terminadas**, registrando cuánto tiempo real tomó cada una.
+- **Cambiar a otra tarea en medio de la sesión**, guardando el tiempo acumulado para retomarla donde la dejaste.
+- **Marcarte como ausente y volver** (también con la barra espaciadora).
+- **Detener y reanudar** la sesión cuando quieras.
+- **Restablecer** todo para empezar una sesión nueva desde cero.
+- **Recuperar tu sesión al recargar la página**: el trabajo se guarda automáticamente en tu navegador.
+
+### Comparar lo estimado contra lo real
+- **Ver en tiempo real tus desvíos**, con colores: verde si vas por debajo de lo estimado, rojo si te pasaste.
+- **Consultar un resumen de la sesión**: total estimado, tiempo real, tiempo ausente y diferencia general.
+- **Ver un resumen final al terminar** todas las tareas.
+
+### Manejar imprevistos durante la sesión
+- **Agregar tareas nuevas mientras la sesión está en marcha**, que entran a una lista de pendientes (backlog).
+- **Mantener un backlog de tareas** fuera de la sesión, como reserva de cosas por hacer.
+- **Pasar tareas del backlog a la sesión** o sacarlas de la sesión hacia el backlog.
+- **Interrumpir una tarea a medias**: se cierra con el tiempo que llevabas y puedes crear una continuación para seguirla ahora o en otra sesión.
+
+### Avisos y acompañamiento
+- **Notificación breve al terminar una tarea**, con duración configurable.
+- **Pausa opcional entre tareas** (un respiro antes del siguiente bloque), con duración ajustable.
+- **Elegir manualmente tu siguiente tarea** o retomar una anterior, en lugar de avanzar automáticamente.
+- **Aviso de "¿estás atorado?"** cuando una tarea supera su estimado por encima de cierto margen, con opción de continuar o entrar en una pausa indefinida.
+
+### Guardar e historial en Google Sheets
+- **Conectar tu cuenta de Google** para respaldar tu trabajo.
+- **Guardar la sesión en una hoja de cálculo** (la app crea o reutiliza una hoja propia en tu Drive).
+- **Cargar una sesión guardada** previamente.
+- **Mantener un historial** que registra cada sesión que cierras (terminada o restablecida).
+- **Guardado automático periódico** mientras trabajas.
+- **Abrir tu hoja de cálculo** directamente desde la app, o **desconectar** tu cuenta.
+
+### Preferencias y comodidad
+- **Activar o desactivar cada aviso** y ajustar sus tiempos.
+- **Decidir qué pasa al restablecer una sesión sin terminar**: preguntar cada vez, guardar siempre o nunca.
+- **Mantener visible el formulario de agregar tareas** durante una sesión activa, si lo prefieres.
+- **Cambiar el idioma** entre español e inglés.
+- **Usar la app en el celular**, con un diseño de pestañas (Sesión, Resumen y Ajustes).
+- **Instalar la aplicación** como app en tu dispositivo (PWA).
+
 ## Estructura
 
 ```

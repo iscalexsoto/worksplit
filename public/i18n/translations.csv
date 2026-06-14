@@ -96,13 +96,13 @@ sheets.statusLoaded|Sesión cargada.|Session loaded.
 sheets.statusReady|Sheet de WorkSplit listo.|WorkSplit Sheet ready.
 sheets.statusClosed|Sesión de Google cerrada.|Google session closed.
 sheets.statusConnectedReady|Conectado. Tu Sheet está listo.|Connected. Your Sheet is ready.
-sheets.errSave|Error al guardar: {msg}|Error saving: {msg}
-sheets.errLoad|Error al cargar: {msg}|Error loading: {msg}
-sheets.errGeneric|Error: {msg}|Error: {msg}
+sheets.errSave|No se pudo guardar. ({msg})|Couldn't save. ({msg})
+sheets.errLoad|No se pudo cargar. ({msg})|Couldn't load. ({msg})
+sheets.errGeneric|Algo salió mal. ({msg})|Something went wrong. ({msg})
 sheets.errConnPrepare|Conectado, pero no se pudo preparar el Sheet: {msg}|Connected, but the Sheet could not be prepared: {msg}
 sheets.errConnReturn|Error de conexión: {error}|Connection error: {error}
-err.noAuthServer|No se pudo contactar al servidor de autenticación.|Could not reach the authentication server.
-err.authHttp|Error de autenticación (HTTP {status}).|Authentication error (HTTP {status}).
+err.noAuthServer|No hay conexión con el servidor. Intenta de nuevo.|No connection to the server. Try again.
+err.authHttp|Problema al autenticar (código {status}).|Authentication problem (code {status}).
 err.noGoogleSession|Sesión de Google no iniciada. Pulsa "Conectar con Google".|Google session not started. Tap "Connect with Google".
 sheet.colEstTime|Tiempo estimado|Estimated time
 sheet.colRealTime|Tiempo real|Real time
@@ -129,18 +129,18 @@ confirm.newSessionTitle|Nueva sesión|New session
 confirm.newSessionBody|Se eliminarán las tareas terminadas y se reiniciarán los tiempos. El backlog se conserva.|Finished tasks will be deleted and timers reset. The backlog is kept.
 confirm.newSessionConfirm|Nueva sesión|New session
 confirm.clearTitle|Limpiar tareas|Clear tasks
-confirm.clearBody|Se eliminarán todas las tareas de la sesión. Esta acción no se puede deshacer.|All session tasks will be removed. This can't be undone.
+confirm.clearBody|Las tareas de la sesión se eliminarán permanentemente.|Session tasks will be deleted permanently.
 confirm.clearConfirm|Limpiar|Clear
 history.askTitle|Restablecer sesión|Reset session
 history.askBody|¿Guardar esta sesión en el historial antes de restablecer?|Save this session to history before resetting?
 history.askSave|Guardar y restablecer|Save and reset
 history.askDiscard|Restablecer sin guardar|Reset without saving
-toast.addTaskFirst|Agrega al menos una tarea antes de iniciar.|Add at least one task before starting.
-toast.markAtLeastOne|Marca al menos una tarea para incluirla en la sesión.|Mark at least one task to include it in the session.
+toast.addTaskFirst|Necesitas al menos una tarea para iniciar.|You need at least one task to start.
+toast.markAtLeastOne|Selecciona al menos una tarea para continuar.|Select at least one task to continue.
 toast.sentToBacklog|Tarea enviada al Backlog.|Task moved to Backlog.
 toast.addedToSession|Tarea añadida a la sesión.|Task added to the session.
-toast.cannotAddDone|La sesión ya terminó. Restablece para agregar tareas.|The session has ended. Reset to add tasks.
-toast.cannotLoadActive|No puedes cargar mientras hay una sesión activa.|You can't load while a session is active.
+toast.cannotAddDone|La sesión ya terminó. Puedes restablecer para agregar tareas nuevas.|The session has ended. You can reset to add new tasks.
+toast.cannotLoadActive|Para cargar una sesión, primero detén la actual.|To load a session, first stop the current one.
 fmt.hour|h|h
 fmt.min|m|m
 summary.heading|Resumen de la sesión|Session summary
@@ -158,14 +158,14 @@ transition.continue|Continuar|Continue
 transition.nextLabel|Tu siguiente tarea es…|Your next task is…
 transition.priorLabel|O retomar las tareas anteriores…|Or resume an earlier task…
 transition.start|Empezar|Start
-transition.finalTitle|¡Felicidades!|Congratulations!
-transition.finalBody|Has terminado todas tus actividades.|You've finished all your activities.
+transition.finalTitle|¡Listo!|Done!
+transition.finalBody|Terminaste todas las tareas de esta sesión.|You finished all the tasks in this session.
 transition.goSummary|Ir al resumen|Go to summary
 prefs.heading|Preferencias|Preferences
 prefs.notify|Notificación al terminar split|Split-finished notification
 prefs.notifyHint|Aviso breve de que el split terminó.|A brief notice that the split ended.
 prefs.notifyDuration|Duración de la notificación|Notification duration
-notif.overtimeBody|"{name}" se pasó del tiempo estimado. ¿Todo bien?|"{name}" went over its estimated time. All good?
+notif.overtimeBody|"{name}" superó el estimado. ¿Cómo vas?|"{name}" went over the estimate. How's it going?
 prefs.pause|Pausa entre splits|Pause between splits
 prefs.pauseHint|Un respiro opcional antes del siguiente bloque.|An optional breather before the next block.
 prefs.pauseDuration|Duración de la pausa|Pause duration
@@ -181,8 +181,8 @@ prefs.saveOnResetHint|Decide si se guarda un registro al restablecer una sesión
 prefs.saveAsk|Preguntar cada vez|Ask each time
 prefs.saveAlways|Guardar siempre|Always save
 prefs.saveNever|Nunca guardar|Never save
-stuck.askTitle|¿TODO BIEN?|ALL GOOD?
-stuck.askBody|Llevas más tiempo del estimado en este split.|You've spent more than the estimate on this split.
+stuck.askTitle|¿Cómo vas?|How's it going?
+stuck.askBody|Este split lleva más tiempo del que estimaste.|This split is taking longer than you estimated.
 stuck.continue|Continuar|Continue
 stuck.pause|Pausar|Pause
 stuck.pausedTitle|En pausa|Paused
