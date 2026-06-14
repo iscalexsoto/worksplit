@@ -2,7 +2,7 @@
 // Estrategia: network-first para el contenido propio (así la app se auto-actualiza
 // al recargar) con respaldo en caché para que abra estando offline. Las llamadas a
 // /api/* y a las APIs de Google NUNCA se cachean.
-const CACHE = 'worksplit-v2';
+const CACHE = 'worksplit-v3';
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -44,5 +44,19 @@ self.addEventListener('fetch', (event) => {
         return res;
       })
       .catch(() => caches.match(req).then((r) => r || caches.match('/')))
+  );
+});
+
+// Al hacer clic en una notificación (p. ej. "split excedido"), enfoca una ventana
+// existente de WorkSplit o abre una nueva.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ('focus' in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('/');
+    })
   );
 });

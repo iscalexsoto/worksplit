@@ -144,6 +144,11 @@
     min-width: 0;
     scrollbar-gutter: stable;
   }
+  /* Los hijos del panel no deben encogerse: como #tasksContainer es scroll
+     container (overflow-x), su min-height:auto vale 0 y el flex lo colapsaría al
+     desplegar un Backlog grande. Con flex-shrink:0 conservan su altura natural y
+     es el panel (overflow-y:auto) el que hace scroll. */
+  .tasks-panel > * { flex-shrink: 0; }
   #tasksContainer {
     overflow-x: auto;
     margin-bottom: 4px;
@@ -373,6 +378,110 @@
     white-space: nowrap;
   }
   .btn-del-task:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* Botones de la columna de acción: mismo tamaño para consistencia visual. */
+  .task-actions .btn-done,
+  .task-actions .btn-activate,
+  .task-actions .btn-del-task {
+    min-width: 70px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  /* TASK NAME + INCLUSION CHECKBOX */
+  .task-name-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .task-include {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  /* KEBAB MENU */
+  .btn-kebab {
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s;
+  }
+  .btn-kebab:hover { border-color: var(--border2); color: var(--accent); }
+  .task-menu {
+    position: absolute;
+    z-index: 1000;
+    min-width: 170px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .task-menu-item {
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .task-menu-item:hover { background: var(--surface2); color: var(--accent); }
+
+  /* BACKLOG SECTION */
+  .backlog-section { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .backlog-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .backlog-toggle:hover { color: var(--text); }
+  .backlog-caret { display: inline-block; transition: transform 0.15s; }
+  .backlog-toggle.open .backlog-caret { transform: rotate(90deg); }
+  .backlog-count {
+    margin-left: auto;
+    background: var(--surface2);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .backlog-body { margin-top: 8px; }
+  /* Encabezado de la lista de tareas: mismo estilo que el toggle del Backlog. */
+  .tasks-toggle { margin-top: 18px; margin-bottom: 8px; }
+  .backlog-empty {
+    color: var(--muted);
+    font-size: 12px;
+    padding: 8px 0;
+  }
+
+  .task-row.interrupted { opacity: 0.6; }
+  .task-row.interrupted .task-name { color: var(--muted); }
 
   /* ACTIVE TASK INDICATOR */
   .active-bar {
@@ -1252,8 +1361,6 @@
 <div class="layout">
   <!-- LEFT -->
   <div class="tasks-panel" id="tasksPanel">
-    <div class="panel-title" data-i18n="panel.tasksTitle">Tareas de la sesión</div>
-
     <div class="session-meta" id="sessionMeta">
       <div class="form-field">
         <label class="form-label" for="sessionTitle" data-i18n="session.titleLabel">Título</label>
@@ -1265,8 +1372,23 @@
       </div>
     </div>
 
+    <button type="button" class="backlog-toggle tasks-toggle" id="tasksToggle" onclick="toggleTasks()" aria-expanded="true">
+      <span class="backlog-caret">▸</span>
+      <span data-i18n="tasks.heading">Tareas</span>
+      <span class="backlog-count" id="tasksCount">0</span>
+    </button>
     <div id="tasksContainer">
       <div class="empty-state" id="emptyState" data-i18n="empty.tasks">No hay tareas. Agrega una abajo.</div>
+    </div>
+
+    <!-- BACKLOG (tareas fuera de la sesión; visible con la sesión iniciada) -->
+    <div id="backlogSection" class="backlog-section" style="display:none;">
+      <button type="button" class="backlog-toggle" id="backlogToggle" onclick="toggleBacklog()" aria-expanded="false">
+        <span class="backlog-caret">▸</span>
+        <span data-i18n="backlog.heading">Backlog</span>
+        <span class="backlog-count" id="backlogCount">0</span>
+      </button>
+      <div class="backlog-body" id="backlogBody" hidden></div>
     </div>
 
     <!-- ADD FORM -->
@@ -1450,6 +1572,15 @@
         </div>
       </div>
 
+      <!-- Mostrar control de agregar tareas durante split activo -->
+      <label class="pref-row pref-row-sep">
+        <input type="checkbox" id="prefShowAddDuringSplit" onchange="setPrefShowAddDuringSplit(this.checked)">
+        <span class="pref-text">
+          <span class="pref-label" data-i18n="prefs.showAddDuringSplit">Mostrar control de agregar tareas durante split activo</span>
+          <span class="pref-hint" data-i18n="prefs.showAddDuringSplitHint">Mantiene visible el formulario de nueva tarea (→ Backlog) mientras corre la sesión.</span>
+        </span>
+      </label>
+
       <div class="pref-row pref-row-sep pref-row-stack">
         <span class="pref-text">
           <span class="pref-label" data-i18n="prefs.saveOnReset">Guardar en historial al restablecer</span>
@@ -1585,6 +1716,27 @@
   </div>
 </div>
 
+<!-- INTERRUPT MODAL (dividir un split: cerrar como interrumpido + crear parte 2) -->
+<div class="modal-overlay" id="interruptModal">
+  <div class="modal">
+    <h2><svg class="icon"><use href="#i-square"></use></svg> <span data-i18n="interrupt.title">Interrumpir tarea</span></h2>
+    <p class="confirm-text" data-i18n="interrupt.body">La tarea activa se cerrará como interrumpida con su tiempo real. Elige dónde continúa el alcance restante.</p>
+    <div class="form-field" style="margin-bottom:12px;">
+      <label class="form-label" for="interruptName" data-i18n="interrupt.nameLabel">Nombre de la continuación</label>
+      <input class="form-input" id="interruptName" autocomplete="off">
+    </div>
+    <div class="form-field" style="margin-bottom:4px;">
+      <label class="form-label" for="interruptEst" data-i18n="interrupt.estLabel">Estimado (min)</label>
+      <input class="form-input" id="interruptEst" type="number" min="1" data-i18n-placeholder="interrupt.estPlaceholder" placeholder="30">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="closeInterruptModal()" data-i18n="interrupt.cancel">Cancelar</button>
+      <button class="btn-modal" onclick="commitInterrupt('other')" data-i18n="interrupt.continueOther">Continuar en otra sesión</button>
+      <button class="btn-modal primary" onclick="commitInterrupt('now')" data-i18n="interrupt.continueNow">Continuar ahora</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -1618,6 +1770,7 @@ const TASK_HEADERS = ['order','group','name','estimated_min',
   'real_sec','status','started_at','ended_at','updated_at'];
 const HISTORY_HEADERS = ['closed_at','type','total_estimated_min','total_real_sec',
   'total_away_sec','task_count','completed_count','current_task','tasks_json'];
+const BACKLOG_HEADERS = ['group','name','estimated_min','created_at','note'];
 let googleAuth = {
   accessToken: null,
   tokenExpiry: 0,
@@ -1641,7 +1794,7 @@ let state = {
   lastTick: null,
   afkStart: null,
   currentTaskIndex: null,
-  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20, saveHistoryOnReset: 'ask' }, // señales de transición autism-friendly
+  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20, saveHistoryOnReset: 'ask', showAddDuringSplit: false }, // señales de transición autism-friendly
 };
 
 // Estado efímero de la señal de transición entre tareas. Vive fuera de `state`
@@ -1657,10 +1810,30 @@ const stuckPromptedIds = new Set();
 
 const AUTO_SAVE_MS = 5 * 60 * 1000;
 let autoSaveTimer = null;
+// Frecuencia del respaldo en segundo plano para detectar splits excedidos (ver init).
+const STUCK_CHECK_MS = 15 * 1000;
 const dragState = { type: null, groupIdx: null, taskIdx: null };
 
 function isSessionActive() {
   return state.status === 'running' || state.status === 'afk';
+}
+
+// ─── BACKLOG / SPLITS HELPERS ───────────────────────────────
+// Modelo: state.tasks es un único array. Cada tarea lleva `inSession` (bool):
+// las marcadas (true) son los splits de la sesión; las demás (false) viven en el
+// Backlog (pool consultable). isClosed() unifica done/interrupted (ambos cerrados,
+// con tiempo real y sin edición posterior).
+function isClosed(t) {
+  return t && (t.status === 'done' || t.status === 'interrupted');
+}
+function sessionTasks() {
+  return state.tasks.filter(t => t.inSession);
+}
+// Recalcula currentTaskIndex tras una mutación estructural del array, ubicando la
+// tarea activa por su id (no por posición). Devuelve null si no hay activa.
+function reindexCurrentByActive() {
+  const i = state.tasks.findIndex(t => t.status === 'active');
+  state.currentTaskIndex = i === -1 ? null : i;
 }
 
 function startAutoSave() {
@@ -1724,6 +1897,7 @@ function normalizePrefs() {
   const MARGIN_OPTS = [10, 20, 30, 50];
   if (P.stuckMargin == null || !MARGIN_OPTS.includes(P.stuckMargin)) P.stuckMargin = 20;
   if (!['ask', 'always', 'never'].includes(P.saveHistoryOnReset)) P.saveHistoryOnReset = 'ask';
+  if (P.showAddDuringSplit == null) P.showAddDuringSplit = false;
   delete P.transitions;
   delete P.closureSec;
 }
@@ -1760,6 +1934,9 @@ function normalizeGroups() {
     if (!state.groups.includes(t.group)) state.groups.push(t.group);
     if (t.startedAt == null) t.startedAt = null;
     if (t.endedAt == null) t.endedAt = null;
+    // Migración: tareas guardadas antes del Backlog se tratan como parte de la
+    // sesión (conserva el comportamiento previo donde todo era split).
+    if (t.inSession == null) t.inSession = true;
   });
 }
 
@@ -2050,7 +2227,9 @@ function addTask() {
     realSec: 0,
     startedAt: null,
     endedAt: null,
-    status: 'pending', // pending | active | done
+    status: 'pending', // pending | active | paused | done | interrupted
+    inSession: false,   // toda tarea nace en el Backlog; se marca para entrar a la sesión
+    createdAt: new Date().toISOString(),
   });
   document.getElementById('fName').value = '';
   document.getElementById('fEst').value = '';
@@ -2117,8 +2296,8 @@ async function clearTasks() {
 // Avance clásico (sin señal de transición): activa la siguiente tarea no
 // terminada o finaliza la sesión si no quedan.
 function advanceOrFinish(idx) {
-  let next = state.tasks.findIndex((t, i) => i > idx && t.status !== 'done');
-  if (next === -1) next = state.tasks.findIndex(t => t.status !== 'done');
+  let next = state.tasks.findIndex((t, i) => i > idx && t.inSession && !isClosed(t));
+  if (next === -1) next = state.tasks.findIndex(t => t.inSession && !isClosed(t));
   if (next !== -1) setActive(next);
   else finishSession();
 }
@@ -2139,7 +2318,7 @@ function markDone(idx) {
   saveLocal(); renderTasks(); updateSummary();
 
   const P = state.prefs || {};
-  const remaining = state.tasks.some(t => t.status !== 'done');
+  const remaining = state.tasks.some(t => t.inSession && !isClosed(t));
 
   // Última tarea: solo aplica la notificación (felicitación + ir al resumen).
   if (!remaining) {
@@ -2167,10 +2346,10 @@ function markDone(idx) {
   // La sugerida es la siguiente hacia adelante; si no hay, la primera pendiente
   // anterior. Las "anteriores" son tareas con índice < idx aún no terminadas
   // (menos la sugerida).
-  const forwardNext = state.tasks.findIndex((t, i) => i > idx && t.status !== 'done');
+  const forwardNext = state.tasks.findIndex((t, i) => i > idx && t.inSession && !isClosed(t));
   const priorIdxs = state.tasks
     .map((t, i) => ({ t, i }))
-    .filter(o => o.i < idx && o.t.status !== 'done')
+    .filter(o => o.i < idx && o.t.inSession && !isClosed(o.t))
     .map(o => o.i);
   const suggestedIdx = forwardNext !== -1 ? forwardNext : priorIdxs[0];
   const others = priorIdxs.filter(i => i !== suggestedIdx);
@@ -2346,8 +2525,13 @@ function maybeTriggerStuck() {
   if (!task || task.status !== 'active' || !(task.estimatedMin > 0)) return;
   if (stuckPromptedIds.has(task.id)) return;
   const threshold = task.estimatedMin * 60000 * (1 + (P.stuckMargin || 20) / 100);
-  if (state.taskElapsed > threshold) {
+  // Tiempo real en vivo: state.taskElapsed solo avanza dentro del tick (rAF), que
+  // se pausa con la ventana minimizada o en segundo plano. Sumamos lo transcurrido
+  // desde lastTick para que la comprobación sea correcta aunque tick no haya corrido.
+  const liveElapsed = state.taskElapsed + (state.lastTick ? Date.now() - state.lastTick : 0);
+  if (liveElapsed > threshold) {
     stuckPromptedIds.add(task.id);
+    notifyOvertime(task.name);
     openStuckPrompt();
   }
 }
@@ -2356,6 +2540,33 @@ function openStuckPrompt() {
   stuckPrompt = { stage: 'ask' };
   document.getElementById('stuckModal').classList.add('open');
   renderStuck();
+}
+
+// Notificación nativa del navegador cuando un split supera su estimado. Se dispara
+// junto al modal para avisar aunque la pestaña esté en segundo plano. Falla en
+// silencio si el permiso no está concedido (no hay UI de respaldo). Se emite a
+// través del service worker para que persista (requireInteraction) y para que el
+// clic enfoque la ventana vía el handler 'notificationclick' del SW.
+function notifyOvertime(taskName) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then((reg) => {
+    reg.showNotification('WorkSplit ⏱️', {
+      body: t('notif.overtimeBody', { name: taskName }),
+      icon: '/icons/icon-192.png',
+      requireInteraction: true,
+      tag: 'overtime-check',
+    });
+  }).catch(() => {});
+}
+
+// Pide permiso de notificaciones una sola vez al cargar. Solo si está en 'default'
+// (ni concedido ni denegado), para no insistir tras una negativa del usuario.
+function requestNotifyPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
 }
 
 function renderStuck() {
@@ -2429,6 +2640,24 @@ function setPrefStuckMargin(val) {
 function setPrefSaveHistoryOnReset(val) {
   if (['ask', 'always', 'never'].includes(val)) { state.prefs.saveHistoryOnReset = val; saveLocal(); }
 }
+function setPrefShowAddDuringSplit(on) {
+  state.prefs.showAddDuringSplit = !!on;
+  saveLocal();
+  updateAddFormVisibility();
+}
+// Muestra/oculta el formulario "nueva tarea → Backlog" según el estado y la
+// preferencia: siempre visible en idle/stopped; durante el split solo si la
+// preferencia lo permite; oculto en done.
+function updateAddFormVisibility() {
+  const form = document.getElementById('addForm');
+  if (!form) return;
+  const s = state.status;
+  let show;
+  if (s === 'idle' || s === 'stopped') show = true;
+  else if (s === 'running' || s === 'afk') show = !!(state.prefs && state.prefs.showAddDuringSplit);
+  else show = false; // done
+  form.style.display = show ? '' : 'none';
+}
 // La duración de cada feature solo tiene sentido con su casilla activa:
 // se atenúa y deshabilita cuando está desmarcada.
 function updatePrefSubState(subId, on) {
@@ -2447,6 +2676,8 @@ function syncPrefsUI() {
   const stuckCb = document.getElementById('prefStuck');
   const stuckSel = document.getElementById('prefStuckMargin');
   const saveResetSel = document.getElementById('prefSaveOnReset');
+  const showAddCb = document.getElementById('prefShowAddDuringSplit');
+  if (showAddCb) showAddCb.checked = !!P.showAddDuringSplit;
   if (notifyCb) notifyCb.checked = !!P.notify;
   if (notifySel) notifySel.value = String(P.notifySec || 5);
   if (pauseCb) pauseCb.checked = !!P.pause;
@@ -2469,9 +2700,22 @@ function taskDatesHtml(task) {
 
 function renderTasks() {
   const container = document.getElementById('tasksContainer');
+  // En 'idle' (armado) se muestran TODAS las tareas con checkbox de inclusión;
+  // iniciada la sesión, la lista principal es solo los splits (inSession) y el
+  // resto vive en la sección Backlog colapsable.
+  const editing = state.status === 'idle';
+  const mainPred = editing ? (() => true) : (tk => tk.inSession);
+
+  // Encabezado "Tareas (N)": N = filas mostradas en la lista principal.
+  const mainCount = editing ? state.tasks.length : sessionTasks().length;
+  const countEl = document.getElementById('tasksCount');
+  if (countEl) countEl.textContent = String(mainCount);
+  applyTasksCollapsed();
+
   if (state.tasks.length === 0) {
     container.innerHTML = `<div class="empty-state" id="emptyState">${t('empty.tasks')}</div>`;
     container.classList.remove('tasks-sortable');
+    renderBacklog(editing);
     return;
   }
   container.innerHTML = '';
@@ -2484,13 +2728,23 @@ function renderTasks() {
   headers.innerHTML = `${handleHeader}<span>${t('col.task')}</span><span>${t('col.est')}</span><span>${t('col.real')}</span><span>${t('col.delta')}</span><span>${canDeleteTasks() ? t('col.delete') : t('col.action')}</span>`;
   container.appendChild(headers);
 
+  const mode = editing ? 'edit' : 'session';
+  renderTaskGroups(container, mainPred, mode);
+  renderBacklog(editing);
+}
+
+// Render compartido: pinta los group-blocks de las tareas que cumplen `pred`.
+// mode: 'edit' (idle, checkbox + eliminar, drag) | 'session' (splits en curso,
+// botón primario + kebab) | 'backlog' (pool consultable, botón "a la sesión").
+function renderTaskGroups(container, pred, mode) {
+  const sortable = mode === 'edit';
   state.groups.forEach((group, gi) => {
     const items = [];
     state.tasks.forEach((task, idx) => {
-      if (task.group === group) items.push({ task, idx });
+      if (task.group === group && pred(task)) items.push({ task, idx });
     });
     if (items.length === 0) {
-      if (!canReorder()) return;
+      if (!sortable) return; // los group-blocks vacíos solo sirven de drop-target en idle
       const block = document.createElement('div');
       block.className = 'group-block group-block-empty';
       block.dataset.groupIdx = gi;
@@ -2512,10 +2766,10 @@ function renderTasks() {
     block.className = 'group-block';
     block.dataset.groupIdx = gi;
     block.dataset.group = group;
-    const groupDrag = canReorder()
+    const groupDrag = sortable
       ? `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">${icon('grip')}</span>`
       : '';
-    block.innerHTML = `<div class="group-header${canReorder() ? ' draggable' : ''}" data-group-idx="${gi}">
+    block.innerHTML = `<div class="group-header${sortable ? ' draggable' : ''}" data-group-idx="${gi}">
       <div class="group-header-left">
         ${groupDrag}
         <span class="group-label">${group}</span>
@@ -2523,78 +2777,295 @@ function renderTasks() {
       <span class="group-est">${t('group.est', { est: fmtMin(groupEstMin) })}</span>
     </div>`;
     items.forEach(({ task, idx }, localIdx) => {
-      const row = document.createElement('div');
-      row.className = 'task-row' +
-        (canReorder() ? ' draggable' : '') +
-        (task.status === 'active' ? ' active' : '') +
-        (task.status === 'paused' ? ' paused' : '') +
-        (task.status === 'done' ? ' done' : '');
-      if (canReorder()) {
-        row.dataset.group = group;
-        row.dataset.localIdx = localIdx;
-        row.dataset.taskIdx = idx;
-      }
-
-      // Mini-etiqueta por celda: oculta en escritorio (las cabeceras hacen de etiqueta),
-      // visible en la vista móvil donde cada fila se apila.
-      const lbl = (k) => `<span class="cell-label">${t(k)}</span>`;
-
-      let deltaHtml = `<span class="task-delta neutral">${lbl('col.delta')}—</span>`;
-      if (task.status === 'done') {
-        const estSec = task.estimatedMin * 60;
-        const delta = estSec - task.realSec;
-        const cls = delta >= 0 ? 'ahead' : 'behind';
-        const sign = delta >= 0 ? '-' : '+';
-        deltaHtml = `<span class="task-delta ${cls}">${lbl('col.delta')}${sign}${fmtSec(Math.abs(delta))}</span>`;
-      }
-
-      const realDisplay = (task.status === 'done' || task.status === 'paused') ? fmtSec(task.realSec) : '—';
-      const activeBar = task.status === 'active' ? '<div class="active-bar"></div>' : '';
-      const canDelete = canDeleteTasks();
-      const canEdit = canEditTasks();
-      const isRunning = state.status === 'running';
-      let sessionBtn;
-      if (task.status === 'done') {
-        sessionBtn = `<button class="btn-done done-btn-active" disabled>${icon('check')}${t('task.done')}</button>`;
-      } else if (task.status === 'active') {
-        sessionBtn = `<button class="btn-done" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.markDone')}</button>`;
-      } else {
-        sessionBtn = `<button class="btn-activate" onclick="focusTask(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.activate')}</button>`;
-      }
-      const actionsHtml = canDelete
-        ? `<button class="btn-del-task" onclick="removeTask(${idx})" title="${t('task.deleteTitle')}">${t('task.delete')}</button>`
-        : sessionBtn;
-      const taskDrag = canReorder()
-        ? `<span class="drag-handle" draggable="true" title="${t('task.dragTitle')}">${icon('grip')}</span>`
-        : '';
-      const nameHtml = canEdit
-        ? `<div class="task-name-cell"><input class="task-input task-input-name" type="text" value="${escHtml(task.name)}" onblur="updateTaskField(${idx}, 'name', this.value)">${taskDatesHtml(task)}</div>`
-        : `<div class="task-name-cell"><span class="task-name" title="${escHtml(task.name)}">${escHtml(task.name)}</span>${taskDatesHtml(task)}</div>`;
-      const estHtml = canEdit
-        ? `<input class="task-input task-input-est" type="number" min="1" value="${task.estimatedMin}" onchange="updateTaskField(${idx}, 'estimatedMin', this.value)">`
-        : `<span class="task-est">${lbl('col.est')}${fmtMin(task.estimatedMin)}</span>`;
-      const realHtml = `<span class="task-real">${lbl('col.real')}${realDisplay}</span>`;
-
-      row.innerHTML = `
-        ${activeBar}
-        ${taskDrag}
-        ${nameHtml}
-        ${estHtml}
-        ${realHtml}
-        ${deltaHtml}
-        <div class="task-actions">
-          ${actionsHtml}
-        </div>
-      `;
-      block.appendChild(row);
+      block.appendChild(buildTaskRow(task, idx, group, localIdx, mode));
     });
     container.appendChild(block);
   });
 }
 
+function buildTaskRow(task, idx, group, localIdx, mode) {
+  const sortable = mode === 'edit';
+  const row = document.createElement('div');
+  row.className = 'task-row' +
+    (sortable ? ' draggable' : '') +
+    (task.status === 'active' ? ' active' : '') +
+    (task.status === 'paused' ? ' paused' : '') +
+    (task.status === 'done' ? ' done' : '') +
+    (task.status === 'interrupted' ? ' interrupted' : '');
+  if (sortable) {
+    row.dataset.group = group;
+    row.dataset.localIdx = localIdx;
+    row.dataset.taskIdx = idx;
+  }
+
+  // Mini-etiqueta por celda: oculta en escritorio (las cabeceras hacen de etiqueta),
+  // visible en la vista móvil donde cada fila se apila.
+  const lbl = (k) => `<span class="cell-label">${t(k)}</span>`;
+
+  let deltaHtml = `<span class="task-delta neutral">${lbl('col.delta')}—</span>`;
+  if (isClosed(task)) {
+    const estSec = task.estimatedMin * 60;
+    const delta = estSec - task.realSec;
+    const cls = delta >= 0 ? 'ahead' : 'behind';
+    const sign = delta >= 0 ? '-' : '+';
+    deltaHtml = `<span class="task-delta ${cls}">${lbl('col.delta')}${sign}${fmtSec(Math.abs(delta))}</span>`;
+  }
+
+  const realDisplay = (isClosed(task) || task.status === 'paused') ? fmtSec(task.realSec) : '—';
+  const activeBar = task.status === 'active' ? '<div class="active-bar"></div>' : '';
+  const canEdit = canEditTasks();
+  const isRunning = state.status === 'running';
+
+  // Celda de acción según modo.
+  let actionsHtml;
+  if (mode === 'edit') {
+    actionsHtml = `<button class="btn-del-task" onclick="removeTask(${idx})" title="${t('task.deleteTitle')}">${t('task.delete')}</button>`;
+  } else if (mode === 'backlog') {
+    actionsHtml = `<button class="btn-activate" onclick="addToSession(${idx})">${t('backlog.addToSession')}</button>`;
+  } else { // session
+    let sessionBtn;
+    if (task.status === 'done') {
+      sessionBtn = `<button class="btn-done done-btn-active" disabled>${icon('check')}${t('task.done')}</button>`;
+    } else if (task.status === 'interrupted') {
+      sessionBtn = `<button class="btn-done done-btn-active" disabled>${t('task.interrupted')}</button>`;
+    } else if (task.status === 'active') {
+      sessionBtn = `<button class="btn-done" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.markDone')}</button>`;
+    } else {
+      sessionBtn = `<button class="btn-activate" onclick="focusTask(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.activate')}</button>`;
+    }
+    // Kebab solo para acciones estructurales: pending → mandar a backlog; active → interrumpir.
+    const hasMenu = task.status === 'pending' || task.status === 'active';
+    const kebab = hasMenu
+      ? `<button class="btn-kebab" onclick="openTaskMenu(${idx}, this)" aria-label="${t('menu.aria')}" title="${t('menu.aria')}">⋮</button>`
+      : '';
+    actionsHtml = sessionBtn + kebab;
+  }
+
+  // Checkbox de inclusión: solo al armar (idle), a la izquierda de la descripción.
+  const includeBox = mode === 'edit'
+    ? `<input type="checkbox" class="task-include" ${task.inSession ? 'checked' : ''} onchange="toggleInSession(${idx}, this.checked)" title="${t('task.includeAria')}" aria-label="${t('task.includeAria')}">`
+    : '';
+
+  const nameInner = canEdit
+    ? `<input class="task-input task-input-name" type="text" value="${escHtml(task.name)}" onblur="updateTaskField(${idx}, 'name', this.value)">${taskDatesHtml(task)}`
+    : `<span class="task-name" title="${escHtml(task.name)}">${escHtml(task.name)}</span>${taskDatesHtml(task)}`;
+  const nameHtml = `<div class="task-name-wrap">${includeBox}<div class="task-name-cell">${nameInner}</div></div>`;
+
+  const estHtml = canEdit
+    ? `<input class="task-input task-input-est" type="number" min="1" value="${task.estimatedMin}" onchange="updateTaskField(${idx}, 'estimatedMin', this.value)">`
+    : `<span class="task-est">${lbl('col.est')}${fmtMin(task.estimatedMin)}</span>`;
+  const realHtml = `<span class="task-real">${lbl('col.real')}${realDisplay}</span>`;
+
+  const taskDrag = sortable
+    ? `<span class="drag-handle" draggable="true" title="${t('task.dragTitle')}">${icon('grip')}</span>`
+    : '';
+
+  row.innerHTML = `
+    ${activeBar}
+    ${taskDrag}
+    ${nameHtml}
+    ${estHtml}
+    ${realHtml}
+    ${deltaHtml}
+    <div class="task-actions">
+      ${actionsHtml}
+    </div>
+  `;
+  return row;
+}
+
+// Sección Backlog (pool consultable). Visible solo con la sesión iniciada; en
+// 'idle' las tareas no marcadas ya se ven en la lista principal con checkbox.
+function renderBacklog(editing) {
+  const section = document.getElementById('backlogSection');
+  const body = document.getElementById('backlogBody');
+  const countEl = document.getElementById('backlogCount');
+  if (!section || !body) return;
+  if (editing) { section.style.display = 'none'; return; }
+
+  const available = state.tasks.filter(tk => !tk.inSession);
+  section.style.display = '';
+  if (countEl) countEl.textContent = String(available.length);
+  body.innerHTML = '';
+  if (available.length === 0) {
+    body.innerHTML = `<div class="backlog-empty">${t('backlog.empty')}</div>`;
+  } else {
+    renderTaskGroups(body, tk => !tk.inSession, 'backlog');
+  }
+  applyBacklogCollapsed();
+}
+
+// Lista de tareas: colapsable como el Backlog, pero expandida por defecto.
+let tasksCollapsed = false;
+function toggleTasks() {
+  tasksCollapsed = !tasksCollapsed;
+  applyTasksCollapsed();
+}
+function applyTasksCollapsed() {
+  const c = document.getElementById('tasksContainer');
+  const toggle = document.getElementById('tasksToggle');
+  if (c) c.hidden = tasksCollapsed;
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(!tasksCollapsed));
+    toggle.classList.toggle('open', !tasksCollapsed);
+  }
+}
+
+let backlogCollapsed = true;
+function toggleBacklog() {
+  backlogCollapsed = !backlogCollapsed;
+  applyBacklogCollapsed();
+}
+function applyBacklogCollapsed() {
+  const body = document.getElementById('backlogBody');
+  const toggle = document.getElementById('backlogToggle');
+  if (!body || !toggle) return;
+  body.hidden = backlogCollapsed;
+  toggle.setAttribute('aria-expanded', String(!backlogCollapsed));
+  toggle.classList.toggle('open', !backlogCollapsed);
+}
+
+// ─── BACKLOG / SPLITS: ACCIONES ─────────────────────────────
+// Marca/desmarca (idle) si una tarea forma parte de la sesión. Sin splice → los
+// índices del array no se mueven.
+function toggleInSession(idx, checked) {
+  const task = state.tasks[idx];
+  if (!task || state.status !== 'idle') return;
+  task.inSession = !!checked;
+  saveLocal(); updateSummary(); updateButtons();
+}
+
+// Mandar a Backlog una tarea pendiente de la sesión en curso (kebab). La activa
+// no se toca; solo se recalculan totales.
+function sendToBacklog(idx) {
+  const task = state.tasks[idx];
+  if (!task || task.status !== 'pending' || !task.inSession) return;
+  task.inSession = false;
+  reindexCurrentByActive();
+  saveLocal(); renderTasks(); updateSummary(); updateButtons();
+  notify(t('toast.sentToBacklog'), 'ok');
+}
+
+// Traer una tarea del Backlog a la sesión en curso: pasa a pending y se reubica
+// en el orden de su grupo (no al final de todo), de modo que el avance "siguiente
+// tarea" respete el orden visual por grupos. No interrumpe nada en curso.
+function addToSession(idx) {
+  const task = state.tasks[idx];
+  if (!task || task.inSession) return;
+  // Con la sesión terminada ya no se aceptan más tareas: hay que restablecer.
+  if (state.status === 'done') { notify(t('toast.cannotAddDone'), 'err'); return; }
+  task.inSession = true;
+  task.status = 'pending';
+  task.realSec = 0;
+  task.startedAt = null;
+  task.endedAt = null;
+  reorganizeTasksByGroupOrder(); // ubica la tarea dentro del bloque de su grupo
+  reindexCurrentByActive();
+  saveLocal(); renderTasks(); updateSummary(); updateButtons();
+  notify(t('toast.addedToSession'), 'ok');
+}
+
+// ─── MENÚ CONTEXTUAL (kebab) ────────────────────────────────
+let taskMenuEl = null;
+function openTaskMenu(idx, btn) {
+  closeTaskMenu();
+  const task = state.tasks[idx];
+  if (!task) return;
+  const items = [];
+  if (task.status === 'pending') items.push({ label: t('menu.sendToBacklog'), fn: () => sendToBacklog(idx) });
+  if (task.status === 'active') items.push({ label: t('menu.interrupt'), fn: () => openInterruptModal(idx) });
+  if (!items.length) return;
+
+  const menu = document.createElement('div');
+  menu.className = 'task-menu';
+  items.forEach(it => {
+    const b = document.createElement('button');
+    b.className = 'task-menu-item';
+    b.textContent = it.label;
+    b.onclick = (e) => { e.stopPropagation(); closeTaskMenu(); it.fn(); };
+    menu.appendChild(b);
+  });
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  // Alinea el borde derecho del menú con el del botón, justo debajo; sin salirse.
+  menu.style.top = (r.bottom + window.scrollY + 4) + 'px';
+  const left = Math.max(8, r.right - menu.offsetWidth) + window.scrollX;
+  menu.style.left = left + 'px';
+  taskMenuEl = menu;
+  setTimeout(() => {
+    document.addEventListener('click', closeTaskMenu, { once: true });
+    document.addEventListener('keydown', onTaskMenuKey);
+    window.addEventListener('scroll', closeTaskMenu, { once: true, capture: true });
+  }, 0);
+}
+function onTaskMenuKey(e) { if (e.key === 'Escape') closeTaskMenu(); }
+function closeTaskMenu() {
+  if (taskMenuEl) { taskMenuEl.remove(); taskMenuEl = null; }
+  document.removeEventListener('keydown', onTaskMenuKey);
+}
+
+// ─── INTERRUMPIR (dividir split) ────────────────────────────
+// El commit (cerrar como interrupted + crear parte 2) ocurre solo al elegir un
+// destino; "Cancelar" no toca la tarea, que sigue activa.
+let interruptIdx = null;
+function openInterruptModal(idx) {
+  const task = state.tasks[idx];
+  if (!task || task.status !== 'active') return;
+  interruptIdx = idx;
+  document.getElementById('interruptName').value = task.name + t('interrupt.partSuffix');
+  document.getElementById('interruptEst').value = '';
+  document.getElementById('interruptModal').classList.add('open');
+  setTimeout(() => { const el = document.getElementById('interruptName'); if (el) el.focus(); }, 0);
+}
+function closeInterruptModal() {
+  interruptIdx = null;
+  document.getElementById('interruptModal').classList.remove('open');
+}
+// dest: 'now' (parte 2 entra a la sesión y se activa) | 'other' (parte 2 al Backlog)
+function commitInterrupt(dest) {
+  const idx = interruptIdx;
+  const task = state.tasks[idx];
+  if (!task || task.status !== 'active') { closeInterruptModal(); return; }
+
+  // 1) Cerrar la activa como interrumpida (tiempo real, igual que un cierre normal).
+  task.realSec = Math.round(state.taskElapsed / 1000);
+  task.endedAt = new Date().toISOString();
+  task.status = 'interrupted';
+  state.taskElapsed = 0;
+  state.currentTaskIndex = null;
+
+  // 2) Construir la parte 2.
+  const name = (document.getElementById('interruptName').value || '').trim() || (task.name + t('interrupt.partSuffix'));
+  const est = parseInt(document.getElementById('interruptEst').value, 10) || 30;
+  const part2 = {
+    id: Date.now(),
+    name,
+    group: task.group,
+    estimatedMin: est,
+    realSec: 0,
+    startedAt: null,
+    endedAt: null,
+    status: 'pending',
+    inSession: dest === 'now',
+    createdAt: new Date().toISOString(),
+    note: dest === 'other' ? t('backlog.fromInterrupt', { name: task.name }) : '',
+  };
+  closeInterruptModal();
+
+  if (dest === 'now') {
+    state.tasks.splice(idx + 1, 0, part2);
+    setActive(idx + 1);
+  } else {
+    state.tasks.push(part2);
+    advanceOrFinish(idx); // siguiente pendiente de la sesión, o finishSession()
+  }
+  state.lastTick = Date.now();
+  saveLocal(); renderTasks(); updateButtons(); updateStatus(); updateSummary(); updateClocks();
+}
+
 // ─── SESSION CONTROL ────────────────────────────────────────
 function startSession() {
-  if (state.tasks.length === 0) { notify(t('toast.addTaskFirst'), 'err'); return; }
+  if (!sessionTasks().length) { notify(t('toast.markAtLeastOne'), 'err'); return; }
   const isResume = state.status === 'stopped';
 
   state.status = 'running';
@@ -2606,7 +3077,7 @@ function startSession() {
       // mantiene el tiempo vivo persistido (no se toca taskElapsed)
       state.currentTaskIndex = activeIdx;
     } else {
-      const first = state.tasks.findIndex(t => t.status !== 'done');
+      const first = state.tasks.findIndex(t => t.inSession && !isClosed(t));
       if (first !== -1) setActive(first);
     }
   } else {
@@ -2614,11 +3085,11 @@ function startSession() {
     state.totalElapsed = 0;
     state.taskElapsed = 0;
     state.afkElapsed = 0;
-    const first = state.tasks.findIndex(t => t.status === 'pending');
+    const first = state.tasks.findIndex(t => t.inSession && t.status === 'pending');
     if (first !== -1) setActive(first);
   }
 
-  document.getElementById('addForm').style.display = 'none';
+  updateAddFormVisibility();
   updateButtons(); renderTasks(); updateStatus(); persistNow();
   startAutoSave();
   tick();
@@ -2634,6 +3105,7 @@ function toggleAfk() {
     state.status = 'running';
     state.lastTick = Date.now();
   }
+  updateAddFormVisibility();
   updateButtons(); updateStatus(); persistNow();
 }
 
@@ -2652,23 +3124,33 @@ async function stopSession() {
   state.status = 'stopped';
   stopAutoSave();
   persistNow();
+  updateAddFormVisibility();
   updateButtons(); updateStatus();
 }
 
-function finishSession() {
+async function finishSession() {
   state.status = 'done';
   stopAutoSave();
   // Snapshot al historial: una sesión completada se guarda siempre (silencioso).
   // El estado aún está intacto, así que el snapshot es correcto. Fire-and-forget
   // para no bloquear el modal de resumen.
   appendHistory('completed');
-  updateButtons(); updateStatus(); renderTasks();
   showModal();
+  // Push del estado completo a Sheets para dejar la tabla de la sesión actualizada
+  // y consultable. NO se borra ni se resetea nada: tareas terminadas y contadores
+  // quedan a la vista para que el usuario revise su resumen. La limpieza de las
+  // terminadas se difiere a "Nueva sesión" (newSession con wasDone).
+  await pushToSheet(true);
+  updateAddFormVisibility();
+  updateButtons(); updateStatus(); renderTasks(); updateSummary();
   saveLocal();
 }
 
 async function newSession() {
   if (state.status === 'running' || state.status === 'afk') return;
+  // Desde 'done' la acción es "Nueva sesión": además de restablecer, limpia las
+  // tareas terminadas (el resto del flujo es idéntico a Restablecer).
+  const wasDone = state.status === 'done';
   let saveToHistory = false;
   let snap = null;
   if (state.status !== 'idle') {
@@ -2689,17 +3171,22 @@ async function newSession() {
       if (r === 'cancel') return;
       saveToHistory = r === 'confirm';
     } else {
+      // "Nueva sesión" (desde done) avisa del borrado de terminadas; Restablecer
+      // (desde stopped) usa el mensaje genérico de reinicio.
       const ok = await confirmDialog({
-        title: t('confirm.resetTitle'),
-        message: t('confirm.resetBody'),
-        confirmText: t('confirm.resetConfirm'),
-        danger: true,
+        title: wasDone ? t('confirm.newSessionTitle') : t('confirm.resetTitle'),
+        message: wasDone ? t('confirm.newSessionBody') : t('confirm.resetBody'),
+        confirmText: wasDone ? t('confirm.newSessionConfirm') : t('confirm.resetConfirm'),
+        danger: !wasDone, // "Nueva sesión" usa el botón verde (primary); Restablecer, rojo.
       });
       if (!ok) return;
       saveToHistory = eligible && pref === 'always';
     }
   }
   if (saveToHistory && snap) appendHistoryRow(snap);
+  // "Nueva sesión" (desde done): elimina las tareas terminadas; el Backlog y las
+  // no terminadas se conservan.
+  if (wasDone) state.tasks = state.tasks.filter(t => !isClosed(t));
   state.status = 'idle';
   state.startTime = null;
   state.totalElapsed = 0;
@@ -2715,7 +3202,7 @@ async function newSession() {
     t.endedAt = null;
   });
   stopAutoSave();
-  document.getElementById('addForm').style.display = '';
+  updateAddFormVisibility();
   saveLocal(); renderTasks(); updateButtons(); updateStatus(); updateSummary(); updateClocks();
 }
 
@@ -2756,7 +3243,7 @@ function updateClocks() {
 }
 
 function updateSummary() {
-  const estMin = state.tasks.reduce((s, t) => s + t.estimatedMin, 0);
+  const estMin = sessionTasks().reduce((s, t) => s + t.estimatedMin, 0);
   const realSec = Math.round(state.totalElapsed / 1000);
   const afkMs = state.status === 'afk'
     ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
@@ -2781,7 +3268,7 @@ function updateSummary() {
 }
 
 function totalEstMs() {
-  return state.tasks.reduce((s, t) => s + t.estimatedMin * 60000, 0);
+  return sessionTasks().reduce((s, t) => s + t.estimatedMin * 60000, 0);
 }
 
 // ─── ICONS (sprite Lucide) ──────────────────────────────────
@@ -2800,6 +3287,11 @@ function setBtn(id, iconName, label) {
 // ─── BUTTONS / STATUS ───────────────────────────────────────
 function updateButtons() {
   const s = state.status;
+  const isDone = s === 'done';
+  // En 'done' solo queda visible "Nueva sesión": se ocultan iniciar/ausentarme/detener.
+  document.getElementById('btnStart').style.display = isDone ? 'none' : '';
+  document.getElementById('btnAfk').style.display = isDone ? 'none' : '';
+  document.getElementById('btnStop').style.display = isDone ? 'none' : '';
   document.getElementById('btnStart').disabled = s !== 'idle' && s !== 'stopped';
   setBtn('btnStart', 'play',
     (s === 'running' || s === 'afk') ? t('ctrl.activeRunning')
@@ -2809,7 +3301,8 @@ function updateButtons() {
   setBtn('btnAfk', s === 'afk' ? 'play' : 'pause', s === 'afk' ? t('ctrl.return') : t('ctrl.afk'));
   document.getElementById('btnStop').disabled = s !== 'running' && s !== 'afk';
   setBtn('btnStop', 'square', s === 'stopped' ? t('ctrl.stopped') : t('ctrl.stop'));
-  setBtn('btnNewSession', 'rotate-ccw', t('ctrl.reset'));
+  // El mismo botón hace de "Restablecer" (stopped) o "Nueva sesión" (done).
+  setBtn('btnNewSession', isDone ? 'plus' : 'rotate-ccw', isDone ? t('ctrl.newSession') : t('ctrl.reset'));
   document.getElementById('btnNewSession').style.display = (s === 'stopped' || s === 'done') ? '' : 'none';
   const showClear = s === 'idle' && state.tasks.length > 0;
   document.getElementById('btnClearTasks').style.display = showClear ? '' : 'none';
@@ -2834,7 +3327,7 @@ function updateStatus() {
 
 // ─── MODAL ──────────────────────────────────────────────────
 function showModal() {
-  const estMin = state.tasks.reduce((s, t) => s + t.estimatedMin, 0);
+  const estMin = sessionTasks().reduce((s, t) => s + t.estimatedMin, 0);
   const realSec = Math.round(state.totalElapsed / 1000);
   const afkMs = state.afkElapsed;
   const afkSec = Math.round(afkMs / 1000);
@@ -3066,10 +3559,12 @@ async function ensureTabs(sheetId) {
   if (!titles.includes('splits')) requests.push({ addSheet: { properties: { title: 'splits' } } });
   if (!titles.includes('summary')) requests.push({ addSheet: { properties: { title: 'summary' } } });
   if (!titles.includes('history')) requests.push({ addSheet: { properties: { title: 'history' } } });
+  if (!titles.includes('backlog')) requests.push({ addSheet: { properties: { title: 'backlog' } } });
   if (requests.length) await batchUpdate(sheetId, requests);
   await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
   await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
   await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
+  await valuesUpdate(sheetId, 'backlog!A1:E1', [BACKLOG_HEADERS]);
   googleAuth.tabsEnsured = true;
 }
 
@@ -3117,11 +3612,13 @@ async function createSheet(folderId) {
     { addSheet: { properties: { title: 'splits' } } },
     { addSheet: { properties: { title: 'summary' } } },
     { addSheet: { properties: { title: 'history' } } },
+    { addSheet: { properties: { title: 'backlog' } } },
     { deleteSheet: { sheetId: defaultId } },
   ]);
   await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
   await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
   await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
+  await valuesUpdate(sheetId, 'backlog!A1:E1', [BACKLOG_HEADERS]);
   localStorage.setItem('worksplit_sheet_id', sheetId);
   localStorage.setItem('worksplit_sheet_name', file.name);
   googleAuth.tabsEnsured = true;
@@ -3184,7 +3681,7 @@ async function writeSummary(sheetId, taskData) {
         realMin = Math.round(realSec / 60);
       }
       const startDisplay = t.startedAt ? fmtDateTime(t.startedAt) : '';
-      const endDisplay = (t.status === 'done' && t.endedAt) ? fmtDateTime(t.endedAt) : '';
+      const endDisplay = ((t.status === 'done' || t.status === 'interrupted') && t.endedAt) ? fmtDateTime(t.endedAt) : '';
       rows.push([t.name || '', estMin, realMin, startDisplay, endDisplay]);
     });
     if (gi < groupsWithTasks.length - 1) rows.push(['', '', '', '', '']);
@@ -3239,14 +3736,15 @@ async function resetGoogleTarget() {
 // real de la tarea ACTIVA (derivado de state.taskElapsed) vive aquí, compartida
 // por la pestaña tasks, el summary y el historial.
 function buildTaskData() {
-  return state.tasks.map(t => ({
+  // Solo los splits de la sesión (inSession); el Backlog se persiste aparte.
+  return sessionTasks().map(t => ({
     group: t.group || 'General',
     name: t.name || '',
     estimatedMin: t.estimatedMin || 0,
     realSec: t.status === 'active' ? Math.round(state.taskElapsed / 1000) : (t.realSec || 0),
     status: t.status || 'pending',
     startedAt: t.startedAt || '',
-    endedAt: t.status === 'done' ? (t.endedAt || '') : '',
+    endedAt: isClosed(t) ? (t.endedAt || '') : '',
   }));
 }
 
@@ -3263,7 +3761,7 @@ function buildHistoryRow(type) {
     : '';
   const tasksJson = JSON.stringify(taskData.map(t => ({
     name: t.name, group: t.group, estimatedMin: t.estimatedMin,
-    realSec: t.realSec, done: t.status === 'done',
+    realSec: t.realSec, done: t.status === 'done' || t.status === 'interrupted',
   })));
   return [
     new Date().toISOString(),
@@ -3272,7 +3770,7 @@ function buildHistoryRow(type) {
     Math.round(state.totalElapsed / 1000),
     Math.round(afkMs / 1000),
     taskData.length,
-    taskData.filter(t => t.status === 'done').length,
+    taskData.filter(t => t.status === 'done' || t.status === 'interrupted').length,
     current,
     tasksJson,
   ];
@@ -3320,23 +3818,30 @@ async function pushToSheet(silent) {
     const sessionRow = [
       new Date().toLocaleDateString(I18N.localeFor()),
       state.status,
-      state.tasks.reduce((s, t) => s + t.estimatedMin, 0),
+      sessionTasks().reduce((s, t) => s + t.estimatedMin, 0),
       Math.round(state.totalElapsed / 1000),
       Math.round(afkMs / 1000),
       now,
       state.title,
       state.description,
     ];
-    // Datos de tareas normalizados (reutilizados por la pestaña tasks y summary).
+    // Datos de tareas normalizados (reutilizados por la pestaña splits y summary).
     const taskData = buildTaskData();
     const taskRows = taskData.map((t, idx) => [
       idx + 1, t.group, t.name, t.estimatedMin,
       t.realSec, t.status, t.startedAt, t.endedAt, now,
     ]);
+    // Backlog: tareas que no forman parte de la sesión (inSession === false).
+    const backlogRows = state.tasks.filter(tk => !tk.inSession).map(tk => [
+      tk.group || 'General', tk.name || '', tk.estimatedMin || 0,
+      tk.createdAt || '', tk.note || '',
+    ]);
 
     await valuesUpdate(sheetId, 'session!A1:H2', [SESSION_HEADERS, sessionRow]);
     await valuesClear(sheetId, 'splits!A2:I');
     await valuesUpdate(sheetId, 'splits!A1', [TASK_HEADERS, ...taskRows]);
+    await valuesClear(sheetId, 'backlog!A2:E');
+    await valuesUpdate(sheetId, 'backlog!A1', [BACKLOG_HEADERS, ...backlogRows]);
     await writeSummary(sheetId, taskData);
 
     if (!silent) setSheetStatus(t('sheets.statusSaved'), 'ok');
@@ -3358,11 +3863,13 @@ async function loadFromSheet() {
 
     const sRes = await valuesGet(sheetId, 'session!A2:H2');
     const tRes = await valuesGet(sheetId, 'splits!A2:I');
+    let bRes = { values: [] };
+    try { bRes = await valuesGet(sheetId, 'backlog!A2:E'); } catch (e) { /* hoja vieja sin backlog */ }
     const sRow = (sRes.values && sRes.values[0]) || null;
     if (!sRow) { setSheetStatus(t('sheets.statusNoSessions'), 'err'); return; }
 
     const tRows = tRes.values || [];
-    state.tasks = tRows
+    const splitTasks = tRows
       .filter(r => r && r.length)
       .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0))
       .map(r => ({
@@ -3374,7 +3881,25 @@ async function loadFromSheet() {
         status: r[5] || 'pending',
         startedAt: r[6] || null,
         endedAt: r[7] || null,
+        inSession: true,
       }));
+    // Backlog: tareas disponibles (no en la sesión). Se fusionan tras los splits.
+    const backlogTasks = (bRes.values || [])
+      .filter(r => r && r.length && (r[1] || '').trim())
+      .map(r => ({
+        id: Date.now() + Math.random(),
+        group: r[0] || 'General',
+        name: r[1] || '',
+        estimatedMin: parseInt(r[2], 10) || 30,
+        realSec: 0,
+        status: 'pending',
+        startedAt: null,
+        endedAt: null,
+        createdAt: r[3] || '',
+        note: r[4] || '',
+        inSession: false,
+      }));
+    state.tasks = [...splitTasks, ...backlogTasks];
 
     state.status = sRow[1] === 'done' ? 'stopped' : (sRow[1] || 'idle');
     state.totalElapsed = (parseInt(sRow[3], 10) || 0) * 1000;
@@ -3383,6 +3908,7 @@ async function loadFromSheet() {
     state.description = sRow[7] || '';
 
     normalizeGroups();
+    reindexCurrentByActive();
     saveLocal(); syncSessionMetaUI(); renderGroups(); renderTasks();
     updateSummary(); updateButtons(); updateStatus();
     setSheetStatus(t('sheets.statusLoaded'), 'ok');
@@ -3475,8 +4001,9 @@ const MOBILE_LAYOUT = [
   ['.clock-block', 'panelSesion'],
   ['.mini-clocks', 'panelSesion'],
   ['.ctrl-buttons', 'panelSesion'],
-  ['.panel-title', 'panelSesion'],
+  ['#tasksToggle', 'panelSesion'],
   ['#tasksContainer', 'panelSesion'],
+  ['#backlogSection', 'panelSesion'],
   ['#addForm', 'panelSesion'],
   ['.summary-grid', 'panelResumen'],
   ['#langWrap', 'panelAjustes'],
@@ -3561,9 +4088,13 @@ function init() {
     updateButtons();
     updateStatus();
   }
-  document.getElementById('addForm').style.display =
-    (state.status === 'idle' || state.status === 'stopped') ? '' : 'none';
+  updateAddFormVisibility();
   tick();
+  // Respaldo del tick (rAF) para la detección de splits excedidos: rAF se pausa con
+  // la ventana minimizada/en segundo plano, así que un setInterval (que el navegador
+  // sigue ejecutando, ~1/min como mínimo) garantiza que la notificación salte aunque
+  // no estés viendo la app. maybeTriggerStuck ya se auto-protege por estado y dedupe.
+  setInterval(maybeTriggerStuck, STUCK_CHECK_MS);
   initGoogleSession();
 }
 
@@ -3587,6 +4118,7 @@ async function boot() {
   populateLangSwitcher();
   I18N.applyTranslations(document);
   init();
+  requestNotifyPermission();
 }
 boot();
 

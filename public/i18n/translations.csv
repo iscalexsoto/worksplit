@@ -7,11 +7,12 @@ status.afk|Ausente|Away
 status.stopped|Detenido|Stopped
 status.done|Finalizado|Finished
 panel.tasksTitle|Tareas de la sesión|Session tasks
+tasks.heading|Tareas|Tasks
 session.titleLabel|Título|Title
 session.titlePlaceholder|Nombre del proyecto o sesión|Project or session name
 session.descLabel|Descripción|Description
 session.descPlaceholder|Descripción general|General description
-add.heading|Agregar tarea|Add task
+add.heading|Agregar tarea al Backlog|Add task to Backlog
 add.nameLabel|Nombre|Name
 add.namePlaceholder|Descripción de la tarea|Task description
 add.groupLabel|Grupo|Group
@@ -25,14 +26,32 @@ col.delta|Delta|Delta
 col.delete|Eliminar|Delete
 col.action|Acción|Action
 task.activate|Activar|Activate
-task.markDone|Marcar listo|Mark done
+task.markDone|Hecho|Done
 task.done|Listo|Done
+task.interrupted|Interrumpida|Interrupted
+task.includeAria|Incluir en la sesión|Include in session
 task.delete|Eliminar|Delete
 task.deleteTitle|Eliminar tarea|Delete task
 task.dragTitle|Arrastrar para reordenar o cambiar de grupo|Drag to reorder or move between groups
 task.groupDragTitle|Arrastrar grupo|Drag group
 task.startPrefix|Inicio|Start
 task.endPrefix|Fin|End
+menu.aria|Acciones de la tarea|Task actions
+menu.sendToBacklog|Mandar a Backlog|Move to Backlog
+menu.interrupt|Interrumpir|Interrupt
+backlog.heading|Backlog|Backlog
+backlog.empty|No hay tareas fuera de la sesión.|No tasks outside the session.
+backlog.addToSession|A la sesión|To session
+backlog.fromInterrupt|Interrumpida de {name}|Interrupted from {name}
+interrupt.title|Interrumpir tarea|Interrupt task
+interrupt.body|La tarea activa se cerrará como interrumpida con su tiempo real. Elige dónde continúa el alcance restante.|The active task will be closed as interrupted with its real time. Choose where the remaining scope continues.
+interrupt.nameLabel|Nombre de la continuación|Continuation name
+interrupt.estLabel|Estimado (min)|Estimate (min)
+interrupt.estPlaceholder|30|30
+interrupt.partSuffix| (Parte 2)| (Part 2)
+interrupt.continueNow|Continuar ahora|Continue now
+interrupt.continueOther|Continuar en otra sesión|Continue another session
+interrupt.cancel|Cancelar|Cancel
 group.est|est. {est}|est. {est}
 group.noTasks|sin tareas|no tasks
 empty.tasks|No hay tareas. Agrega una abajo.|No tasks yet. Add one below.
@@ -52,6 +71,7 @@ ctrl.return|Volver|Return
 ctrl.stop|Detener|Stop
 ctrl.stopped|Detenido|Stopped
 ctrl.reset|Restablecer|Reset
+ctrl.newSession|Nueva sesión|New session
 ctrl.clearTasks|Limpiar tareas|Clear tasks
 groups.heading|Grupos|Groups
 groups.newPlaceholder|Nuevo grupo...|New group...
@@ -105,6 +125,9 @@ confirm.stopConfirm|Detener|Stop
 confirm.resetTitle|Restablecer|Reset
 confirm.resetBody|Se conservan las tareas, pero se reinician los tiempos y el progreso.|Tasks are kept, but times and progress are reset.
 confirm.resetConfirm|Restablecer|Reset
+confirm.newSessionTitle|Nueva sesión|New session
+confirm.newSessionBody|Se eliminarán las tareas terminadas y se reiniciarán los tiempos. El backlog se conserva.|Finished tasks will be deleted and timers reset. The backlog is kept.
+confirm.newSessionConfirm|Nueva sesión|New session
 confirm.clearTitle|Limpiar tareas|Clear tasks
 confirm.clearBody|Se eliminarán todas las tareas de la sesión. Esta acción no se puede deshacer.|All session tasks will be removed. This can't be undone.
 confirm.clearConfirm|Limpiar|Clear
@@ -113,6 +136,10 @@ history.askBody|¿Guardar esta sesión en el historial antes de restablecer?|Sav
 history.askSave|Guardar y restablecer|Save and reset
 history.askDiscard|Restablecer sin guardar|Reset without saving
 toast.addTaskFirst|Agrega al menos una tarea antes de iniciar.|Add at least one task before starting.
+toast.markAtLeastOne|Marca al menos una tarea para incluirla en la sesión.|Mark at least one task to include it in the session.
+toast.sentToBacklog|Tarea enviada al Backlog.|Task moved to Backlog.
+toast.addedToSession|Tarea añadida a la sesión.|Task added to the session.
+toast.cannotAddDone|La sesión ya terminó. Restablece para agregar tareas.|The session has ended. Reset to add tasks.
 toast.cannotLoadActive|No puedes cargar mientras hay una sesión activa.|You can't load while a session is active.
 fmt.hour|h|h
 fmt.min|m|m
@@ -138,6 +165,7 @@ prefs.heading|Preferencias|Preferences
 prefs.notify|Notificación al terminar split|Split-finished notification
 prefs.notifyHint|Aviso breve de que el split terminó.|A brief notice that the split ended.
 prefs.notifyDuration|Duración de la notificación|Notification duration
+notif.overtimeBody|"{name}" se pasó del tiempo estimado. ¿Todo bien?|"{name}" went over its estimated time. All good?
 prefs.pause|Pausa entre splits|Pause between splits
 prefs.pauseHint|Un respiro opcional antes del siguiente bloque.|An optional breather before the next block.
 prefs.pauseDuration|Duración de la pausa|Pause duration
@@ -146,6 +174,8 @@ prefs.chooseNextHint|Decide qué tarea sigue o retoma una anterior.|Decide what'
 prefs.stuck|Alerta "¿Estás atorado?"|Stuck detection
 prefs.stuckHint|Aviso cuando un split supera su estimado.|Heads-up when a split runs over its estimate.
 prefs.stuckMargin|Margen sobre el estimado|Margin over estimate
+prefs.showAddDuringSplit|Mostrar control de agregar tareas durante split activo|Show add-task control during active split
+prefs.showAddDuringSplitHint|Mantiene visible el formulario de nueva tarea (→ Backlog) mientras corre la sesión.|Keeps the new-task form (→ Backlog) visible while the session runs.
 prefs.saveOnReset|Guardar en historial al restablecer|Save to history on reset
 prefs.saveOnResetHint|Decide si se guarda un registro al restablecer una sesión sin terminar.|Whether to log a record when resetting an unfinished session.
 prefs.saveAsk|Preguntar cada vez|Ask each time
