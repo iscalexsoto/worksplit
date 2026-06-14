@@ -3708,7 +3708,28 @@ async function createSheet(folderId) {
 
 // Asegura la carpeta y el Sheet en Drive: reutiliza los existentes (buscándolos
 // por nombre) y solo crea lo que falte. Guarda los ids en localStorage.
+// Un 403 PERMISSION_DENIED suele significar que los ids guardados en localStorage
+// pertenecen a OTRA cuenta de Google (scope drive.file solo ve los archivos propios).
+function isPermissionError(e) {
+  return !!e && /\b403\b/.test(e.message) && /PERMISSION_DENIED/.test(e.message);
+}
+
+// Asegura la carpeta y el Sheet. Si falla por permisos (ids de otra cuenta),
+// limpia los ids guardados y reintenta una vez creando/buscando desde cero.
 async function ensureWorkspace() {
+  try {
+    return await ensureWorkspaceInner();
+  } catch (e) {
+    if (!isPermissionError(e)) throw e;
+    localStorage.removeItem('worksplit_folder_id');
+    localStorage.removeItem('worksplit_sheet_id');
+    localStorage.removeItem('worksplit_sheet_name');
+    googleAuth.tabsEnsured = false;
+    return await ensureWorkspaceInner();
+  }
+}
+
+async function ensureWorkspaceInner() {
   let folderId = getFolderId();
   if (!folderId) {
     folderId = await findDriveFile(DRIVE_FOLDER_NAME, 'application/vnd.google-apps.folder', null);
@@ -3814,17 +3835,24 @@ async function resetGoogleTarget(silent) {
 // (dentro del click) para evitar el bloqueo de popups del navegador.
 async function openSheet() {
   const btn = document.getElementById('btnOpenSheet');
-  const win = window.open('', '_blank', 'noopener');
+  // Abrir la pestaña SINCRÓNICAMENTE (dentro del click) para evitar el bloqueo de
+  // popups. No usar la opción 'noopener': haría que window.open devuelva null y no
+  // podríamos redirigir la pestaña (se quedaría en about:blank). Cortamos el opener
+  // a mano mientras la pestaña sigue en about:blank (mismo origen).
+  const win = window.open('about:blank', '_blank');
+  if (win) { try { win.opener = null; } catch (e) {} }
   btn.disabled = true; btn.classList.add('is-loading');
   try {
     const ok = await resetGoogleTarget(true);
     const id = getSheetId();
-    if (ok && id && win) {
-      win.location.href = 'https://docs.google.com/spreadsheets/d/' + id + '/edit';
+    if (ok && id) {
+      const url = 'https://docs.google.com/spreadsheets/d/' + id + '/edit';
+      if (win) win.location.href = url;
+      else window.open(url, '_blank'); // la pestaña previa fue bloqueada: reintento directo
     } else {
       if (win) win.close();
-      if (!ok) return; // ensureSetup ya notificó el motivo (sin conexión, etc.)
-      notify(t('sheets.statusNoSheet'), 'err');
+      if (ok) notify(t('sheets.statusNoSheet'), 'err');
+      // si !ok, ensureSetup ya notificó el motivo (sin conexión, etc.)
     }
   } catch (e) {
     if (win) win.close();
