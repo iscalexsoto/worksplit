@@ -289,6 +289,7 @@
     flex-direction: column;
     gap: 2px;
     min-width: 0;
+    flex: 1;
   }
   .task-dates {
     font-family: var(--mono);
@@ -960,6 +961,8 @@
     padding: 32px;
     width: 420px;
     max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
   }
   .modal h2 {
     font-family: var(--mono);
@@ -3109,6 +3112,8 @@ function onTaskMenuKey(e) { if (e.key === 'Escape') closeTaskMenu(); }
 function closeTaskMenu() {
   if (taskMenuEl) { taskMenuEl.remove(); taskMenuEl = null; }
   document.removeEventListener('keydown', onTaskMenuKey);
+  document.removeEventListener('click', closeTaskMenu);
+  window.removeEventListener('scroll', closeTaskMenu, { capture: true });
 }
 
 // ─── INTERRUMPIR (dividir split) ────────────────────────────
@@ -4067,6 +4072,9 @@ async function loadFromSheet() {
 
     normalizeGroups();
     reindexCurrentByActive();
+    state.taskElapsed = state.currentTaskIndex !== null
+      ? Math.round(state.tasks[state.currentTaskIndex].realSec || 0) * 1000
+      : 0;
     saveLocal(); syncSessionMetaUI(); renderGroups(); renderTasks();
     updateSummary(); updateButtons(); updateStatus();
     notify(t('sheets.statusLoaded'), 'ok');
