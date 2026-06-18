@@ -21,7 +21,9 @@ add.groupLabel|Grupo|Group
 add.estLabel|Estimado (min)|Estimated (min)
 add.estPlaceholder|30|30
 add.button|Agregar|Add
+col.priority|#|#
 col.task|Tarea|Task
+col.group|Grupo|Group
 col.est|Est.|Est.
 col.real|Real|Actual
 col.delta|Delta|Delta
@@ -36,6 +38,7 @@ task.delete|Eliminar|Delete
 task.deleteTitle|Eliminar tarea|Delete task
 task.dragTitle|Arrastrar para reordenar o cambiar de grupo|Drag to reorder or move between groups
 task.groupDragTitle|Arrastrar grupo|Drag group
+task.changeGroup|Cambiar grupo|Change group
 task.startPrefix|Inicio|Start
 task.endPrefix|Fin|End
 menu.aria|Acciones de la tarea|Task actions
@@ -78,6 +81,10 @@ ctrl.clearTasks|Limpiar tareas|Clear tasks
 groups.heading|Grupos|Groups
 groups.newPlaceholder|Nuevo grupo...|New group...
 groups.add|Add|Add
+groups.dragTitle|Arrastrar para reordenar|Drag to reorder
+groups.delTitle|Eliminar grupo|Delete group
+view.list|Lista por prioridad|Priority list
+view.groups|Por grupos|By group
 sheets.heading|Google Sheets|Google Sheets
 sheets.configWarn|El servidor de autenticación no está disponible.|The authentication server is unavailable.
 sheets.connect|Conectar con Google|Connect with Google

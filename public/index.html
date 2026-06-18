@@ -150,13 +150,12 @@
      es el panel (overflow-y:auto) el que hace scroll. */
   .tasks-panel > * { flex-shrink: 0; }
   #tasksContainer {
-    overflow-x: auto;
+    overflow-x: hidden;
     margin-bottom: 4px;
     padding-right: 12px;
   }
   .task-headers,
   .task-row {
-    min-width: 560px;
     padding-right: 8px;
     box-sizing: border-box;
   }
@@ -220,7 +219,6 @@
   /* TASK ROWS */
   .task-row {
     display: grid;
-    grid-template-columns: 1fr 90px 90px 80px 100px;
     align-items: center;
     gap: 12px;
     padding: 10px 0;
@@ -228,6 +226,23 @@
     transition: background 0.15s;
     position: relative;
   }
+  /* Plantillas de columnas por estado (edición/sesión) y vista (lista/grupos).
+     Aplican a filas y cabeceras por igual. Wrappers .task-rail/.task-titleline/
+     .task-metrics son display:contents en escritorio, así que sus hijos cuentan
+     como celdas del grid en este orden:
+       t-edit:    [grip][#][nombre]( [grupo] )[est]            [acción=eliminar]
+       t-session: [#][nombre]( [grupo] )[est][real][delta]     [acción] */
+  .task-row.t-edit.t-list,    .task-headers.t-edit.t-list    { grid-template-columns: 52px 1fr 120px 56px 64px; }
+  .task-row.t-edit.t-groups,  .task-headers.t-edit.t-groups  { grid-template-columns: 52px 1fr 56px 64px; }
+  .task-row.t-session.t-list, .task-headers.t-session.t-list { grid-template-columns: 28px 1fr 96px 56px 60px 60px 70px; }
+  .task-row.t-session.t-groups,.task-headers.t-session.t-groups { grid-template-columns: 28px 1fr 56px 60px 60px 70px; }
+  /* Wrappers transparentes al grid en escritorio: sus hijos son celdas directas.
+     El rail es una sola celda (grip + #) para mantenerlos juntos sin el gap del grid. */
+  .task-titleline, .task-metrics { display: contents; }
+  .task-rail { display: flex; align-items: center; gap: 4px; }
+  .col-rail { display: flex; align-items: center; gap: 4px; }
+  .rail-grip-pad { width: 32px; flex: none; }
+  .task-group { min-width: 0; }
   .task-row:last-child { border-bottom: none; }
   .task-row.active {
     background: rgba(200,245,66,0.04);
@@ -258,24 +273,24 @@
     border-radius: var(--radius);
   }
 
+  /* Manija de arrastre: caja ~32px (mismo tamaño que los botones-ícono) con el
+     grip de Lucide más visible. touch-action:none deja arrastrar por puntero/táctil
+     sin que el gesto haga scroll. */
   .drag-handle {
-    font-family: var(--mono);
-    font-size: 11px;
-    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
     color: var(--muted);
     cursor: grab;
     user-select: none;
-    letter-spacing: -0.12em;
-    padding: 2px 0;
+    touch-action: none;
+    border-radius: 6px;
   }
   .drag-handle:active { cursor: grabbing; }
-  .drag-handle:hover { color: var(--accent); }
-
-  .tasks-sortable .task-headers,
-  .tasks-sortable .task-row {
-    grid-template-columns: 18px 1fr 90px 90px 80px 100px;
-    min-width: 560px;
-  }
+  .drag-handle:hover { color: var(--accent); background: rgba(255,255,255,0.05); }
 
   .task-name {
     font-size: 14px;
@@ -334,6 +349,18 @@
     justify-content: flex-end;
     padding-right: 4px;
   }
+  /* En sesión la columna de acción son dos sub-columnas fijas [primario | kebab].
+     Las filas sin kebab dejan vacía la izquierda y su único botón cae en la
+     derecha (col2), de modo que el último control de cada fila queda alineado. */
+  .t-session .task-actions {
+    display: grid;
+    grid-template-columns: 32px 32px;
+    gap: 6px;
+    justify-items: center;
+    align-items: center;
+    padding-right: 0;
+  }
+  .action-spacer { width: 32px; height: 32px; flex: none; }
   .btn-done {
     font-family: var(--mono);
     font-size: 10px;
@@ -391,6 +418,19 @@
     gap: 4px;
     white-space: nowrap;
   }
+  /* Acciones principales como botón-ícono: cuadrado, limpio (sin borde en reposo).
+     El color/borde de acción aparece al pasar el cursor (vía las reglas :hover de
+     cada botón); los deshabilitados conservan su borde de estado (p. ej. Listo). */
+  .task-actions .btn-icon {
+    min-width: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 17px;
+    border-radius: 6px;
+  }
+  .task-actions .btn-icon:not(:disabled) { border-color: transparent; }
+  .task-actions .btn-icon:hover:not(:disabled) { background: rgba(255,255,255,0.05); }
 
   /* TASK NAME + INCLUSION CHECKBOX */
   .task-name-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -402,22 +442,18 @@
     cursor: pointer;
   }
 
-  /* KEBAB MENU */
+  /* KEBAB MENU — usa el tamaño/estilo de .btn-icon (32×32) para alinear con los
+     botones de acción "Hecho"/"Activar" en la columna de acciones. */
   .btn-kebab {
-    font-family: var(--mono);
-    font-size: 15px;
     line-height: 1;
     background: transparent;
     border: 1px solid transparent;
     color: var(--muted);
-    width: 22px;
-    height: 22px;
-    border-radius: 4px;
     cursor: pointer;
     padding: 0;
     transition: all 0.15s;
   }
-  .btn-kebab:hover { border-color: var(--border2); color: var(--accent); }
+  .btn-kebab:hover { color: var(--accent); }
   .task-menu {
     position: absolute;
     z-index: 1000;
@@ -474,9 +510,81 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .backlog-body { margin-top: 8px; }
+  /* Mismo inset derecho que #tasksContainer (gutter de scroll) para que las filas
+     del Backlog queden alineadas en columnas con las de la sesión y la cabecera. */
+  .backlog-body { margin-top: 8px; padding-right: 12px; }
   /* Encabezado de la lista de tareas: mismo estilo que el toggle del Backlog. */
   .tasks-toggle { margin-top: 18px; margin-bottom: 8px; }
+
+  /* Toggle de vista (lista por prioridad / por grupos): control segmentado. */
+  .view-toggle {
+    display: inline-flex;
+    gap: 0;
+    margin-top: 4px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    width: max-content;
+  }
+  .view-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .view-toggle-btn + .view-toggle-btn { border-left: 1px solid var(--border2); }
+  .view-toggle-btn:hover { color: var(--text); }
+  .view-toggle-btn.on { background: var(--accent); color: #0e0f11; }
+
+  /* Etiqueta de grupo dentro de la fila (solo en vista lista). */
+  .task-grouptag {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 1px 7px;
+    width: max-content;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Selector de grupo en la fila (vista lista, modo edición). */
+  .task-group-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 4px 6px;
+    outline: none;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+  .task-group-select:focus { border-color: var(--accent); }
+
+  /* Columna de prioridad (#). */
+  .task-priority {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
   .backlog-empty {
     color: var(--muted);
     font-size: 12px;
@@ -498,10 +606,9 @@
     border-radius: 2px;
   }
 
-  /* COLUMN HEADERS */
+  /* COLUMN HEADERS (grid-template-columns lo definen las variantes t-* arriba) */
   .task-headers {
     display: grid;
-    grid-template-columns: 1fr 90px 90px 80px 100px;
     gap: 12px;
     padding: 0 0 8px;
     margin-bottom: 4px;
@@ -511,8 +618,11 @@
     text-transform: uppercase;
     color: var(--muted);
   }
-  #tasksContainer:not(.tasks-sortable) .task-headers span:nth-child(n+2) { text-align: right; }
-  .tasks-sortable .task-headers span:nth-child(n+3) { text-align: right; }
+  .task-headers .col-est,
+  .task-headers .col-real,
+  .task-headers .col-delta,
+  .task-headers .col-action { text-align: right; }
+  .task-headers .col-priority { text-align: center; }
 
   /* ADD FORM */
   .add-form {
@@ -901,32 +1011,62 @@
   }
   .groups-list {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
+    gap: 4px;
     margin-bottom: 10px;
   }
-  .group-chip {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 4px 10px;
-    border-radius: 20px;
-    border: 1px solid var(--border2);
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
+  .group-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
   }
-  .group-chip.draggable { cursor: grab; }
-  .group-chip.draggable:active { cursor: grabbing; }
-  .group-chip.draggable:hover { border-color: var(--accent); color: var(--text); }
-  .group-chip:not(.draggable):hover { border-color: var(--danger); color: var(--danger); }
-  .group-chip.dragging { opacity: 0.45; }
-  .group-chip.drag-over { border-color: var(--accent); color: var(--accent); }
-  .group-chip .del { font-size: 12px; line-height: 1; cursor: pointer; }
+  .group-item.draggable { cursor: grab; }
+  .group-item.draggable:active { cursor: grabbing; }
+  .group-item.dragging { opacity: 0.45; }
+  .group-item.drag-over { border-color: var(--accent); }
+  .group-item .group-item-handle {
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
+    cursor: grab;
+    touch-action: none;
+  }
+  .group-item .group-item-handle:active { cursor: grabbing; }
+  .group-item .group-item-handle:hover { color: var(--accent); }
+  .group-item .group-item-name {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .group-item .del {
+    flex: none;
+    display: inline-flex;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px;
+    transition: color 0.15s;
+  }
+  .group-item .del:hover { color: var(--danger); }
   .group-add-row { display: flex; gap: 8px; }
   .group-add-row .form-input { flex: 1; font-size: 12px; }
   .btn-grp-add {
@@ -1324,6 +1464,10 @@
     .ws-mobile .ctrl-buttons { margin-top: 14px; gap: 10px; }
     .ws-mobile .btn-ctrl { padding: 14px; font-size: 13px; }
 
+    /* Toggle de vista entre controles y lista */
+    .ws-mobile #viewToggle { margin-top: 16px; }
+    .ws-mobile .view-toggle-btn { padding: 10px 18px; font-size: 18px; }
+
     /* Selector de idioma dentro de Ajustes */
     .ws-mobile #langWrap { margin-top: 16px; justify-content: space-between; }
     .ws-mobile .lang-label {
@@ -1344,17 +1488,53 @@
       padding-right: 16px;
     }
 
-    /* Lista de tareas apilada con mini-etiquetas */
+    /* Lista de tareas apilada en tarjetas. Layout por áreas:
+         "rail  nombre+grupo   acciones"
+         "rail  est/real/delta acciones"
+       Los wrappers .task-rail/.task-titleline/.task-metrics (display:contents en
+       escritorio) se vuelven cajas reales y se colocan por grid-area. */
     .ws-mobile #tasksContainer { overflow-x: visible; padding-right: 0; }
+    .ws-mobile .backlog-body { padding-right: 0; }
     .ws-mobile .task-headers { display: none; }
     .ws-mobile .group-block { margin-bottom: 22px; }
     .ws-mobile .task-row,
-    .ws-mobile .tasks-sortable .task-row {
-      display: flex; flex-wrap: wrap; align-items: center;
-      gap: 8px 14px; min-width: 0; padding: 12px 0;
+    .ws-mobile .task-row.t-edit.t-list,
+    .ws-mobile .task-row.t-edit.t-groups,
+    .ws-mobile .task-row.t-session.t-list,
+    .ws-mobile .task-row.t-session.t-groups {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas:
+        "rail name    actions"
+        "rail metrics actions";
+      align-items: center;
+      gap: 6px 14px;
+      min-width: 0;
+      padding: 12px 0;
     }
-    .ws-mobile .drag-handle { display: none; }
-    .ws-mobile .task-name-cell { flex: 1 1 100%; }
+    .ws-mobile .task-rail {
+      grid-area: rail; display: flex; flex-direction: column;
+      align-items: center; gap: 2px;
+    }
+    .ws-mobile .task-titleline {
+      grid-area: name; display: flex; align-items: center;
+      gap: 8px; flex-wrap: nowrap; min-width: 0;
+    }
+    .ws-mobile .task-metrics {
+      grid-area: metrics; display: flex; align-items: center;
+      gap: 14px; flex-wrap: wrap;
+    }
+    .ws-mobile .task-actions {
+      grid-area: actions; display: flex; flex-direction: column; gap: 8px; margin-left: 0;
+      align-items: center; padding-right: 0;
+    }
+    .ws-mobile .action-spacer { display: none; }
+    .ws-mobile .drag-handle { display: inline-flex; }
+    .ws-mobile .task-name-cell { flex: 1 1 auto; min-width: 0; }
+    .ws-mobile .task-name-wrap { flex: 1 1 auto; min-width: 0; }
+    .ws-mobile .task-group { flex: 0 0 auto; width: auto; }
+    .ws-mobile .task-group-select { width: auto; max-width: 160px; }
+    .ws-mobile .task-priority { text-align: center; }
     .ws-mobile .task-input-name { font-size: 13px; }
     .ws-mobile .cell-label {
       display: inline-block; font-family: var(--mono); font-size: 8px;
@@ -1362,7 +1542,6 @@
     }
     .ws-mobile .task-est, .ws-mobile .task-real, .ws-mobile .task-delta { text-align: left; }
     .ws-mobile .task-input-est { width: 70px; text-align: center; }
-    .ws-mobile .task-actions { margin-left: auto; }
     /* La fila activa/pausada no debe sangrar fuera del contenedor en mobile */
     .ws-mobile .task-row.active,
     .ws-mobile .task-row.paused {
@@ -1370,9 +1549,6 @@
       padding-left: 8px;
       padding-right: 8px;
     }
-    /* En modo edición (sesión idle) la fila es solo nombre + estimado + eliminar */
-    .ws-mobile .tasks-sortable .task-real,
-    .ws-mobile .tasks-sortable .task-delta { display: none; }
 
     /* Tarjetas de secciones reubicadas */
     .ws-mobile .groups-section, .ws-mobile .sheet-section, .ws-mobile .prefs-section { margin-top: 16px; }
@@ -1417,6 +1593,7 @@
   <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"></path><line x1="6" x2="6" y1="2" y2="4"></line><line x1="10" x2="10" y1="2" y2="4"></line><line x1="14" x2="14" y1="2" y2="4"></line></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></symbol>
   <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="19" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="19" r="1"></circle></symbol>
+  <symbol id="i-ellipsis-vertical" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></symbol>
@@ -1426,6 +1603,13 @@
   <symbol id="i-table" viewBox="0 0 24 24"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></symbol>
   <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></symbol>
   <symbol id="i-loader" viewBox="0 0 24 24"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></symbol>
+  <symbol id="i-square-arrow-up" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="m16 12-4-4-4 4"></path><path d="M12 16V8"></path></symbol>
+  <symbol id="i-square-x" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path></symbol>
+  <symbol id="i-square-check" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="m9 12 2 2 4-4"></path></symbol>
+  <symbol id="i-square-check-big" viewBox="0 0 24 24"><path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11.344"></path><path d="m9 11 3 3L22 4"></path></symbol>
+  <symbol id="i-square-play" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="m9 8 6 4-6 4Z"></path></symbol>
+  <symbol id="i-list-ordered" viewBox="0 0 24 24"><line x1="10" x2="21" y1="6" y2="6"></line><line x1="10" x2="21" y1="12" y2="12"></line><line x1="10" x2="21" y1="18" y2="18"></line><path d="M4 6h1v4"></path><path d="M4 10h2"></path><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></symbol>
+  <symbol id="i-layout-list" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect><path d="M14 4h7"></path><path d="M14 9h7"></path><path d="M14 15h7"></path><path d="M14 20h7"></path></symbol>
   <symbol id="i-google" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></symbol>
 </svg>
 
@@ -1458,6 +1642,11 @@
         <label class="form-label" for="sessionDescription" data-i18n="session.descLabel">Descripción</label>
         <textarea class="form-input" id="sessionDescription" data-i18n-placeholder="session.descPlaceholder" placeholder="Descripción general" rows="2" oninput="saveSessionMeta()"></textarea>
       </div>
+    </div>
+
+    <div class="view-toggle" id="viewToggle" role="group">
+      <button type="button" class="view-toggle-btn" data-view="list" onclick="setViewMode('list')" data-i18n-title="view.list" data-i18n-aria-label="view.list"><svg class="icon"><use href="#i-list-ordered"></use></svg></button>
+      <button type="button" class="view-toggle-btn" data-view="groups" onclick="setViewMode('groups')" data-i18n-title="view.groups" data-i18n-aria-label="view.groups"><svg class="icon"><use href="#i-layout-list"></use></svg></button>
     </div>
 
     <button type="button" class="backlog-toggle tasks-toggle" id="tasksToggle" onclick="toggleTasks()" aria-expanded="true">
@@ -1864,8 +2053,9 @@ const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_FILES = 'https://www.googleapis.com/drive/v3/files';
 const SESSION_HEADERS = ['date','status','total_estimated_min',
   'total_real_sec','total_away_sec','updated_at','title','description'];
-const TASK_HEADERS = ['order','group','name','estimated_min',
+const TASK_HEADERS = ['priority','group','name','estimated_min',
   'real_sec','status','started_at','ended_at','updated_at'];
+const GROUPS_HEADERS = ['order','name'];
 const HISTORY_HEADERS = ['closed_at','type','total_estimated_min','total_real_sec',
   'total_away_sec','task_count','completed_count','current_task','tasks_json'];
 const BACKLOG_HEADERS = ['group','name','estimated_min','created_at','note'];
@@ -1883,6 +2073,7 @@ let state = {
   status: 'idle', // idle | running | afk | stopped | done
   title: '',
   description: '',
+  viewMode: 'list', // 'list' (plana por prioridad) | 'groups' (agrupada)
   groups: ['General'],
   tasks: [],
   startTime: null,
@@ -1910,7 +2101,8 @@ const AUTO_SAVE_MS = 5 * 60 * 1000;
 let autoSaveTimer = null;
 // Frecuencia del respaldo en segundo plano para detectar splits excedidos (ver init).
 const STUCK_CHECK_MS = 15 * 1000;
-const dragState = { type: null, groupIdx: null, taskIdx: null };
+// Estado del arrastre por puntero (mouse/táctil/lápiz unificado vía Pointer Events).
+let pointerDrag = null; // { kind, sourceIdx, sourceEl, handle, pointerId, moved }
 
 function isSessionActive() {
   return state.status === 'running' || state.status === 'afk';
@@ -1973,6 +2165,7 @@ function loadLocal() {
       state = s;
       if (state.title == null) state.title = '';
       if (state.description == null) state.description = '';
+      if (state.viewMode !== 'list' && state.viewMode !== 'groups') state.viewMode = 'list';
       normalizePrefs();
       normalizeGroups();
     } catch(e) {}
@@ -2068,93 +2261,31 @@ function canReorder() {
   return state.status === 'idle';
 }
 
-function reorganizeTasksByGroupOrder() {
-  const byGroup = {};
-  state.tasks.forEach(t => {
-    if (!byGroup[t.group]) byGroup[t.group] = [];
-    byGroup[t.group].push(t);
-  });
-  const ordered = [];
-  state.groups.forEach(g => {
-    if (byGroup[g]) ordered.push(...byGroup[g]);
-  });
-  Object.keys(byGroup).forEach(g => {
-    if (!state.groups.includes(g)) ordered.push(...byGroup[g]);
-  });
-  state.tasks = ordered;
-}
-
+// Reordena el orden de los grupos. Solo afecta la visualización por grupos y el
+// orden persistido en el Sheet; NO toca las prioridades (orden) de las tareas.
+// Permitido en cualquier estado de sesión (es orden de presentación).
 function moveGroup(fromIdx, toIdx) {
-  if (!canReorder() || fromIdx === toIdx) return;
+  if (fromIdx === toIdx) return;
   if (fromIdx < 0 || toIdx < 0 || fromIdx >= state.groups.length || toIdx >= state.groups.length) return;
   const [group] = state.groups.splice(fromIdx, 1);
   state.groups.splice(toIdx, 0, group);
-  reorganizeTasksByGroupOrder();
   saveLocal(); renderGroups(); renderTasks(); updateSummary();
 }
 
-function moveTaskInGroup(group, fromPos, toPos) {
-  if (!canReorder() || fromPos === toPos) return;
-  const groupTasks = state.tasks.filter(t => t.group === group);
-  if (fromPos < 0 || toPos < 0 || fromPos >= groupTasks.length || toPos >= groupTasks.length) return;
-  const [task] = groupTasks.splice(fromPos, 1);
-  groupTasks.splice(toPos, 0, task);
-
-  const byGroup = {};
-  state.tasks.forEach(t => {
-    if (!byGroup[t.group]) byGroup[t.group] = [];
-    if (t.group !== group) byGroup[t.group].push(t);
-  });
-  byGroup[group] = groupTasks;
-
-  const ordered = [];
-  state.groups.forEach(g => {
-    if (byGroup[g]) ordered.push(...byGroup[g]);
-  });
-  Object.keys(byGroup).forEach(g => {
-    if (!state.groups.includes(g)) ordered.push(...byGroup[g]);
-  });
-  state.tasks = ordered;
-  saveLocal(); renderTasks(); updateSummary();
-}
-
-function moveTaskToPosition(taskIdx, toGroup, toLocalIdx) {
+// Única operación de reordenamiento de tareas: el array es plano y su orden ES la
+// prioridad global. Mueve la tarea a una posición absoluta y, opcionalmente, la
+// reasigna a otro grupo (drag entre grupos en la vista agrupada).
+function moveTaskToAbsolute(fromIdx, toIdx, newGroup) {
   if (!canReorder()) return;
-  const task = state.tasks[taskIdx];
+  const task = state.tasks[fromIdx];
   if (!task) return;
-
-  const fromGroup = task.group;
-  const localIndices = [];
-  state.tasks.forEach((t, i) => { if (t.group === fromGroup) localIndices.push(i); });
-  const fromLocal = localIndices.indexOf(taskIdx);
-  if (fromLocal === -1) return;
-
-  if (fromGroup === toGroup) {
-    const targetLocal = toLocalIdx == null ? localIndices.length - 1 : toLocalIdx;
-    if (fromLocal !== targetLocal) moveTaskInGroup(fromGroup, fromLocal, targetLocal);
-    return;
-  }
-
-  state.tasks.splice(taskIdx, 1);
-  task.group = toGroup;
-
-  const byGroup = {};
-  state.tasks.forEach(t => {
-    if (!byGroup[t.group]) byGroup[t.group] = [];
-    byGroup[t.group].push(t);
-  });
-  if (!byGroup[toGroup]) byGroup[toGroup] = [];
-  const pos = toLocalIdx == null ? byGroup[toGroup].length : Math.min(toLocalIdx, byGroup[toGroup].length);
-  byGroup[toGroup].splice(pos, 0, task);
-
-  const ordered = [];
-  state.groups.forEach(g => {
-    if (byGroup[g]) ordered.push(...byGroup[g]);
-  });
-  Object.keys(byGroup).forEach(g => {
-    if (!state.groups.includes(g)) ordered.push(...byGroup[g]);
-  });
-  state.tasks = ordered;
+  if (newGroup != null) task.group = newGroup;
+  else if (fromIdx === toIdx) return;
+  state.tasks.splice(fromIdx, 1);
+  if (fromIdx < toIdx) toIdx--;
+  toIdx = Math.max(0, Math.min(toIdx, state.tasks.length));
+  state.tasks.splice(toIdx, 0, task);
+  reindexCurrentByActive();
   saveLocal(); renderTasks(); updateSummary();
 }
 
@@ -2170,109 +2301,133 @@ function clearDragClasses() {
   });
 }
 
+// Reordenamiento por Pointer Events: un solo camino para mouse, táctil y lápiz.
+// Reemplaza al HTML5 drag-and-drop (que no dispara en pantallas táctiles, p. ej.
+// Chrome móvil). Se arrastra desde las manijas (.drag-handle / .group-item-handle):
+//   - tareas: reordenar prioridad (plano) y, en vista grupos, mover entre grupos;
+//   - encabezados de grupo y panel de grupos: reordenar el orden de los grupos.
 function setupDragDrop() {
-  const groupsList = document.getElementById('groupsList');
-  const tasksContainer = document.getElementById('tasksContainer');
+  document.addEventListener('pointerdown', onDragPointerDown);
+  document.addEventListener('pointermove', onDragPointerMove);
+  document.addEventListener('pointerup', onDragPointerEnd);
+  document.addEventListener('pointercancel', onDragPointerEnd);
+}
 
-  groupsList.addEventListener('dragstart', e => {
+function onDragPointerDown(e) {
+  if (e.button != null && e.button !== 0) return; // solo botón primario / toque
+  const handle = e.target.closest('.drag-handle, .group-item-handle');
+  if (!handle) return;
+
+  const groupItem = handle.closest('.group-item[data-group-idx]');
+  const groupHeader = handle.closest('.group-header.draggable');
+  const taskRow = handle.closest('.task-row.draggable');
+
+  let kind, sourceIdx, sourceEl;
+  if (groupItem) {
+    // El panel de grupos permite reordenar en cualquier estado (orden de presentación).
+    kind = 'group-panel';
+    sourceIdx = parseInt(groupItem.dataset.groupIdx, 10);
+    sourceEl = groupItem;
+  } else if (groupHeader) {
     if (!canReorder()) return;
-    const chip = e.target.closest('.group-chip[data-group-idx]');
-    if (!chip || e.target.closest('.del')) return;
-    dragState.type = 'group';
-    dragState.groupIdx = parseInt(chip.dataset.groupIdx, 10);
-    chip.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', 'group');
-  });
-
-  groupsList.addEventListener('dragover', e => {
-    if (dragState.type !== 'group' || !canReorder()) return;
-    const chip = e.target.closest('.group-chip[data-group-idx]');
-    if (!chip) return;
-    e.preventDefault();
-    document.querySelectorAll('.group-chip.drag-over').forEach(c => c.classList.remove('drag-over'));
-    chip.classList.add('drag-over');
-  });
-
-  groupsList.addEventListener('drop', e => {
-    if (dragState.type !== 'group') return;
-    const chip = e.target.closest('.group-chip[data-group-idx]');
-    if (!chip) return;
-    e.preventDefault();
-    moveGroup(dragState.groupIdx, parseInt(chip.dataset.groupIdx, 10));
-    clearDragClasses();
-    dragState.type = null;
-  });
-
-  groupsList.addEventListener('dragend', () => {
-    clearDragClasses();
-    dragState.type = null;
-  });
-
-  tasksContainer.addEventListener('dragstart', e => {
+    kind = 'group-block';
+    sourceIdx = parseInt(groupHeader.dataset.groupIdx, 10);
+    sourceEl = groupHeader.closest('.group-block');
+  } else if (taskRow) {
     if (!canReorder()) return;
-    const handle = e.target.closest('.drag-handle');
-    if (!handle) return;
-    const groupHeader = handle.closest('.group-header.draggable');
-    const taskRow = handle.closest('.task-row.draggable');
-    if (groupHeader) {
-      dragState.type = 'group';
-      dragState.groupIdx = parseInt(groupHeader.dataset.groupIdx, 10);
-      groupHeader.closest('.group-block').classList.add('dragging');
-    } else if (taskRow) {
-      dragState.type = 'task';
-      dragState.taskIdx = parseInt(taskRow.dataset.taskIdx, 10);
-      taskRow.classList.add('dragging');
-    } else return;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', dragState.type);
-  });
+    kind = 'task';
+    sourceIdx = parseInt(taskRow.dataset.taskIdx, 10);
+    sourceEl = taskRow;
+  } else return;
 
-  tasksContainer.addEventListener('dragover', e => {
-    if (!canReorder() || !dragState.type) return;
-    e.preventDefault();
-    if (dragState.type === 'group') {
-      const block = e.target.closest('.group-block[data-group-idx]');
-      if (!block) return;
-      document.querySelectorAll('.group-block.drag-over').forEach(b => b.classList.remove('drag-over'));
-      block.classList.add('drag-over');
-    } else if (dragState.type === 'task') {
-      e.preventDefault();
-      clearTaskDropHighlights();
-      const row = e.target.closest('.task-row.draggable');
-      if (row) {
-        row.classList.add('drag-over');
-      } else {
-        const block = e.target.closest('.group-block[data-group]');
-        if (block) block.classList.add('task-drop-target');
+  e.preventDefault();
+  pointerDrag = { kind, sourceIdx, sourceEl, handle, pointerId: e.pointerId, moved: false };
+  try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+}
+
+function onDragPointerMove(e) {
+  if (!pointerDrag || e.pointerId !== pointerDrag.pointerId) return;
+  if (!pointerDrag.moved) {
+    pointerDrag.moved = true;
+    pointerDrag.sourceEl.classList.add('dragging');
+    // El origen no debe interceptar el hit-test de elementFromPoint.
+    pointerDrag.sourceEl.style.pointerEvents = 'none';
+  }
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  highlightDropTarget(under);
+}
+
+function highlightDropTarget(under) {
+  if (!under) return;
+  if (pointerDrag.kind === 'group-panel') {
+    document.querySelectorAll('.group-item.drag-over').forEach(c => c.classList.remove('drag-over'));
+    const item = under.closest('.group-item[data-group-idx]');
+    if (item) item.classList.add('drag-over');
+  } else if (pointerDrag.kind === 'group-block') {
+    document.querySelectorAll('.group-block.drag-over').forEach(b => b.classList.remove('drag-over'));
+    const block = under.closest('.group-block[data-group-idx]');
+    if (block) block.classList.add('drag-over');
+  } else { // task
+    clearTaskDropHighlights();
+    const row = under.closest('.task-row.draggable');
+    if (row) {
+      row.classList.add('drag-over');
+    } else {
+      const block = under.closest('.group-block[data-group]');
+      if (block) block.classList.add('task-drop-target');
+    }
+  }
+}
+
+function onDragPointerEnd(e) {
+  if (!pointerDrag || e.pointerId !== pointerDrag.pointerId) return;
+  const pd = pointerDrag;
+  pointerDrag = null;
+  pd.sourceEl.style.pointerEvents = '';
+  try { pd.handle.releasePointerCapture(e.pointerId); } catch (_) {}
+  if (pd.moved && e.type === 'pointerup') {
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    resolvePointerDrop(pd, under);
+  }
+  clearDragClasses();
+}
+
+function resolvePointerDrop(pd, under) {
+  if (!under) return;
+  if (pd.kind === 'group-panel') {
+    const item = under.closest('.group-item[data-group-idx]');
+    if (item) moveGroup(pd.sourceIdx, parseInt(item.dataset.groupIdx, 10));
+  } else if (pd.kind === 'group-block') {
+    if (!canReorder()) return;
+    const block = under.closest('.group-block[data-group-idx]');
+    if (block) moveGroup(pd.sourceIdx, parseInt(block.dataset.groupIdx, 10));
+  } else { // task
+    if (!canReorder()) return;
+    const row = under.closest('.task-row.draggable');
+    if (row) {
+      // Drop sobre una fila: la tarea aterriza en la posición de esa fila.
+      // moveTaskToAbsolute(from, to) inserta ANTES del elemento que está en `to`,
+      // así que al arrastrar hacia abajo (origen por encima del destino) hay que
+      // apuntar a `targetIdx + 1` para quedar DESPUÉS del destino; hacia arriba
+      // se inserta antes del destino. Sin este ajuste, bajar una fila no movía
+      // nada y bajar varias solo bajaba un lugar.
+      const targetIdx = parseInt(row.dataset.taskIdx, 10);
+      const newGroup = state.viewMode === 'groups' ? row.dataset.group : null;
+      const toIdx = pd.sourceIdx < targetIdx ? targetIdx + 1 : targetIdx;
+      moveTaskToAbsolute(pd.sourceIdx, toIdx, newGroup);
+    } else {
+      // Drop sobre un bloque de grupo (vista por grupos): se anexa al final de
+      // ese grupo, justo tras su último miembro en el array.
+      const block = under.closest('.group-block[data-group]');
+      if (block) {
+        const g = block.dataset.group;
+        let lastIdx = -1;
+        state.tasks.forEach((t, i) => { if (t.group === g) lastIdx = i; });
+        const toIdx = lastIdx === -1 ? state.tasks.length : lastIdx + 1;
+        moveTaskToAbsolute(pd.sourceIdx, toIdx, g);
       }
     }
-  });
-
-  tasksContainer.addEventListener('drop', e => {
-    if (!canReorder() || !dragState.type) return;
-    e.preventDefault();
-    if (dragState.type === 'group') {
-      const block = e.target.closest('.group-block[data-group-idx]');
-      if (!block) return;
-      moveGroup(dragState.groupIdx, parseInt(block.dataset.groupIdx, 10));
-    } else if (dragState.type === 'task') {
-      const row = e.target.closest('.task-row.draggable');
-      if (row) {
-        moveTaskToPosition(dragState.taskIdx, row.dataset.group, parseInt(row.dataset.localIdx, 10));
-      } else {
-        const block = e.target.closest('.group-block[data-group]');
-        if (block) moveTaskToPosition(dragState.taskIdx, block.dataset.group, null);
-      }
-    }
-    clearDragClasses();
-    dragState.type = null;
-  });
-
-  tasksContainer.addEventListener('dragend', () => {
-    clearDragClasses();
-    dragState.type = null;
-  });
+  }
 }
 
 // ─── GROUPS ─────────────────────────────────────────────────
@@ -2281,15 +2436,34 @@ function renderGroups() {
   const sel = document.getElementById('fGroup');
   list.innerHTML = '';
   sel.innerHTML = '';
+  const canDelete = state.groups.length > 1;
   state.groups.forEach((g, gi) => {
-    const chip = document.createElement('div');
-    chip.className = 'group-chip' + (canReorder() ? ' draggable' : '');
-    if (canReorder()) {
-      chip.dataset.groupIdx = gi;
-      chip.draggable = true;
+    const item = document.createElement('div');
+    item.className = 'group-item draggable';
+    item.dataset.groupIdx = gi;
+
+    const handle = document.createElement('span');
+    handle.className = 'group-item-handle';
+    handle.title = t('groups.dragTitle');
+    handle.innerHTML = icon('grip');
+
+    const name = document.createElement('span');
+    name.className = 'group-item-name';
+    name.textContent = g;
+    name.title = g;
+
+    item.appendChild(handle);
+    item.appendChild(name);
+    if (canDelete) {
+      const del = document.createElement('span');
+      del.className = 'del';
+      del.title = t('groups.delTitle');
+      del.innerHTML = icon('x');
+      del.onclick = () => removeGroup(g);
+      item.appendChild(del);
     }
-    chip.innerHTML = `<span>${g}</span><span class="del" onclick="removeGroup('${g.replace(/'/g, "\\'")}')">${icon('x')}</span>`;
-    list.appendChild(chip);
+    list.appendChild(item);
+
     // select option
     const opt = document.createElement('option');
     opt.value = g; opt.textContent = g;
@@ -2365,6 +2539,18 @@ function updateTaskField(idx, field, value) {
   saveLocal();
   updateSummary();
   if (field === 'estimatedMin') renderTasks();
+}
+
+// Reasigna el grupo de una tarea desde el selector de la vista lista. NO toca la
+// prioridad (el array plano no se reordena); el grupo es solo una etiqueta.
+function setTaskGroup(idx, value) {
+  if (!canEditTasks()) return;
+  const task = state.tasks[idx];
+  if (!task || !state.groups.includes(value)) return;
+  task.group = value;
+  saveLocal();
+  renderTasks();
+  updateSummary();
 }
 
 function removeTask(idx) {
@@ -2831,22 +3017,54 @@ function renderTasks() {
   container.innerHTML = '';
   container.classList.toggle('tasks-sortable', canReorder());
 
-  // Build headers once
+  // Prioridad global continua (1..N) sobre el set principal, en orden de array.
+  const priorityOf = buildPriorityMap(mainPred);
+
+  // Build headers once. Las celdas/columnas reflejan el estado y la vista igual que
+  // las filas (mismas clases t-edit/t-session + t-list/t-groups para alinear el grid).
   const headers = document.createElement('div');
-  headers.className = 'task-headers';
-  const handleHeader = canReorder() ? '<span></span>' : '';
-  headers.innerHTML = `${handleHeader}<span>${t('col.task')}</span><span>${t('col.est')}</span><span>${t('col.real')}</span><span>${t('col.delta')}</span><span>${canDeleteTasks() ? t('col.delete') : t('col.action')}</span>`;
+  const stateClass = editing ? ' t-edit' : ' t-session';
+  const viewClass = state.viewMode === 'list' ? ' t-list' : ' t-groups';
+  headers.className = 'task-headers' + stateClass + viewClass;
+  // Rail = una sola celda (pad del grip cuando es reordenable + #), para que el "#"
+  // quede sobre los números de las filas.
+  const railHeader = `<span class="col-rail">${canReorder() ? '<span class="rail-grip-pad" aria-hidden="true"></span>' : ''}<span class="col-priority">${t('col.priority')}</span></span>`;
+  const groupHeader = state.viewMode === 'list' ? `<span class="col-group">${t('col.group')}</span>` : '';
+  const metricsHeader = editing
+    ? ''
+    : `<span class="col-real">${t('col.real')}</span><span class="col-delta">${t('col.delta')}</span>`;
+  headers.innerHTML = `${railHeader}<span>${t('col.task')}</span>${groupHeader}<span class="col-est">${t('col.est')}</span>${metricsHeader}<span class="col-action">${canDeleteTasks() ? t('col.delete') : t('col.action')}</span>`;
   container.appendChild(headers);
 
   const mode = editing ? 'edit' : 'session';
-  renderTaskGroups(container, mainPred, mode);
+  if (state.viewMode === 'list') renderTaskList(container, mainPred, mode, priorityOf, true);
+  else renderTaskGroups(container, mainPred, mode, priorityOf);
   renderBacklog(editing);
+}
+
+// Mapa: índice absoluto de tarea → prioridad (1..N) entre las que cumplen `pred`,
+// en orden de array. El array plano es la fuente de verdad de la prioridad.
+function buildPriorityMap(pred) {
+  const m = new Map();
+  let n = 0;
+  state.tasks.forEach((tk, i) => { if (pred(tk)) m.set(i, ++n); });
+  return m;
+}
+
+// Vista lista: una sola lista plana en orden de array (= prioridad), sin bloques
+// de grupo. El grupo se muestra como etiqueta en la fila (showGroupTag).
+function renderTaskList(container, pred, mode, priorityOf, showGroupTag) {
+  state.tasks.forEach((task, idx) => {
+    if (!pred(task)) return;
+    const p = priorityOf ? priorityOf.get(idx) : null;
+    container.appendChild(buildTaskRow(task, idx, task.group, mode, p, showGroupTag));
+  });
 }
 
 // Render compartido: pinta los group-blocks de las tareas que cumplen `pred`.
 // mode: 'edit' (idle, checkbox + eliminar, drag) | 'session' (splits en curso,
 // botón primario + kebab) | 'backlog' (pool consultable, botón "a la sesión").
-function renderTaskGroups(container, pred, mode) {
+function renderTaskGroups(container, pred, mode, priorityOf) {
   const sortable = mode === 'edit';
   state.groups.forEach((group, gi) => {
     const items = [];
@@ -2859,7 +3077,7 @@ function renderTaskGroups(container, pred, mode) {
       block.className = 'group-block group-block-empty';
       block.dataset.groupIdx = gi;
       block.dataset.group = group;
-      const groupDrag = `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">${icon('grip')}</span>`;
+      const groupDrag = `<span class="drag-handle" title="${t('task.groupDragTitle')}">${icon('grip')}</span>`;
       block.innerHTML = `<div class="group-header draggable" data-group-idx="${gi}">
         <div class="group-header-left">
           ${groupDrag}
@@ -2877,7 +3095,7 @@ function renderTaskGroups(container, pred, mode) {
     block.dataset.groupIdx = gi;
     block.dataset.group = group;
     const groupDrag = sortable
-      ? `<span class="drag-handle" draggable="true" title="${t('task.groupDragTitle')}">${icon('grip')}</span>`
+      ? `<span class="drag-handle" title="${t('task.groupDragTitle')}">${icon('grip')}</span>`
       : '';
     block.innerHTML = `<div class="group-header${sortable ? ' draggable' : ''}" data-group-idx="${gi}">
       <div class="group-header-left">
@@ -2886,17 +3104,22 @@ function renderTaskGroups(container, pred, mode) {
       </div>
       <span class="group-est">${t('group.est', { est: fmtMin(groupEstMin) })}</span>
     </div>`;
-    items.forEach(({ task, idx }, localIdx) => {
-      block.appendChild(buildTaskRow(task, idx, group, localIdx, mode));
+    items.forEach(({ task, idx }) => {
+      block.appendChild(buildTaskRow(task, idx, group, mode, priorityOf ? priorityOf.get(idx) : null, false));
     });
     container.appendChild(block);
   });
 }
 
-function buildTaskRow(task, idx, group, localIdx, mode) {
+function buildTaskRow(task, idx, group, mode, priority, showGroupTag) {
   const sortable = mode === 'edit';
+  // Clases de plantilla de columnas (independientes del contenedor: aplican igual
+  // a la lista principal y al Backlog). Estado: edición (idle) vs sesión; vista:
+  // lista (con columna de grupo) vs grupos (grupo implícito por bloque).
+  const stateClass = sortable ? ' t-edit' : ' t-session';
+  const viewClass = state.viewMode === 'list' ? ' t-list' : ' t-groups';
   const row = document.createElement('div');
-  row.className = 'task-row' +
+  row.className = 'task-row' + stateClass + viewClass +
     (sortable ? ' draggable' : '') +
     (task.status === 'active' ? ' active' : '') +
     (task.status === 'paused' ? ' paused' : '') +
@@ -2904,7 +3127,6 @@ function buildTaskRow(task, idx, group, localIdx, mode) {
     (task.status === 'interrupted' ? ' interrupted' : '');
   if (sortable) {
     row.dataset.group = group;
-    row.dataset.localIdx = localIdx;
     row.dataset.taskIdx = idx;
   }
 
@@ -2926,29 +3148,34 @@ function buildTaskRow(task, idx, group, localIdx, mode) {
   const canEdit = canEditTasks();
   const isRunning = state.status === 'running';
 
-  // Celda de acción según modo.
+  // Celda de acción según modo. Las acciones principales son botones-ícono
+  // (con title/aria-label para accesibilidad).
   let actionsHtml;
   if (mode === 'edit') {
-    actionsHtml = `<button class="btn-del-task" onclick="removeTask(${idx})" title="${t('task.deleteTitle')}">${t('task.delete')}</button>`;
+    actionsHtml = `<button class="btn-del-task btn-icon" onclick="removeTask(${idx})" title="${t('task.deleteTitle')}" aria-label="${t('task.delete')}">${icon('trash')}</button>`;
   } else if (mode === 'backlog') {
-    actionsHtml = `<button class="btn-activate" onclick="addToSession(${idx})">${t('backlog.addToSession')}</button>`;
+    // Botón único: va a la sub-columna derecha (col2) para alinearse con los kebab.
+    actionsHtml = `<span class="action-spacer" aria-hidden="true"></span><button class="btn-activate btn-icon" onclick="addToSession(${idx})" title="${t('backlog.addToSession')}" aria-label="${t('backlog.addToSession')}">${icon('square-arrow-up')}</button>`;
   } else { // session
     let sessionBtn;
     if (task.status === 'done') {
-      sessionBtn = `<button class="btn-done done-btn-active" disabled>${icon('check')}${t('task.done')}</button>`;
+      sessionBtn = `<button class="btn-done btn-icon done-btn-active" disabled title="${t('task.done')}" aria-label="${t('task.done')}">${icon('square-check-big')}</button>`;
     } else if (task.status === 'interrupted') {
-      sessionBtn = `<button class="btn-done done-btn-active" disabled>${t('task.interrupted')}</button>`;
+      sessionBtn = `<button class="btn-done btn-icon done-btn-active" disabled title="${t('task.interrupted')}" aria-label="${t('task.interrupted')}">${icon('square-x')}</button>`;
     } else if (task.status === 'active') {
-      sessionBtn = `<button class="btn-done" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.markDone')}</button>`;
+      sessionBtn = `<button class="btn-done btn-icon" onclick="markDone(${idx})" ${isRunning ? '' : 'disabled'} title="${t('task.markDone')}" aria-label="${t('task.markDone')}">${icon('square-check')}</button>`;
     } else {
-      sessionBtn = `<button class="btn-activate" onclick="focusTask(${idx})" ${isRunning ? '' : 'disabled'}>${t('task.activate')}</button>`;
+      sessionBtn = `<button class="btn-activate btn-icon" onclick="focusTask(${idx})" ${isRunning ? '' : 'disabled'} title="${t('task.activate')}" aria-label="${t('task.activate')}">${icon('square-play')}</button>`;
     }
     // Kebab solo para acciones estructurales: pending → mandar a backlog; active → interrumpir.
     const hasMenu = task.status === 'pending' || task.status === 'active';
     const kebab = hasMenu
-      ? `<button class="btn-kebab" onclick="openTaskMenu(${idx}, this)" aria-label="${t('menu.aria')}" title="${t('menu.aria')}">⋮</button>`
+      ? `<button class="btn-kebab btn-icon" onclick="openTaskMenu(${idx}, this)" aria-label="${t('menu.aria')}" title="${t('menu.aria')}">${icon('ellipsis-vertical')}</button>`
       : '';
-    actionsHtml = sessionBtn + kebab;
+    // Con kebab: [primario | kebab]. Sin kebab: el primario cae en la col2 (derecha).
+    actionsHtml = hasMenu
+      ? sessionBtn + kebab
+      : `<span class="action-spacer" aria-hidden="true"></span>` + sessionBtn;
   }
 
   // Checkbox de inclusión: solo al armar (idle), a la izquierda de la descripción.
@@ -2956,10 +3183,26 @@ function buildTaskRow(task, idx, group, localIdx, mode) {
     ? `<input type="checkbox" class="task-include" ${task.inSession ? 'checked' : ''} onchange="toggleInSession(${idx}, this.checked)" title="${t('task.includeAria')}" aria-label="${t('task.includeAria')}">`
     : '';
 
-  const nameInner = canEdit
-    ? `<input class="task-input task-input-name" type="text" value="${escHtml(task.name)}" onblur="updateTaskField(${idx}, 'name', this.value)">${taskDatesHtml(task)}`
-    : `<span class="task-name" title="${escHtml(task.name)}">${escHtml(task.name)}</span>${taskDatesHtml(task)}`;
+  const nameMain = canEdit
+    ? `<input class="task-input task-input-name" type="text" value="${escHtml(task.name)}" onblur="updateTaskField(${idx}, 'name', this.value)">`
+    : `<span class="task-name" title="${escHtml(task.name)}">${escHtml(task.name)}</span>`;
+  const nameInner = `${nameMain}${taskDatesHtml(task)}`;
   const nameHtml = `<div class="task-name-wrap">${includeBox}<div class="task-name-cell">${nameInner}</div></div>`;
+
+  // Celda de grupo: solo en vista lista (en vista por grupos el grupo es implícito
+  // por bloque). Editable (idle) → selector que reasigna el grupo sin tocar la
+  // prioridad; sesión en curso → chip de solo lectura.
+  const showGroupCol = state.viewMode === 'list';
+  let groupHtml = '';
+  if (showGroupCol) {
+    if (canEdit) {
+      const opts = state.groups.map(g =>
+        `<option value="${escHtml(g)}"${g === task.group ? ' selected' : ''}>${escHtml(g)}</option>`).join('');
+      groupHtml = `<div class="task-group"><select class="task-group-select" onchange="setTaskGroup(${idx}, this.value)" title="${t('task.changeGroup')}" aria-label="${t('task.changeGroup')}">${opts}</select></div>`;
+    } else {
+      groupHtml = `<div class="task-group"><span class="task-grouptag">${escHtml(task.group)}</span></div>`;
+    }
+  }
 
   const estHtml = canEdit
     ? `<input class="task-input task-input-est" type="number" min="1" value="${task.estimatedMin}" onchange="updateTaskField(${idx}, 'estimatedMin', this.value)">`
@@ -2967,16 +3210,21 @@ function buildTaskRow(task, idx, group, localIdx, mode) {
   const realHtml = `<span class="task-real">${lbl('col.real')}${realDisplay}</span>`;
 
   const taskDrag = sortable
-    ? `<span class="drag-handle" draggable="true" title="${t('task.dragTitle')}">${icon('grip')}</span>`
+    ? `<span class="drag-handle" title="${t('task.dragTitle')}">${icon('grip')}</span>`
     : '';
+
+  // Métricas real/delta solo cuando la sesión ya empezó (modo no editable);
+  // al armar (idle) no son relevantes y se omiten para acortar la fila.
+  const showRealDelta = !canEdit;
+  const metricsHtml = showRealDelta ? `${estHtml}${realHtml}${deltaHtml}` : `${estHtml}`;
+
+  const priorityHtml = `<span class="task-priority">${priority != null ? priority : ''}</span>`;
 
   row.innerHTML = `
     ${activeBar}
-    ${taskDrag}
-    ${nameHtml}
-    ${estHtml}
-    ${realHtml}
-    ${deltaHtml}
+    <div class="task-rail">${taskDrag}${priorityHtml}</div>
+    <div class="task-titleline">${nameHtml}${groupHtml}</div>
+    <div class="task-metrics">${metricsHtml}</div>
     <div class="task-actions">
       ${actionsHtml}
     </div>
@@ -2999,8 +3247,10 @@ function renderBacklog(editing) {
   body.innerHTML = '';
   if (available.length === 0) {
     body.innerHTML = `<div class="backlog-empty">${t('backlog.empty')}</div>`;
+  } else if (state.viewMode === 'list') {
+    renderTaskList(body, tk => !tk.inSession, 'backlog', null, true);
   } else {
-    renderTaskGroups(body, tk => !tk.inSession, 'backlog');
+    renderTaskGroups(body, tk => !tk.inSession, 'backlog', null);
   }
   applyBacklogCollapsed();
 }
@@ -3019,6 +3269,21 @@ function applyTasksCollapsed() {
     toggle.setAttribute('aria-expanded', String(!tasksCollapsed));
     toggle.classList.toggle('open', !tasksCollapsed);
   }
+}
+
+// ── Vista: lista por prioridad / por grupos ──
+function setViewMode(mode) {
+  if (mode !== 'list' && mode !== 'groups') return;
+  if (state.viewMode === mode) return;
+  state.viewMode = mode;
+  saveLocal();
+  updateViewToggle();
+  renderTasks();
+}
+function updateViewToggle() {
+  document.querySelectorAll('#viewToggle .view-toggle-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.view === state.viewMode);
+  });
 }
 
 let backlogCollapsed = true;
@@ -3069,7 +3334,7 @@ function addToSession(idx) {
   task.realSec = 0;
   task.startedAt = null;
   task.endedAt = null;
-  reorganizeTasksByGroupOrder(); // ubica la tarea dentro del bloque de su grupo
+  // Conserva su posición en el array (= prioridad); no se reagrupa.
   reindexCurrentByActive();
   saveLocal(); renderTasks(); updateSummary(); updateButtons();
   notify(t('toast.addedToSession'), 'ok');
@@ -3672,11 +3937,13 @@ async function ensureTabs(sheetId) {
   if (!titles.includes('summary')) requests.push({ addSheet: { properties: { title: 'summary' } } });
   if (!titles.includes('history')) requests.push({ addSheet: { properties: { title: 'history' } } });
   if (!titles.includes('backlog')) requests.push({ addSheet: { properties: { title: 'backlog' } } });
+  if (!titles.includes('groups')) requests.push({ addSheet: { properties: { title: 'groups' } } });
   if (requests.length) await batchUpdate(sheetId, requests);
   await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
   await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
   await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
   await valuesUpdate(sheetId, 'backlog!A1:E1', [BACKLOG_HEADERS]);
+  await valuesUpdate(sheetId, 'groups!A1:B1', [GROUPS_HEADERS]);
   googleAuth.tabsEnsured = true;
 }
 
@@ -3725,12 +3992,14 @@ async function createSheet(folderId) {
     { addSheet: { properties: { title: 'summary' } } },
     { addSheet: { properties: { title: 'history' } } },
     { addSheet: { properties: { title: 'backlog' } } },
+    { addSheet: { properties: { title: 'groups' } } },
     { deleteSheet: { sheetId: defaultId } },
   ]);
   await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
   await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
   await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
   await valuesUpdate(sheetId, 'backlog!A1:E1', [BACKLOG_HEADERS]);
+  await valuesUpdate(sheetId, 'groups!A1:B1', [GROUPS_HEADERS]);
   localStorage.setItem('worksplit_sheet_id', sheetId);
   localStorage.setItem('worksplit_sheet_name', file.name);
   googleAuth.tabsEnsured = true;
@@ -3997,12 +4266,16 @@ async function pushToSheet(silent) {
       tk.group || 'General', tk.name || '', tk.estimatedMin || 0,
       tk.createdAt || '', tk.note || '',
     ]);
+    // Grupos: orden actual (1..N) → reconstruible en loadFromSheet.
+    const groupRows = state.groups.map((g, i) => [i + 1, g]);
 
     await valuesUpdate(sheetId, 'session!A1:H2', [SESSION_HEADERS, sessionRow]);
     await valuesClear(sheetId, 'splits!A2:I');
     await valuesUpdate(sheetId, 'splits!A1', [TASK_HEADERS, ...taskRows]);
     await valuesClear(sheetId, 'backlog!A2:E');
     await valuesUpdate(sheetId, 'backlog!A1', [BACKLOG_HEADERS, ...backlogRows]);
+    await valuesClear(sheetId, 'groups!A2:B');
+    await valuesUpdate(sheetId, 'groups!A1', [GROUPS_HEADERS, ...groupRows]);
     await writeSummary(sheetId, taskData);
 
     if (!silent) notify(t('sheets.statusSaved'), 'ok');
@@ -4028,6 +4301,8 @@ async function loadFromSheet() {
     const tRes = await valuesGet(sheetId, 'splits!A2:I');
     let bRes = { values: [] };
     try { bRes = await valuesGet(sheetId, 'backlog!A2:E'); } catch (e) { /* hoja vieja sin backlog */ }
+    let gRes = { values: [] };
+    try { gRes = await valuesGet(sheetId, 'groups!A2:B'); } catch (e) { /* hoja vieja sin groups */ }
     const sRow = (sRes.values && sRes.values[0]) || null;
     if (!sRow) { notify(t('sheets.statusNoSessions'), 'err'); return; }
 
@@ -4069,6 +4344,14 @@ async function loadFromSheet() {
     state.afkElapsed = (parseInt(sRow[4], 10) || 0) * 1000;
     state.title = sRow[6] || '';
     state.description = sRow[7] || '';
+
+    // Orden de grupos guardado (col A = order, col B = name). Si existe, fija el
+    // orden; normalizeGroups() añadirá luego cualquier grupo referido por tareas.
+    const loadedGroups = (gRes.values || [])
+      .filter(r => r && (r[1] || '').trim())
+      .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0))
+      .map(r => (r[1] || '').trim());
+    if (loadedGroups.length) state.groups = [...new Set(loadedGroups)];
 
     normalizeGroups();
     reindexCurrentByActive();
@@ -4172,6 +4455,7 @@ const MOBILE_LAYOUT = [
   ['.clock-block', 'panelSesion'],
   ['.mini-clocks', 'panelSesion'],
   ['.ctrl-buttons', 'panelSesion'],
+  ['#viewToggle', 'panelSesion'],
   ['#tasksToggle', 'panelSesion'],
   ['#tasksContainer', 'panelSesion'],
   ['#backlogSection', 'panelSesion'],
@@ -4247,6 +4531,7 @@ function init() {
   syncPrefsUI();
   setupDragDrop();
   setupResponsive();
+  updateViewToggle();
   renderGroups();
   renderTasks();
   updateButtons();
