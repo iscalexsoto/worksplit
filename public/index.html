@@ -4434,8 +4434,14 @@ async function ensureWorkspaceInner() {
 // Construye y escribe un resumen legible por grupos en la pestaña `tabName`.
 // taskData = [{ group, name, estimatedMin, realSec, status, startedAt, endedAt }]
 // title/description = los de la run que se resume.
-async function writeSummaryTo(sheetId, tabName, taskData, title, description) {
+// fmtTabId (opcional): sheetId numérico de la pestaña. Si viene, se aplica un
+// formato fijo (banda de título, encabezados, totales) — usado por las pestañas Σ
+// del libro principal. Si es null/undefined no se formatea (caso del export, que el
+// usuario decide cómo presentar).
+async function writeSummaryTo(sheetId, tabName, taskData, title, description, fmtTabId) {
   const rows = [];
+  const titleRow = 0, descRow = 1, headerRow = 3;
+  const groupHeaderRows = [];
   rows.push([title || '', '', '', '', '']);
   rows.push([description || '', '', '', '', '']);
   rows.push(['', '', '', '', '']);
@@ -4450,6 +4456,7 @@ async function writeSummaryTo(sheetId, tabName, taskData, title, description) {
   let totalRealSec = 0;
   groupsWithTasks.forEach((group, gi) => {
     const gTasks = taskData.filter(t => t.group === group);
+    groupHeaderRows.push(rows.length);
     rows.push([group, '', '', '', '']);
     gTasks.forEach(t => {
       const estMin = parseInt(t.estimatedMin, 10) || 0;
@@ -4466,10 +4473,113 @@ async function writeSummaryTo(sheetId, tabName, taskData, title, description) {
     });
     if (gi < groupsWithTasks.length - 1) rows.push(['', '', '', '', '']);
   });
+  const totalRow = rows.length;
   rows.push([t('sheet.total'), totalEstMin, Math.round(totalRealSec / 60), '', '']);
 
   await valuesClear(sheetId, `${qTab(tabName)}!A1:Z10000`);
   await valuesUpdate(sheetId, `${qTab(tabName)}!A1`, rows);
+
+  if (fmtTabId != null) {
+    await applySummaryFormat(sheetId, fmtTabId, {
+      titleRow, descRow, headerRow, groupHeaderRows, totalRow, lastRow: rows.length, cols: 5,
+    });
+  }
+}
+
+// Aplica un formato fijo a una pestaña Σ recién creada (libro principal). El
+// usuario no edita estas hojas, así que el formato lo manda el código y se
+// regenera idéntico en cada guardado. L = índices de fila calculados por
+// writeSummaryTo. Paleta acorde al tema (acento lime #c8f542).
+async function applySummaryFormat(sheetId, tabId, L) {
+  const lime = { red: 0.784, green: 0.961, blue: 0.259 };
+  const limeTint = { red: 0.941, green: 0.969, blue: 0.847 };
+  const grayBg = { red: 0.937, green: 0.937, blue: 0.937 };
+  const dark = { red: 0.1, green: 0.1, blue: 0.1 };
+  const muted = { red: 0.4, green: 0.4, blue: 0.4 };
+  const borderGray = { red: 0.8, green: 0.8, blue: 0.8 };
+  const fullRange = (r0, r1) => ({ sheetId: tabId, startRowIndex: r0, endRowIndex: r1, startColumnIndex: 0, endColumnIndex: L.cols });
+  const reqs = [];
+
+  // Título: banda lime, negrita, fusionado A:E.
+  reqs.push({ mergeCells: { range: fullRange(L.titleRow, L.titleRow + 1), mergeType: 'MERGE_ALL' } });
+  reqs.push({ repeatCell: {
+    range: fullRange(L.titleRow, L.titleRow + 1),
+    cell: { userEnteredFormat: { backgroundColor: lime, verticalAlignment: 'MIDDLE',
+      textFormat: { bold: true, fontSize: 14, foregroundColor: dark } } },
+    fields: 'userEnteredFormat(backgroundColor,verticalAlignment,textFormat)',
+  } });
+  reqs.push({ updateDimensionProperties: {
+    range: { sheetId: tabId, dimension: 'ROWS', startIndex: L.titleRow, endIndex: L.titleRow + 1 },
+    properties: { pixelSize: 36 }, fields: 'pixelSize',
+  } });
+
+  // Descripción: itálica atenuada, fusionada A:E.
+  reqs.push({ mergeCells: { range: fullRange(L.descRow, L.descRow + 1), mergeType: 'MERGE_ALL' } });
+  reqs.push({ repeatCell: {
+    range: fullRange(L.descRow, L.descRow + 1),
+    cell: { userEnteredFormat: { textFormat: { italic: true, fontSize: 10, foregroundColor: muted } } },
+    fields: 'userEnteredFormat(textFormat)',
+  } });
+
+  // Encabezado de columnas: negrita, fondo gris, borde inferior.
+  reqs.push({ repeatCell: {
+    range: fullRange(L.headerRow, L.headerRow + 1),
+    cell: { userEnteredFormat: { backgroundColor: grayBg, textFormat: { bold: true } } },
+    fields: 'userEnteredFormat(backgroundColor,textFormat)',
+  } });
+  reqs.push({ updateBorders: {
+    range: fullRange(L.headerRow, L.headerRow + 1),
+    bottom: { style: 'SOLID', color: borderGray },
+  } });
+
+  // Encabezados de grupo: negrita, tinte lime.
+  L.groupHeaderRows.forEach((r) => {
+    reqs.push({ repeatCell: {
+      range: fullRange(r, r + 1),
+      cell: { userEnteredFormat: { backgroundColor: limeTint, textFormat: { bold: true } } },
+      fields: 'userEnteredFormat(backgroundColor,textFormat)',
+    } });
+  });
+
+  // Fila de total: negrita, fondo gris, borde superior.
+  reqs.push({ repeatCell: {
+    range: fullRange(L.totalRow, L.totalRow + 1),
+    cell: { userEnteredFormat: { backgroundColor: grayBg, textFormat: { bold: true } } },
+    fields: 'userEnteredFormat(backgroundColor,textFormat)',
+  } });
+  reqs.push({ updateBorders: {
+    range: fullRange(L.totalRow, L.totalRow + 1),
+    top: { style: 'SOLID', color: borderGray },
+  } });
+
+  // Columnas de minutos (B, C): número con sufijo " min", centradas.
+  reqs.push({ repeatCell: {
+    range: { sheetId: tabId, startRowIndex: L.headerRow + 1, endRowIndex: L.lastRow, startColumnIndex: 1, endColumnIndex: 3 },
+    cell: { userEnteredFormat: { horizontalAlignment: 'CENTER', numberFormat: { type: 'NUMBER', pattern: '0" min"' } } },
+    fields: 'userEnteredFormat(horizontalAlignment,numberFormat)',
+  } });
+  // Columnas de fecha (D, E): centradas.
+  reqs.push({ repeatCell: {
+    range: { sheetId: tabId, startRowIndex: L.headerRow, endRowIndex: L.lastRow, startColumnIndex: 3, endColumnIndex: 5 },
+    cell: { userEnteredFormat: { horizontalAlignment: 'CENTER' } },
+    fields: 'userEnteredFormat(horizontalAlignment)',
+  } });
+
+  // Anchos de columna.
+  [[0, 300], [1, 110], [2, 110], [3, 160], [4, 160]].forEach(([col, px]) => {
+    reqs.push({ updateDimensionProperties: {
+      range: { sheetId: tabId, dimension: 'COLUMNS', startIndex: col, endIndex: col + 1 },
+      properties: { pixelSize: px }, fields: 'pixelSize',
+    } });
+  });
+
+  // Congelar las 4 filas de cabecera (título, descripción, blanco, encabezado).
+  reqs.push({ updateSheetProperties: {
+    properties: { sheetId: tabId, gridProperties: { frozenRowCount: 4 } },
+    fields: 'gridProperties.frozenRowCount',
+  } });
+
+  await batchUpdate(sheetId, reqs);
 }
 
 // Nombre de pestaña de resumen único por run (saneado para Sheets: sin : \ / ? * [ ]).
@@ -4489,8 +4599,9 @@ async function syncSummaryTabs(sheetId) {
   for (let i = 0; i < state.runs.length; i++) {
     const r = state.runs[i];
     const name = summaryTabName(r, i + 1);
-    await batchUpdate(sheetId, [{ addSheet: { properties: { title: name } } }]);
-    await writeSummaryTo(sheetId, name, buildTaskData(r.id), r.title, r.description);
+    const res = await batchUpdate(sheetId, [{ addSheet: { properties: { title: name } } }]);
+    const tabId = res.replies[0].addSheet.properties.sheetId;
+    await writeSummaryTo(sheetId, name, buildTaskData(r.id), r.title, r.description, tabId);
   }
 }
 
