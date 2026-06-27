@@ -61,7 +61,7 @@ o cambia la prioridad. Cada Run lleva su propio cronometraje; el backlog es comp
 ### Guardar e historial en Google Sheets
 - **Conectar tu cuenta de Google** para respaldar tu trabajo.
 - **Guardar todas tus Runs en una hoja de cálculo** (la app crea o reutiliza una hoja propia en tu Drive): una fila por Run, sus tareas y el backlog global.
-- **Obtener un resumen legible por Run**, en su propia pestaña dentro de la hoja.
+- **Obtener un resumen legible por Run**, en su propia pestaña dentro de la hoja, con formato aplicado automáticamente (encabezados, grupos y totales resaltados) que se regenera igual en cada guardado.
 - **Exportar el resumen de una Run a su propia hoja de cálculo** aparte, nombrada con su título (se reutiliza el archivo si ya existe).
 - **Cargar tus Runs guardadas** previamente.
 - **Mantener un historial** que registra cada sesión que cierras (terminada o restablecida), con el título de la Run.

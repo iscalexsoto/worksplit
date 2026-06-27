@@ -211,3 +211,33 @@ stuck.opt1|Pedir ayuda|Ask for help
 stuck.opt2|Tomarte un descanso|Take a break
 stuck.opt3|Replantear el enfoque|Rethink the approach
 stuck.resume|Reanudar|Resume
+tour.openHelp|Guía rápida|Quick guide
+tour.skip|Saltar|Skip
+tour.prev|Anterior|Back
+tour.next|Siguiente|Next
+tour.done|Listo|Done
+tour.step|{i} / {n}|{i} / {n}
+tour.welcome.title|Bienvenido a WorkSplit|Welcome to WorkSplit
+tour.welcome.body|Te muestro las zonas principales en menos de un minuto. Puedes saltar cuando quieras y repetir esta guía con el botón de ayuda del encabezado.|Here's a quick look at the main areas in under a minute. You can skip anytime and replay this guide from the help button in the header.
+tour.runs.title|Runs|Runs
+tour.runs.body|Cada Run es una historia o tarea grande, con su propio título y cronómetro. Trabajas una a la vez; cambiar de Run pausa la anterior.|Each Run is one story or larger task, with its own title and timer. You work one at a time; switching Runs pauses the previous one.
+tour.meta.title|Título y descripción|Title and description
+tour.meta.body|Aquí nombras la Run actual y anotas de qué trata. Aparece en los resúmenes que guardas.|Name the current Run here and note what it's about. It shows up in the summaries you save.
+tour.view.title|Vista: lista o grupos|View: list or groups
+tour.view.body|Cambia entre una lista plana por prioridad o tus tareas agrupadas. Es solo una forma de verlas; no altera el orden.|Switch between a flat list by priority or your tasks grouped. It only changes how you see them, not their order.
+tour.tasks.title|Tus tareas|Your tasks
+tour.tasks.body|Las tareas de la Run actual, numeradas por prioridad. Puedes reordenarlas arrastrando cuando la sesión está detenida.|The current Run's tasks, numbered by priority. Drag to reorder them while the session is stopped.
+tour.add.title|Agregar tareas|Add tasks
+tour.add.body|Escribe un nombre, elige un grupo y un tiempo estimado en minutos. El estimado te ayuda a comparar después con el tiempo real.|Type a name, pick a group and an estimate in minutes. The estimate helps you compare against real time later.
+tour.controls.title|Controlar la sesión|Control the session
+tour.controls.body|Iniciar arranca el cronómetro; Ausentarme pausa cuando te alejas; Detener cierra la sesión. La barra espaciadora también activa Ausentarme.|Start runs the timer, Away pauses when you step out, Stop closes the session. The spacebar also toggles Away.
+tour.summary.title|Estimado vs real|Estimate vs real
+tour.summary.body|Aquí comparas lo que estimaste con el tiempo que llevas. Es para conocerte mejor, no para presionarte.|Here you compare your estimate with the time spent. It's for getting to know yourself, not for pressure.
+tour.groups.title|Grupos|Groups
+tour.groups.body|Organiza tus tareas en grupos y reordénalos. El orden se guarda y se respeta en la vista por grupos.|Organize your tasks into groups and reorder them. The order is saved and used in the groups view.
+tour.prefs.title|Ajustes a tu medida|Settings for you
+tour.prefs.body|Activa avisos al terminar un split, pausas entre tareas o señales de transición. Ajústalos a lo que te resulte cómodo.|Turn on notices when a split ends, pauses between tasks or transition signals. Tune them to what feels comfortable.
+tour.google.title|Guardar en Google Sheets|Save to Google Sheets
+tour.google.body|Conecta tu cuenta para guardar Runs, tareas y resúmenes en una hoja de cálculo en tu Drive. Es opcional; todo funciona sin conectar.|Connect your account to save Runs, tasks and summaries to a spreadsheet in your Drive. It's optional; everything works without it.
+tour.done.title|Eso es todo|That's it
+tour.done.body|Puedes volver a esta guía cuando quieras con el botón de ayuda del encabezado. Que tengas una buena sesión.|You can reopen this guide anytime from the help button in the header. Have a good session.

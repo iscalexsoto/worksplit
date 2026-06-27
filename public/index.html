@@ -112,6 +112,18 @@
   .kofi-btn:hover { background: #d8ff5e; }
   .kofi-btn:active { transform: translateY(1px); }
   .kofi-emoji { font-size: 14px; line-height: 1; display: inline-flex; }
+  .help-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    border-radius: 50%;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .help-btn:hover { border-color: var(--accent); color: var(--text); }
 
   /* ICONS (Lucide sprite) — heredan el tamaño (1em) y color (currentColor) del texto */
   .icon {
@@ -1257,6 +1269,82 @@
     line-height: 1.5;
   }
 
+  /* GUÍA / TOUR — overlay con spotlight (recorte iluminado) sobre la UI real */
+  #tourOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 300;            /* por encima de .modal-overlay (200) */
+    pointer-events: auto;    /* captura clics fuera del objetivo */
+  }
+  #tourOverlay.open { display: block; }
+  /* Recorte: el box-shadow gigante oscurece todo menos el rect del objetivo */
+  #tourSpotlight {
+    position: fixed;
+    top: 0; left: 0; width: 0; height: 0;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.72);
+    pointer-events: none;
+    transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease, opacity 0.2s ease;
+  }
+  /* En el paso de bienvenida/cierre no hay objetivo: solo un velo uniforme */
+  #tourOverlay.tour-centered #tourSpotlight {
+    width: 0; height: 0;
+    top: 50%; left: 50%;
+    border-color: transparent;
+  }
+  #tourBubble {
+    position: fixed;
+    width: 324px;
+    max-width: 90vw;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    pointer-events: auto;
+    transition: top 0.25s ease, left 0.25s ease;
+  }
+  #tourOverlay.tour-centered #tourBubble {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%);
+    width: 360px;
+  }
+  .tour-step-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  #tourBubble h3 {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .tour-body {
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 18px;
+  }
+  .tour-actions { display: flex; gap: 8px; align-items: center; }
+  .tour-actions .btn-modal { flex: none; padding: 9px 12px; }
+  /* Saltar = acción terciaria: enlace sutil a la izquierda, sin borde */
+  .tour-actions .btn-modal.tour-skip {
+    margin-right: auto;
+    padding: 9px 4px;
+    border-color: transparent;
+    background: transparent;
+  }
+  .tour-actions .btn-modal.tour-skip:hover { border-color: transparent; color: var(--accent); }
+
   /* Señal de transición (cierre · pausa · intención) */
   .modal-transition { text-align: center; }
   .modal-transition .t-stage { display: none; }
@@ -1703,6 +1791,7 @@
 <header>
   <div class="logo"><img src="/icons/icon-192.png" alt="WorkSplit">Work<span>Split</span></div>
   <div class="header-right">
+    <button type="button" class="help-btn" id="helpBtn" onclick="startTour()" data-i18n-title="tour.openHelp" data-i18n-aria-label="tour.openHelp"><svg class="icon"><use href="#i-info"></use></svg></button>
     <div id="langWrap">
       <span class="lang-label" data-i18n="lang.label">Idioma</span>
       <select class="lang-switcher" id="langSwitcher" data-i18n-aria-label="lang.aria" onchange="I18N.setLang(this.value)"></select>
@@ -2133,6 +2222,21 @@
       <button class="btn-modal" id="confirmCancel">Cancelar</button>
       <button class="btn-modal" id="confirmThird" style="display:none;"></button>
       <button class="btn-modal primary" id="confirmOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- GUÍA / TOUR — spotlight sobre la UI real (ver startTour) -->
+<div id="tourOverlay" aria-live="polite">
+  <div id="tourSpotlight"></div>
+  <div id="tourBubble" role="dialog" aria-modal="true">
+    <div class="tour-step-num" id="tourStepNum"></div>
+    <h3 id="tourTitle"></h3>
+    <p class="tour-body" id="tourBody"></p>
+    <div class="tour-actions">
+      <button type="button" class="btn-modal tour-skip" id="tourSkip" onclick="endTour(false)"></button>
+      <button type="button" class="btn-modal" id="tourPrev" onclick="tourPrev()"></button>
+      <button type="button" class="btn-modal primary" id="tourNext" onclick="tourNext()"></button>
     </div>
   </div>
 </div>
@@ -4037,6 +4141,146 @@ function updateStatus() {
 }
 
 // ─── MODAL ──────────────────────────────────────────────────
+// ─── GUÍA / TOUR ────────────────────────────────────────────
+// Recorrido con spotlight sobre la UI real. Se lanza la primera vez (init) y
+// desde el botón "?" del header (startTour). Robusto ante anclas ocultas: los
+// pasos cuyo elemento no esté visible en ese momento se saltan automáticamente.
+const TOUR_DONE_KEY = 'worksplit_tour_done';
+const TOUR_STEPS = [
+  { anchor: null,               titleKey: 'tour.welcome.title',  bodyKey: 'tour.welcome.body',  center: true },
+  { anchor: '#runsBar',         titleKey: 'tour.runs.title',     bodyKey: 'tour.runs.body',     place: 'bottom' },
+  { anchor: '#sessionMeta',     titleKey: 'tour.meta.title',     bodyKey: 'tour.meta.body',     place: 'bottom' },
+  { anchor: '#viewToggle',      titleKey: 'tour.view.title',     bodyKey: 'tour.view.body',     place: 'bottom' },
+  { anchor: '#tasksContainer',  titleKey: 'tour.tasks.title',    bodyKey: 'tour.tasks.body',    place: 'right' },
+  { anchor: '#addForm',         titleKey: 'tour.add.title',      bodyKey: 'tour.add.body',      place: 'top' },
+  { anchor: '.ctrl-buttons',    titleKey: 'tour.controls.title', bodyKey: 'tour.controls.body', place: 'left' },
+  { anchor: '.summary-grid',    titleKey: 'tour.summary.title',  bodyKey: 'tour.summary.body',  place: 'left' },
+  { anchor: '#groupsList',      titleKey: 'tour.groups.title',   bodyKey: 'tour.groups.body',   place: 'left' },
+  { anchor: '.prefs-section',   titleKey: 'tour.prefs.title',    bodyKey: 'tour.prefs.body',    place: 'left' },
+  { anchor: '#btnConnectGoogle',titleKey: 'tour.google.title',   bodyKey: 'tour.google.body',   place: 'left' },
+  { anchor: '#helpBtn',         titleKey: 'tour.done.title',     bodyKey: 'tour.done.body',     place: 'bottom' },
+];
+let tourIndex = -1;          // -1 = tour cerrado
+let tourRepositionRAF = null;
+
+function tourIsOpen() { return tourIndex >= 0; }
+
+// Un paso es "visible" si no tiene ancla (centrado) o su elemento existe y se
+// está pintando (offsetParent != null y con tamaño real).
+function tourStepVisible(step) {
+  if (!step) return false;
+  if (!step.anchor) return true;
+  const el = document.querySelector(step.anchor);
+  if (!el || el.offsetParent === null) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+}
+
+// Devuelve el índice del siguiente paso visible en la dirección dada (dir = +1/-1),
+// o -1 si no hay más.
+function tourNextVisible(from, dir) {
+  for (let i = from; i >= 0 && i < TOUR_STEPS.length; i += dir) {
+    if (tourStepVisible(TOUR_STEPS[i])) return i;
+  }
+  return -1;
+}
+
+function startTour() {
+  const first = tourNextVisible(0, 1);
+  if (first < 0) return;
+  tourIndex = first;
+  document.getElementById('tourOverlay').classList.add('open');
+  renderTourStep();
+}
+
+function endTour(completed) {
+  tourIndex = -1;
+  document.getElementById('tourOverlay').classList.remove('open');
+  localStorage.setItem(TOUR_DONE_KEY, '1');
+}
+
+function tourNext() {
+  const nxt = tourNextVisible(tourIndex + 1, 1);
+  if (nxt < 0) { endTour(true); return; }
+  tourIndex = nxt;
+  renderTourStep();
+}
+
+function tourPrev() {
+  const prv = tourNextVisible(tourIndex - 1, -1);
+  if (prv < 0) return;
+  tourIndex = prv;
+  renderTourStep();
+}
+
+function renderTourStep() {
+  if (!tourIsOpen()) return;
+  const step = TOUR_STEPS[tourIndex];
+  const overlay = document.getElementById('tourOverlay');
+  const bubble = document.getElementById('tourBubble');
+  const spot = document.getElementById('tourSpotlight');
+
+  // Textos
+  const visibleCount = TOUR_STEPS.filter(tourStepVisible).length;
+  const visiblePos = TOUR_STEPS.slice(0, tourIndex + 1).filter(tourStepVisible).length;
+  document.getElementById('tourStepNum').textContent = t('tour.step', { i: visiblePos, n: visibleCount });
+  document.getElementById('tourTitle').textContent = t(step.titleKey);
+  document.getElementById('tourBody').textContent = t(step.bodyKey);
+  document.getElementById('tourSkip').textContent = t('tour.skip');
+  document.getElementById('tourPrev').textContent = t('tour.prev');
+  const isLast = tourNextVisible(tourIndex + 1, 1) < 0;
+  document.getElementById('tourNext').textContent = isLast ? t('tour.done') : t('tour.next');
+  document.getElementById('tourPrev').style.visibility = (tourNextVisible(tourIndex - 1, -1) < 0) ? 'hidden' : 'visible';
+
+  // Paso centrado (bienvenida / cierre)
+  if (step.center || !step.anchor) {
+    overlay.classList.add('tour-centered');
+    return;
+  }
+  overlay.classList.remove('tour-centered');
+
+  const el = document.querySelector(step.anchor);
+  if (!el) { tourNext(); return; }
+  el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+
+  const r = el.getBoundingClientRect();
+  const pad = 6;
+  spot.style.top = (r.top - pad) + 'px';
+  spot.style.left = (r.left - pad) + 'px';
+  spot.style.width = (r.width + pad * 2) + 'px';
+  spot.style.height = (r.height + pad * 2) + 'px';
+
+  // Posicionar la burbuja (medimos su tamaño real tras fijar el contenido)
+  const vw = window.innerWidth, vh = window.innerHeight, gap = 14, margin = 12;
+  const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+  let top, left;
+  const place = step.place || 'bottom';
+  if (place === 'bottom') { top = r.bottom + gap; left = r.left; }
+  else if (place === 'top') { top = r.top - gap - bh; left = r.left; }
+  else if (place === 'left') { left = r.left - gap - bw; top = r.top + r.height / 2 - bh / 2; }
+  else { /* right */ left = r.right + gap; top = r.top + r.height / 2 - bh / 2; }
+  // Clamp al viewport
+  left = Math.max(margin, Math.min(left, vw - bw - margin));
+  top = Math.max(margin, Math.min(top, vh - bh - margin));
+  bubble.style.transform = 'none';
+  bubble.style.top = top + 'px';
+  bubble.style.left = left + 'px';
+}
+
+function repositionTour() {
+  if (!tourIsOpen()) return;
+  if (tourRepositionRAF) cancelAnimationFrame(tourRepositionRAF);
+  tourRepositionRAF = requestAnimationFrame(() => { tourRepositionRAF = null; renderTourStep(); });
+}
+window.addEventListener('resize', repositionTour);
+window.addEventListener('scroll', repositionTour, { passive: true });
+window.addEventListener('keydown', (e) => {
+  if (!tourIsOpen()) return;
+  if (e.key === 'Escape') { e.preventDefault(); endTour(false); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); tourNext(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); tourPrev(); }
+});
+
 function showModal() {
   const estMin = sessionTasks().reduce((s, t) => s + t.estimatedMin, 0);
   const realSec = Math.round(state.totalElapsed / 1000);
@@ -5028,6 +5272,7 @@ document.addEventListener('keydown', e => {
       e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
   if (transition) return; // el overlay de transición captura la interacción
   if (stuckPrompt) return; // el overlay "¿estás atorado?" captura la interacción
+  if (tourIsOpen()) return; // la guía maneja su propio teclado (flechas / Escape)
   if (e.key === ' ') { e.preventDefault(); if (!document.getElementById('btnAfk').disabled) toggleAfk(); }
 });
 
@@ -5140,6 +5385,10 @@ function init() {
   // no estés viendo la app. maybeTriggerStuck ya se auto-protege por estado y dedupe.
   setInterval(maybeTriggerStuck, STUCK_CHECK_MS);
   initGoogleSession();
+  // Primera vez: lanza la guía tras dejar que la UI termine de pintar.
+  if (!localStorage.getItem(TOUR_DONE_KEY)) {
+    setTimeout(startTour, 600);
+  }
 }
 
 // Re-render de las partes generadas en JS al cambiar de idioma (lo estático lo
@@ -5155,6 +5404,7 @@ window.onLangChange = function () {
   updateClocks();
   updateGoogleUI();
   if (transition) renderTransition();
+  if (tourIsOpen()) renderTourStep();
 };
 
 // Arranque: primero cargar traducciones (CSV), luego inicializar la app.
