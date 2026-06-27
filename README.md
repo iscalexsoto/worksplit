@@ -11,15 +11,25 @@ por detrás), en lugar de expirar cada hora.
 Es además una **PWA instalable**: desde Chrome/Edge aparece el botón "Instalar" y se
 abre en su propia ventana, con ícono propio y auto-actualización.
 
+Puedes manejar **varias "Runs"** (historias de usuario, al estilo Scrum para un solo
+dev): preparas varias listas independientes y **alternas entre ellas** cuando te atoras
+o cambia la prioridad. Cada Run lleva su propio cronometraje; el backlog es compartido.
+
 ## ¿Qué puedo hacer en esta aplicación?
+
+### Trabajar con varias historias de usuario (Runs)
+- **Crear varias Runs**, cada una con su propio título, descripción, lista de tareas y cronometraje (total, ausente y por tarea).
+- **Alternar entre Runs** desde la barra de pestañas: al cambiar, la Run en curso se pausa y la otra retoma su propio tiempo (solo una corre a la vez).
+- **Renombrar una Run** editando su título, o **eliminarla** (sus tareas se quitan; el backlog global no se toca).
+- **Compartir un backlog global** entre todas las Runs: una tarea del backlog puede entrar a cualquier Run.
 
 ### Organizar tu trabajo antes de empezar
 - **Crear una lista de tareas** con un nombre y un tiempo estimado en minutos para cada una.
-- **Ponerle un título y una descripción a la sesión** para identificar el proyecto o la jornada.
-- **Agrupar las tareas por categorías** y crear, renombrar o eliminar esos grupos.
+- **Ponerle un título y una descripción a cada Run** para identificar el proyecto o la historia de usuario.
+- **Agrupar las tareas por categorías** y crear, renombrar o eliminar esos grupos (los grupos son globales, compartidos entre Runs).
 - **Reordenar tareas y grupos arrastrándolos**, e incluso mover una tarea de un grupo a otro.
 - **Editar el nombre o el tiempo estimado** de una tarea directamente en la lista.
-- **Eliminar tareas** sueltas o **limpiar toda la lista** de una vez.
+- **Eliminar tareas** sueltas o **limpiar toda la lista** de la Run de una vez.
 
 ### Cronometrar tu sesión de trabajo
 - **Iniciar una sesión** y empezar a cronometrar la tarea en curso.
@@ -28,8 +38,8 @@ abre en su propia ventana, con ícono propio y auto-actualización.
 - **Cambiar a otra tarea en medio de la sesión**, guardando el tiempo acumulado para retomarla donde la dejaste.
 - **Marcarte como ausente y volver** (también con la barra espaciadora).
 - **Detener y reanudar** la sesión cuando quieras.
-- **Restablecer** todo para empezar una sesión nueva desde cero.
-- **Recuperar tu sesión al recargar la página**: el trabajo se guarda automáticamente en tu navegador.
+- **Restablecer** la Run activa para empezar de cero (sin afectar las demás).
+- **Recuperar tu trabajo al recargar la página**: todas tus Runs se guardan automáticamente en tu navegador.
 
 ### Comparar lo estimado contra lo real
 - **Ver en tiempo real tus desvíos**, con colores: verde si vas por debajo de lo estimado, rojo si te pasaste.
@@ -50,9 +60,11 @@ abre en su propia ventana, con ícono propio y auto-actualización.
 
 ### Guardar e historial en Google Sheets
 - **Conectar tu cuenta de Google** para respaldar tu trabajo.
-- **Guardar la sesión en una hoja de cálculo** (la app crea o reutiliza una hoja propia en tu Drive).
-- **Cargar una sesión guardada** previamente.
-- **Mantener un historial** que registra cada sesión que cierras (terminada o restablecida).
+- **Guardar todas tus Runs en una hoja de cálculo** (la app crea o reutiliza una hoja propia en tu Drive): una fila por Run, sus tareas y el backlog global.
+- **Obtener un resumen legible por Run**, en su propia pestaña dentro de la hoja.
+- **Exportar el resumen de una Run a su propia hoja de cálculo** aparte, nombrada con su título (se reutiliza el archivo si ya existe).
+- **Cargar tus Runs guardadas** previamente.
+- **Mantener un historial** que registra cada sesión que cierras (terminada o restablecida), con el título de la Run.
 - **Guardado automático periódico** mientras trabajas.
 - **Abrir tu hoja de cálculo** directamente desde la app, o **desconectar** tu cuenta.
 

@@ -542,6 +542,93 @@
   .view-toggle-btn:hover { color: var(--text); }
   .view-toggle-btn.on { background: var(--accent); color: #0e0f11; }
 
+  /* ── Selector de Runs (historias de usuario) ── */
+  .runs-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .runs-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
+    scrollbar-width: thin;
+  }
+  .run-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    max-width: 220px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .run-tab:hover { color: var(--text); border-color: var(--border2); }
+  .run-tab.active {
+    color: var(--text);
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+  .run-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex: 0 0 auto;
+  }
+  .run-dot.running { background: var(--accent); box-shadow: 0 0 6px var(--accent-dim); }
+  .run-dot.paused { background: var(--warning); }
+  .run-dot.done { background: var(--success); }
+  .run-tab-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .run-tab-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    flex: 0 0 auto;
+  }
+  .run-tab-del {
+    display: inline-flex;
+    align-items: center;
+    color: var(--muted);
+    flex: 0 0 auto;
+    border-radius: 4px;
+  }
+  .run-tab-del:hover { color: var(--danger); background: rgba(255,255,255,0.05); }
+  .run-tab-del .icon { width: 13px; height: 13px; }
+  .run-new-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px dashed var(--border2);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .run-new-btn:hover { color: var(--accent); border-color: var(--accent-dim); }
+  .run-new-btn .icon { width: 15px; height: 15px; }
+
   /* Etiqueta de grupo dentro de la fila (solo en vista lista). */
   .task-grouptag {
     font-family: var(--mono);
@@ -1633,6 +1720,12 @@
 <div class="layout">
   <!-- LEFT -->
   <div class="tasks-panel" id="tasksPanel">
+    <!-- SELECTOR DE RUNS (historias de usuario) -->
+    <div class="runs-bar" id="runsBar">
+      <div class="runs-tabs" id="runsTabs"></div>
+      <button type="button" class="run-new-btn" id="runNewBtn" onclick="createRun()" data-i18n-title="run.new" data-i18n-aria-label="run.new"><svg class="icon"><use href="#i-plus"></use></svg><span class="run-new-label" data-i18n="run.new">Nueva Run</span></button>
+    </div>
+
     <div class="session-meta" id="sessionMeta">
       <div class="form-field">
         <label class="form-label" for="sessionTitle" data-i18n="session.titleLabel">Título</label>
@@ -1780,6 +1873,10 @@
         <button class="btn-sheet btn-open-sheet" id="btnOpenSheet" onclick="openSheet()" style="display:none;">
           <span class="btn-open-sheet-content"><svg class="icon"><use href="#i-table"></use></svg><span data-i18n="sheets.openSheet">Ir a la hoja de cálculo</span></span>
           <svg class="icon btn-open-sheet-ext"><use href="#i-external"></use></svg>
+          <span class="btn-spinner"><svg class="icon spin"><use href="#i-loader"></use></svg></span>
+        </button>
+        <button class="btn-sheet btn-export-summary" id="btnExportSummary" onclick="exportRunSummary()">
+          <span class="btn-sheet-content"><svg class="icon"><use href="#i-table"></use></svg><span data-i18n="sheets.exportSummary">Exportar resumen</span></span>
           <span class="btn-spinner"><svg class="icon spin"><use href="#i-loader"></use></svg></span>
         </button>
       </div>
@@ -2051,14 +2148,18 @@ const DRIVE_FOLDER_NAME = 'WorkSplit';
 const SHEET_FILE_NAME = 'WorkSplit';
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_FILES = 'https://www.googleapis.com/drive/v3/files';
-const SESSION_HEADERS = ['date','status','total_estimated_min',
-  'total_real_sec','total_away_sec','updated_at','title','description'];
-const TASK_HEADERS = ['priority','group','name','estimated_min',
+// `runs` (antes `session`): una fila por Run; `run_id` la identifica.
+const RUNS_HEADERS = ['run_id','order','title','description','status',
+  'total_estimated_min','total_real_sec','total_away_sec','date','updated_at'];
+// `splits`: ahora cada tarea lleva `run_id`; `priority` es 1..N DENTRO de cada run.
+const TASK_HEADERS = ['run_id','priority','group','name','estimated_min',
   'real_sec','status','started_at','ended_at','updated_at'];
 const GROUPS_HEADERS = ['order','name'];
-const HISTORY_HEADERS = ['closed_at','type','total_estimated_min','total_real_sec',
+const HISTORY_HEADERS = ['closed_at','run_title','type','total_estimated_min','total_real_sec',
   'total_away_sec','task_count','completed_count','current_task','tasks_json'];
 const BACKLOG_HEADERS = ['group','name','estimated_min','created_at','note'];
+// Prefijo de las pestañas de resumen por-run en el libro principal (output-only).
+const SUMMARY_TAB_PREFIX = 'Σ ';
 let googleAuth = {
   accessToken: null,
   tokenExpiry: 0,
@@ -2069,22 +2170,208 @@ let googleAuth = {
 };
 
 // ─── STATE ──────────────────────────────────────────────────
+// ─── MODELO MULTI-RUN ────────────────────────────────────────
+// Una "Run" es una historia de usuario: su propio título/descripción, estado y
+// cronómetros (total/AFK/por-tarea). Solo UNA run corre a la vez; cambiar de run
+// pausa la activa. Las tareas viven en un único array global `state.tasks`; cada
+// tarea lleva `runId` (null = Backlog global; un id de run = pertenece a esa run).
+// Los campos por-run se exponen como state.status/totalElapsed/... vía accesores
+// que delegan en la run activa (así el resto del código no cambia).
+function makeRun(over = {}) {
+  return Object.assign({
+    id: Date.now() + Math.floor(Math.random() * 100000),
+    title: '',
+    description: '',
+    status: 'idle',       // idle | running | afk | stopped | done
+    totalElapsed: 0,      // ms de sesión activa
+    taskElapsed: 0,       // ms de la tarea actual
+    afkElapsed: 0,        // ms en pausa
+    startTime: null,
+    lastTick: null,
+    afkStart: null,
+    currentTaskId: null,  // id (no índice) de la tarea activa
+  }, over);
+}
+
 let state = {
-  status: 'idle', // idle | running | afk | stopped | done
-  title: '',
-  description: '',
-  viewMode: 'list', // 'list' (plana por prioridad) | 'groups' (agrupada)
-  groups: ['General'],
-  tasks: [],
-  startTime: null,
-  totalElapsed: 0,      // ms
-  taskElapsed: 0,       // ms current task
-  afkElapsed: 0,        // ms
-  lastTick: null,
-  afkStart: null,
-  currentTaskIndex: null,
+  runs: [],                // [Run]; el orden ES el orden de las pestañas
+  activeRunId: null,       // id de la run mostrada/activa
+  viewMode: 'list',        // 'list' (plana por prioridad) | 'groups' (agrupada) — global
+  groups: ['General'],     // taxonomía global compartida entre runs
+  tasks: [],               // pool global; runId null = Backlog, runId = run.id = en esa run
   prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20, saveHistoryOnReset: 'ask', showAddDuringSplit: false }, // señales de transición autism-friendly
 };
+
+function activeRun() {
+  return state.runs.find(r => r.id === state.activeRunId) || null;
+}
+
+// Campos por-run accesibles como state.X (delegan en la run activa). Mantiene
+// compatible todo el código que ya usaba state.status/totalElapsed/etc.
+const RUN_FIELDS = ['status','title','description','totalElapsed','taskElapsed','afkElapsed','startTime','lastTick','afkStart'];
+function defineRunAccessors() {
+  RUN_FIELDS.forEach(f => {
+    Object.defineProperty(state, f, {
+      configurable: true, enumerable: false,
+      get() {
+        const r = activeRun();
+        if (r) return r[f];
+        if (f === 'status') return 'idle';
+        if (f === 'title' || f === 'description') return '';
+        if (f === 'totalElapsed' || f === 'taskElapsed' || f === 'afkElapsed') return 0;
+        return null;
+      },
+      set(v) { const r = activeRun(); if (r) r[f] = v; },
+    });
+  });
+  // currentTaskIndex: índice global derivado del currentTaskId de la run activa
+  // (robusto a reordenamientos del array global compartido entre runs).
+  Object.defineProperty(state, 'currentTaskIndex', {
+    configurable: true, enumerable: false,
+    get() {
+      const r = activeRun();
+      if (!r || r.currentTaskId == null) return null;
+      const i = state.tasks.findIndex(t => t.id === r.currentTaskId);
+      return i === -1 ? null : i;
+    },
+    set(v) {
+      const r = activeRun();
+      if (!r) return;
+      r.currentTaskId = (v == null) ? null : (state.tasks[v] ? state.tasks[v].id : null);
+    },
+  });
+}
+defineRunAccessors();
+
+// Pertenencia de una tarea: a la run activa, al Backlog global, o a cualquiera de
+// las dos (set editable al armar en idle).
+function inRun(t) { return !!t && t.runId === state.activeRunId; }
+function inBacklog(t) { return !!t && t.runId == null; }
+function editPred(t) { return inRun(t) || inBacklog(t); }
+
+// Garantiza ≥1 run y un activeRunId válido; sanea campos por-run.
+function normalizeRuns() {
+  if (!Array.isArray(state.runs)) state.runs = [];
+  if (state.runs.length === 0) {
+    const r = makeRun({ title: '' });
+    state.runs.push(r);
+    state.activeRunId = r.id;
+  }
+  if (!state.runs.some(r => r.id === state.activeRunId)) {
+    state.activeRunId = state.runs[0].id;
+  }
+  state.runs.forEach(r => {
+    if (r.status == null) r.status = 'idle';
+    if (r.totalElapsed == null) r.totalElapsed = 0;
+    if (r.taskElapsed == null) r.taskElapsed = 0;
+    if (r.afkElapsed == null) r.afkElapsed = 0;
+    if (r.currentTaskId === undefined) r.currentTaskId = null;
+  });
+}
+
+// Pausa la run activa: deposita el tiempo de la tarea activa y la deja 'stopped'.
+// Se usa al crear/cambiar de run (solo una corre a la vez).
+function pauseActiveRun() {
+  const r = activeRun();
+  if (!r) return;
+  if (r.status === 'afk') {
+    r.afkElapsed += Date.now() - (r.afkStart || Date.now());
+    r.afkStart = null;
+  }
+  if (r.status === 'running' || r.status === 'afk') {
+    const i = state.tasks.findIndex(t => t.id === r.currentTaskId);
+    if (i !== -1 && state.tasks[i].status === 'active') {
+      state.tasks[i].realSec = Math.round((r.taskElapsed || 0) / 1000);
+    }
+    r.status = 'stopped';
+  }
+  stopAutoSave();
+}
+
+// Re-render completo tras cambiar de run (o crear/borrar).
+function refreshAfterRunChange() {
+  saveLocal();
+  renderRuns();
+  syncSessionMetaUI();
+  renderGroups();
+  renderTasks();
+  updateButtons();
+  updateStatus();
+  updateSummary();
+  updateClocks();
+  updateAddFormVisibility();
+}
+
+function createRun() {
+  pauseActiveRun();
+  const n = state.runs.length + 1;
+  const r = makeRun({ title: t('run.defaultName', { n }) });
+  state.runs.push(r);
+  state.activeRunId = r.id;
+  refreshAfterRunChange();
+}
+
+function switchRun(id) {
+  if (id === state.activeRunId) return;
+  if (!state.runs.some(r => r.id === id)) return;
+  pauseActiveRun();
+  state.activeRunId = id;
+  const r = activeRun();
+  // Solo la activa puede correr; al entrar arranca pausada (el usuario reanuda).
+  if (r && (r.status === 'running' || r.status === 'afk')) r.status = 'stopped';
+  refreshAfterRunChange();
+}
+
+async function deleteRun(id) {
+  const r = state.runs.find(x => x.id === id);
+  if (!r) return;
+  const label = (r.title && r.title.trim()) ? r.title.trim() : t('run.untitled');
+  const ok = await confirmDialog({
+    title: t('run.deleteTitle'),
+    message: t('run.deleteBody', { title: label }),
+    confirmText: t('run.deleteConfirm'),
+    danger: true,
+  });
+  if (!ok) return;
+  // Se eliminan las tareas propias de la run; el Backlog global (runId null) no se toca.
+  state.tasks = state.tasks.filter(tk => tk.runId !== id);
+  state.runs = state.runs.filter(x => x.id !== id);
+  if (state.activeRunId === id) state.activeRunId = state.runs.length ? state.runs[0].id : null;
+  normalizeRuns();
+  stopAutoSave();
+  refreshAfterRunChange();
+}
+
+// Pinta la barra de pestañas de Runs (una por run + indicador de estado/contador).
+function renderRuns() {
+  const bar = document.getElementById('runsTabs');
+  if (!bar) return;
+  bar.innerHTML = '';
+  const canDelete = state.runs.length > 1;
+  state.runs.forEach(r => {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'run-tab' + (r.id === state.activeRunId ? ' active' : '');
+    const dotCls = r.status === 'running' ? 'running' : r.status === 'afk' ? 'paused' : r.status === 'done' ? 'done' : '';
+    const label = (r.title && r.title.trim()) ? r.title : t('run.untitled');
+    const total = state.tasks.filter(tk => tk.runId === r.id).length;
+    const done = state.tasks.filter(tk => tk.runId === r.id && isClosed(tk)).length;
+    tab.innerHTML =
+      `<span class="run-dot ${dotCls}"></span>` +
+      `<span class="run-tab-name" title="${escHtml(label)}">${escHtml(label)}</span>` +
+      `<span class="run-tab-count">${done}/${total}</span>`;
+    tab.onclick = () => switchRun(r.id);
+    if (canDelete) {
+      const del = document.createElement('span');
+      del.className = 'run-tab-del';
+      del.title = t('run.deleteTitle');
+      del.innerHTML = icon('x');
+      del.onclick = (e) => { e.stopPropagation(); deleteRun(r.id); };
+      tab.appendChild(del);
+    }
+    bar.appendChild(tab);
+  });
+}
 
 // Estado efímero de la señal de transición entre tareas. Vive fuera de `state`
 // para que saveLocal() (que serializa todo `state`) no lo persista; tras un
@@ -2109,20 +2396,20 @@ function isSessionActive() {
 }
 
 // ─── BACKLOG / SPLITS HELPERS ───────────────────────────────
-// Modelo: state.tasks es un único array. Cada tarea lleva `inSession` (bool):
-// las marcadas (true) son los splits de la sesión; las demás (false) viven en el
-// Backlog (pool consultable). isClosed() unifica done/interrupted (ambos cerrados,
+// Modelo: state.tasks es un único array global. Cada tarea lleva `runId`: si
+// coincide con la run activa es un split de esa run (inRun); si es null vive en el
+// Backlog global (inBacklog). isClosed() unifica done/interrupted (ambos cerrados,
 // con tiempo real y sin edición posterior).
 function isClosed(t) {
   return t && (t.status === 'done' || t.status === 'interrupted');
 }
 function sessionTasks() {
-  return state.tasks.filter(t => t.inSession);
+  return state.tasks.filter(inRun);
 }
 // Recalcula currentTaskIndex tras una mutación estructural del array, ubicando la
-// tarea activa por su id (no por posición). Devuelve null si no hay activa.
+// tarea activa de la run actual por su id (no por posición).
 function reindexCurrentByActive() {
-  const i = state.tasks.findIndex(t => t.status === 'active');
+  const i = state.tasks.findIndex(t => inRun(t) && t.status === 'active');
   state.currentTaskIndex = i === -1 ? null : i;
 }
 
@@ -2159,18 +2446,60 @@ function loadLocal() {
   const raw = localStorage.getItem('worksplit_state');
   if (raw) {
     try {
-      const s = JSON.parse(raw);
-      // If session was running when closed, mark as stopped
-      if (s.status === 'running' || s.status === 'afk') s.status = 'stopped';
-      state = s;
-      if (state.title == null) state.title = '';
-      if (state.description == null) state.description = '';
+      state = migrateState(JSON.parse(raw));
+      defineRunAccessors();             // el objeto state es nuevo: re-define accesores
       if (state.viewMode !== 'list' && state.viewMode !== 'groups') state.viewMode = 'list';
       normalizePrefs();
+      normalizeRuns();
       normalizeGroups();
-    } catch(e) {}
+      // Tras recargar, ninguna run reanuda su cronómetro (los timestamps caducaron).
+      state.runs.forEach(r => { if (r.status === 'running' || r.status === 'afk') r.status = 'stopped'; });
+    } catch(e) { console.warn('loadLocal failed', e); normalizeRuns(); }
+  } else {
+    normalizeRuns();                    // primer arranque: una run vacía
   }
   syncSessionMetaUI();
+}
+
+// Devuelve siempre el shape multi-run. Si recibe el formato viejo (una sola
+// sesión con campos top-level y tareas con `inSession`), lo envuelve en una Run.
+function migrateState(s) {
+  if (s && Array.isArray(s.runs)) {
+    return {
+      runs: s.runs,
+      activeRunId: s.activeRunId != null ? s.activeRunId : (s.runs[0] && s.runs[0].id) || null,
+      viewMode: s.viewMode === 'groups' ? 'groups' : 'list',
+      groups: Array.isArray(s.groups) && s.groups.length ? s.groups : ['General'],
+      tasks: Array.isArray(s.tasks) ? s.tasks : [],
+      prefs: s.prefs || {},
+    };
+  }
+  // Formato legacy → una Run única.
+  const run = makeRun({
+    title: (s && s.title) || '',
+    description: (s && s.description) || '',
+    status: (s && (s.status === 'running' || s.status === 'afk')) ? 'stopped' : ((s && s.status) || 'idle'),
+    totalElapsed: (s && s.totalElapsed) || 0,
+    taskElapsed: (s && s.taskElapsed) || 0,
+    afkElapsed: (s && s.afkElapsed) || 0,
+  });
+  const tasks = (s && Array.isArray(s.tasks) ? s.tasks : []).map(t => {
+    const nt = Object.assign({}, t);
+    nt.runId = (t.inSession === false) ? null : run.id;  // las del Backlog → global
+    delete nt.inSession;
+    return nt;
+  });
+  if (s && s.currentTaskIndex != null && tasks[s.currentTaskIndex]) {
+    run.currentTaskId = tasks[s.currentTaskIndex].id;
+  }
+  return {
+    runs: [run],
+    activeRunId: run.id,
+    viewMode: (s && s.viewMode === 'groups') ? 'groups' : 'list',
+    groups: (s && Array.isArray(s.groups) && s.groups.length) ? s.groups : ['General'],
+    tasks,
+    prefs: (s && s.prefs) || {},
+  };
 }
 
 // Asegura/normaliza state.prefs y migra desde el modelo anterior (master
@@ -2214,6 +2543,7 @@ function saveSessionMeta() {
   state.title = document.getElementById('sessionTitle').value.trim();
   state.description = document.getElementById('sessionDescription').value.trim();
   saveLocal();
+  renderRuns(); // refleja el título en la pestaña de la run activa
 }
 
 function normalizeGroups() {
@@ -2225,9 +2555,7 @@ function normalizeGroups() {
     if (!state.groups.includes(t.group)) state.groups.push(t.group);
     if (t.startedAt == null) t.startedAt = null;
     if (t.endedAt == null) t.endedAt = null;
-    // Migración: tareas guardadas antes del Backlog se tratan como parte de la
-    // sesión (conserva el comportamiento previo donde todo era split).
-    if (t.inSession == null) t.inSession = true;
+    if (t.runId === undefined) t.runId = null;
   });
 }
 
@@ -2500,7 +2828,7 @@ function addTask() {
     startedAt: null,
     endedAt: null,
     status: 'pending', // pending | active | paused | done | interrupted
-    inSession: false,   // toda tarea nace en el Backlog; se marca para entrar a la sesión
+    runId: null,        // toda tarea nace en el Backlog global; se marca para entrar a la run
     createdAt: new Date().toISOString(),
   });
   document.getElementById('fName').value = '';
@@ -2564,7 +2892,7 @@ function removeTask(idx) {
 // pestaña splits se sincroniza en el próximo "Guardar"/autosave (igual que removeTask).
 async function clearTasks() {
   if (state.status !== 'idle') return;
-  if (state.tasks.length === 0) return;
+  if (!state.tasks.some(inRun)) return;
   const ok = await confirmDialog({
     title: t('confirm.clearTitle'),
     message: t('confirm.clearBody'),
@@ -2572,7 +2900,8 @@ async function clearTasks() {
     danger: true,
   });
   if (!ok) return;
-  state.tasks = [];
+  // Vacía solo las tareas de la run activa; el Backlog global y otras runs se conservan.
+  state.tasks = state.tasks.filter(tk => !inRun(tk));
   state.currentTaskIndex = null;
   saveLocal(); renderTasks(); updateSummary(); updateButtons();
 }
@@ -2580,8 +2909,8 @@ async function clearTasks() {
 // Avance clásico (sin señal de transición): activa la siguiente tarea no
 // terminada o finaliza la sesión si no quedan.
 function advanceOrFinish(idx) {
-  let next = state.tasks.findIndex((t, i) => i > idx && t.inSession && !isClosed(t));
-  if (next === -1) next = state.tasks.findIndex(t => t.inSession && !isClosed(t));
+  let next = state.tasks.findIndex((t, i) => i > idx && inRun(t) && !isClosed(t));
+  if (next === -1) next = state.tasks.findIndex(t => inRun(t) && !isClosed(t));
   if (next !== -1) setActive(next);
   else finishSession();
 }
@@ -2602,7 +2931,7 @@ function markDone(idx) {
   saveLocal(); renderTasks(); updateSummary();
 
   const P = state.prefs || {};
-  const remaining = state.tasks.some(t => t.inSession && !isClosed(t));
+  const remaining = state.tasks.some(t => inRun(t) && !isClosed(t));
 
   // Última tarea: solo aplica la notificación (felicitación + ir al resumen).
   if (!remaining) {
@@ -2630,10 +2959,10 @@ function markDone(idx) {
   // La sugerida es la siguiente hacia adelante; si no hay, la primera pendiente
   // anterior. Las "anteriores" son tareas con índice < idx aún no terminadas
   // (menos la sugerida).
-  const forwardNext = state.tasks.findIndex((t, i) => i > idx && t.inSession && !isClosed(t));
+  const forwardNext = state.tasks.findIndex((t, i) => i > idx && inRun(t) && !isClosed(t));
   const priorIdxs = state.tasks
     .map((t, i) => ({ t, i }))
-    .filter(o => o.i < idx && o.t.inSession && !isClosed(o.t))
+    .filter(o => o.i < idx && inRun(o.t) && !isClosed(o.t))
     .map(o => o.i);
   const suggestedIdx = forwardNext !== -1 ? forwardNext : priorIdxs[0];
   const others = priorIdxs.filter(i => i !== suggestedIdx);
@@ -2988,14 +3317,16 @@ function renderTasks() {
   // iniciada la sesión, la lista principal es solo los splits (inSession) y el
   // resto vive en la sección Backlog colapsable.
   const editing = state.status === 'idle';
-  const mainPred = editing ? (() => true) : (tk => tk.inSession);
+  // Al armar (idle): tareas de la run activa + Backlog global (con checkbox de inclusión).
+  // En sesión: solo los splits de la run activa.
+  const mainPred = editing ? editPred : inRun;
 
   // Encabezado "Tareas": en armado (idle) → cuántas hay y cuántas irán a la sesión;
   // con la sesión en curso → cuántas hay en sesión y cuántas ya se terminaron.
   const countEl = document.getElementById('tasksCount');
   if (countEl) {
     if (editing) {
-      const total = state.tasks.length;
+      const total = state.tasks.filter(editPred).length;
       countEl.textContent = total === 0
         ? '0'
         : t('tasks.countSelected', { sel: sessionTasks().length, total });
@@ -3008,7 +3339,7 @@ function renderTasks() {
   }
   applyTasksCollapsed();
 
-  if (state.tasks.length === 0) {
+  if (!state.tasks.some(mainPred)) {
     container.innerHTML = `<div class="empty-state" id="emptyState">${t('empty.tasks')}</div>`;
     container.classList.remove('tasks-sortable');
     renderBacklog(editing);
@@ -3180,7 +3511,7 @@ function buildTaskRow(task, idx, group, mode, priority, showGroupTag) {
 
   // Checkbox de inclusión: solo al armar (idle), a la izquierda de la descripción.
   const includeBox = mode === 'edit'
-    ? `<input type="checkbox" class="task-include" ${task.inSession ? 'checked' : ''} onchange="toggleInSession(${idx}, this.checked)" title="${t('task.includeAria')}" aria-label="${t('task.includeAria')}">`
+    ? `<input type="checkbox" class="task-include" ${inRun(task) ? 'checked' : ''} onchange="toggleInSession(${idx}, this.checked)" title="${t('task.includeAria')}" aria-label="${t('task.includeAria')}">`
     : '';
 
   const nameMain = canEdit
@@ -3241,16 +3572,16 @@ function renderBacklog(editing) {
   if (!section || !body) return;
   if (editing) { section.style.display = 'none'; return; }
 
-  const available = state.tasks.filter(tk => !tk.inSession);
+  const available = state.tasks.filter(inBacklog);
   section.style.display = '';
   if (countEl) countEl.textContent = String(available.length);
   body.innerHTML = '';
   if (available.length === 0) {
     body.innerHTML = `<div class="backlog-empty">${t('backlog.empty')}</div>`;
   } else if (state.viewMode === 'list') {
-    renderTaskList(body, tk => !tk.inSession, 'backlog', null, true);
+    renderTaskList(body, inBacklog, 'backlog', null, true);
   } else {
-    renderTaskGroups(body, tk => !tk.inSession, 'backlog', null);
+    renderTaskGroups(body, inBacklog, 'backlog', null);
   }
   applyBacklogCollapsed();
 }
@@ -3306,18 +3637,18 @@ function applyBacklogCollapsed() {
 function toggleInSession(idx, checked) {
   const task = state.tasks[idx];
   if (!task || state.status !== 'idle') return;
-  task.inSession = !!checked;
-  saveLocal(); renderTasks(); updateSummary(); updateButtons();
+  task.runId = checked ? state.activeRunId : null;
+  saveLocal(); renderTasks(); updateSummary(); updateButtons(); renderRuns();
 }
 
 // Mandar a Backlog una tarea pendiente de la sesión en curso (kebab). La activa
 // no se toca; solo se recalculan totales.
 function sendToBacklog(idx) {
   const task = state.tasks[idx];
-  if (!task || task.status !== 'pending' || !task.inSession) return;
-  task.inSession = false;
+  if (!task || task.status !== 'pending' || !inRun(task)) return;
+  task.runId = null;
   reindexCurrentByActive();
-  saveLocal(); renderTasks(); updateSummary(); updateButtons();
+  saveLocal(); renderTasks(); updateSummary(); updateButtons(); renderRuns();
   notify(t('toast.sentToBacklog'), 'ok');
 }
 
@@ -3326,17 +3657,17 @@ function sendToBacklog(idx) {
 // tarea" respete el orden visual por grupos. No interrumpe nada en curso.
 function addToSession(idx) {
   const task = state.tasks[idx];
-  if (!task || task.inSession) return;
+  if (!task || inRun(task)) return;
   // Con la sesión terminada ya no se aceptan más tareas: hay que restablecer.
   if (state.status === 'done') { notify(t('toast.cannotAddDone'), 'err'); return; }
-  task.inSession = true;
+  task.runId = state.activeRunId;
   task.status = 'pending';
   task.realSec = 0;
   task.startedAt = null;
   task.endedAt = null;
   // Conserva su posición en el array (= prioridad); no se reagrupa.
   reindexCurrentByActive();
-  saveLocal(); renderTasks(); updateSummary(); updateButtons();
+  saveLocal(); renderTasks(); updateSummary(); updateButtons(); renderRuns();
   notify(t('toast.addedToSession'), 'ok');
 }
 
@@ -3423,7 +3754,7 @@ function commitInterrupt(dest) {
     startedAt: null,
     endedAt: null,
     status: 'pending',
-    inSession: dest === 'now',
+    runId: dest === 'now' ? state.activeRunId : null,
     createdAt: new Date().toISOString(),
     note: dest === 'other' ? t('backlog.fromInterrupt', { name: task.name }) : '',
   };
@@ -3454,7 +3785,7 @@ function startSession() {
       // mantiene el tiempo vivo persistido (no se toca taskElapsed)
       state.currentTaskIndex = activeIdx;
     } else {
-      const first = state.tasks.findIndex(t => t.inSession && !isClosed(t));
+      const first = state.tasks.findIndex(t => inRun(t) && !isClosed(t));
       if (first !== -1) setActive(first);
     }
   } else {
@@ -3462,7 +3793,7 @@ function startSession() {
     state.totalElapsed = 0;
     state.taskElapsed = 0;
     state.afkElapsed = 0;
-    const first = state.tasks.findIndex(t => t.inSession && t.status === 'pending');
+    const first = state.tasks.findIndex(t => inRun(t) && t.status === 'pending');
     if (first !== -1) setActive(first);
   }
 
@@ -3561,9 +3892,9 @@ async function newSession() {
     }
   }
   if (saveToHistory && snap) appendHistoryRow(snap);
-  // "Nueva sesión" (desde done): elimina las tareas terminadas; el Backlog y las
-  // no terminadas se conservan.
-  if (wasDone) state.tasks = state.tasks.filter(t => !isClosed(t));
+  // "Nueva sesión" (desde done): elimina las tareas terminadas DE ESTA RUN; el
+  // Backlog global, otras runs y las no terminadas se conservan.
+  if (wasDone) state.tasks = state.tasks.filter(t => !(inRun(t) && isClosed(t)));
   state.status = 'idle';
   state.startTime = null;
   state.totalElapsed = 0;
@@ -3572,7 +3903,9 @@ async function newSession() {
   state.lastTick = null;
   state.afkStart = null;
   state.currentTaskIndex = null;
+  // Solo reinicia las tareas de la run activa.
   state.tasks.forEach(t => {
+    if (!inRun(t)) return;
     t.status = 'pending';
     t.realSec = 0;
     t.startedAt = null;
@@ -3681,7 +4014,7 @@ function updateButtons() {
   // El mismo botón hace de "Restablecer" (stopped) o "Nueva sesión" (done).
   setBtn('btnNewSession', isDone ? 'plus' : 'rotate-ccw', isDone ? t('ctrl.newSession') : t('ctrl.reset'));
   document.getElementById('btnNewSession').style.display = (s === 'stopped' || s === 'done') ? '' : 'none';
-  const showClear = s === 'idle' && state.tasks.length > 0;
+  const showClear = s === 'idle' && state.tasks.some(inRun);
   document.getElementById('btnClearTasks').style.display = showClear ? '' : 'none';
   updateSessionMetaFields();
 }
@@ -3700,6 +4033,7 @@ function updateStatus() {
   const text = key ? t(key) : '';
   dot.className = 'status-dot ' + cls;
   label.textContent = text;
+  renderRuns(); // mantiene el punto de estado de la pestaña de la run en sincronía
 }
 
 // ─── MODAL ──────────────────────────────────────────────────
@@ -3927,24 +4261,67 @@ async function ensureTabs(sheetId) {
       titles = titles.map(t => t === oldName ? newName : t);
     }
   };
-  renameIfNeeded('sessions', 'session');
+  renameIfNeeded('sessions', 'session'); // esquema muy antiguo
+  renameIfNeeded('session', 'runs');     // single-session → multi-run
   renameIfNeeded('tasks', 'splits');
   if (renames.length) await batchUpdate(sheetId, renames);
 
-  const requests = [];
-  if (!titles.includes('session')) requests.push({ addSheet: { properties: { title: 'session' } } });
-  if (!titles.includes('splits')) requests.push({ addSheet: { properties: { title: 'splits' } } });
-  if (!titles.includes('summary')) requests.push({ addSheet: { properties: { title: 'summary' } } });
-  if (!titles.includes('history')) requests.push({ addSheet: { properties: { title: 'history' } } });
-  if (!titles.includes('backlog')) requests.push({ addSheet: { properties: { title: 'backlog' } } });
-  if (!titles.includes('groups')) requests.push({ addSheet: { properties: { title: 'groups' } } });
-  if (requests.length) await batchUpdate(sheetId, requests);
-  await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
-  await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
-  await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
+  // Pestañas requeridas (las de resumen son por-run y se gestionan en pushToSheet).
+  const need = ['runs', 'splits', 'history', 'backlog', 'groups'];
+  const addReqs = need.filter(n => !titles.includes(n)).map(n => ({ addSheet: { properties: { title: n } } }));
+  if (addReqs.length) await batchUpdate(sheetId, addReqs);
+
+  // Migración de layout legacy (runs/splits sin columna run_id) preservando datos.
+  await migrateLegacyLayout(sheetId);
+
+  await valuesUpdate(sheetId, 'runs!A1:J1', [RUNS_HEADERS]);
+  await valuesUpdate(sheetId, 'splits!A1:J1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'history!A1:J1', [HISTORY_HEADERS]);
   await valuesUpdate(sheetId, 'backlog!A1:E1', [BACKLOG_HEADERS]);
   await valuesUpdate(sheetId, 'groups!A1:B1', [GROUPS_HEADERS]);
   googleAuth.tabsEnsured = true;
+}
+
+// Quoting de nombres de pestaña para rangos A1 (necesario si llevan espacios o Σ).
+function qTab(name) { return `'${String(name).replace(/'/g, "''")}'`; }
+
+// Migra un Sheet del esquema de una sola sesión al multi-run: si la pestaña `runs`
+// aún tiene el header viejo (sin `run_id`), envuelve la fila única como una Run y
+// antepone `run_id` a cada fila de `splits`. Idempotente (no re-migra).
+async function migrateLegacyLayout(sheetId) {
+  let hdr = { values: [] };
+  try { hdr = await valuesGet(sheetId, 'runs!A1:J1'); } catch (e) { /* hoja vacía */ }
+  const h = (hdr.values && hdr.values[0]) || [];
+  if (h[0] === 'run_id') return; // ya migrado
+
+  let sOld = null, tOld = [];
+  try { sOld = (await valuesGet(sheetId, 'runs!A2:H2')).values?.[0] || null; } catch (e) {}
+  try { tOld = (await valuesGet(sheetId, 'splits!A2:I')).values || []; } catch (e) {}
+
+  const runId = Date.now();
+  let runRow = null;
+  if (sOld) {
+    const status = (sOld[1] === 'running' || sOld[1] === 'afk' || sOld[1] === 'done') ? 'stopped' : (sOld[1] || 'idle');
+    // viejo session: date,status,est,real,away,updated,title,desc
+    runRow = [runId, 1, sOld[6] || '', sOld[7] || '', status,
+      parseInt(sOld[2], 10) || 0, parseInt(sOld[3], 10) || 0, parseInt(sOld[4], 10) || 0,
+      sOld[0] || '', sOld[5] || ''];
+  }
+  await valuesClear(sheetId, 'runs!A1:Z');
+  await valuesUpdate(sheetId, 'runs!A1', runRow ? [RUNS_HEADERS, runRow] : [RUNS_HEADERS]);
+
+  // viejo splits: priority,group,name,est,real,status,started,ended,updated (9 cols)
+  const newSplits = tOld.filter(r => r && r.length).map(r =>
+    [runId, r[0] || '', r[1] || '', r[2] || '', r[3] || '', r[4] || '', r[5] || '', r[6] || '', r[7] || '', r[8] || '']);
+  await valuesClear(sheetId, 'splits!A1:Z');
+  await valuesUpdate(sheetId, 'splits!A1', [TASK_HEADERS, ...newSplits]);
+
+  // La vieja pestaña única `summary` queda obsoleta (ahora hay una por run).
+  try {
+    const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
+    const legacy = (meta.sheets || []).map(s => s.properties).find(p => p.title === 'summary');
+    if (legacy) await batchUpdate(sheetId, [{ deleteSheet: { sheetId: legacy.sheetId } }]);
+  } catch (e) { /* no crítico */ }
 }
 
 // Busca un archivo creado por la app (scope drive.file solo ve los suyos).
@@ -3983,21 +4360,21 @@ async function createSheet(folderId) {
     body: JSON.stringify(body),
   });
   const sheetId = file.id;
-  // Get the default sheet so we can replace it with session/splits/summary/history.
+  // Get the default sheet so we can replace it with runs/splits/history/backlog/groups.
+  // Las pestañas de resumen son por-run y se crean al guardar (pushToSheet).
   const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
   const defaultId = meta.sheets[0].properties.sheetId;
   await batchUpdate(sheetId, [
-    { addSheet: { properties: { title: 'session' } } },
+    { addSheet: { properties: { title: 'runs' } } },
     { addSheet: { properties: { title: 'splits' } } },
-    { addSheet: { properties: { title: 'summary' } } },
     { addSheet: { properties: { title: 'history' } } },
     { addSheet: { properties: { title: 'backlog' } } },
     { addSheet: { properties: { title: 'groups' } } },
     { deleteSheet: { sheetId: defaultId } },
   ]);
-  await valuesUpdate(sheetId, 'session!A1:H1', [SESSION_HEADERS]);
-  await valuesUpdate(sheetId, 'splits!A1:I1', [TASK_HEADERS]);
-  await valuesUpdate(sheetId, 'history!A1:I1', [HISTORY_HEADERS]);
+  await valuesUpdate(sheetId, 'runs!A1:J1', [RUNS_HEADERS]);
+  await valuesUpdate(sheetId, 'splits!A1:J1', [TASK_HEADERS]);
+  await valuesUpdate(sheetId, 'history!A1:J1', [HISTORY_HEADERS]);
   await valuesUpdate(sheetId, 'backlog!A1:E1', [BACKLOG_HEADERS]);
   await valuesUpdate(sheetId, 'groups!A1:B1', [GROUPS_HEADERS]);
   localStorage.setItem('worksplit_sheet_id', sheetId);
@@ -4054,12 +4431,13 @@ async function ensureWorkspaceInner() {
   return sheetId;
 }
 
-// Construye y escribe la pestaña 'summary' (resumen legible por grupos).
+// Construye y escribe un resumen legible por grupos en la pestaña `tabName`.
 // taskData = [{ group, name, estimatedMin, realSec, status, startedAt, endedAt }]
-async function writeSummary(sheetId, taskData) {
+// title/description = los de la run que se resume.
+async function writeSummaryTo(sheetId, tabName, taskData, title, description) {
   const rows = [];
-  rows.push([state.title || '', '', '', '', '']);
-  rows.push([state.description || '', '', '', '', '']);
+  rows.push([title || '', '', '', '', '']);
+  rows.push([description || '', '', '', '', '']);
   rows.push(['', '', '', '', '']);
   rows.push(['', t('sheet.colEstTime'), t('sheet.colRealTime'), t('sheet.colStart'), t('sheet.colEnd')]);
 
@@ -4090,8 +4468,67 @@ async function writeSummary(sheetId, taskData) {
   });
   rows.push([t('sheet.total'), totalEstMin, Math.round(totalRealSec / 60), '', '']);
 
-  await valuesClear(sheetId, 'summary!A1:Z10000');
-  await valuesUpdate(sheetId, 'summary!A1', rows);
+  await valuesClear(sheetId, `${qTab(tabName)}!A1:Z10000`);
+  await valuesUpdate(sheetId, `${qTab(tabName)}!A1`, rows);
+}
+
+// Nombre de pestaña de resumen único por run (saneado para Sheets: sin : \ / ? * [ ]).
+function summaryTabName(run, order) {
+  const base = (run.title && run.title.trim()) ? run.title.trim() : t('run.untitled');
+  return (SUMMARY_TAB_PREFIX + order + '. ' + base).replace(/[:\\\/?*\[\]]/g, ' ').slice(0, 95);
+}
+
+// Regenera las pestañas de resumen por-run en el libro principal: borra las
+// existentes (prefijo Σ) y crea una por run, en orden. Output-only.
+async function syncSummaryTabs(sheetId) {
+  const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
+  const props = (meta.sheets || []).map(s => s.properties);
+  const stale = props.filter(p => p.title.startsWith(SUMMARY_TAB_PREFIX));
+  if (stale.length) await batchUpdate(sheetId, stale.map(p => ({ deleteSheet: { sheetId: p.sheetId } })));
+
+  for (let i = 0; i < state.runs.length; i++) {
+    const r = state.runs[i];
+    const name = summaryTabName(r, i + 1);
+    await batchUpdate(sheetId, [{ addSheet: { properties: { title: name } } }]);
+    await writeSummaryTo(sheetId, name, buildTaskData(r.id), r.title, r.description);
+  }
+}
+
+// Crea un Sheet independiente (su pestaña por defecto renombrada a 'summary').
+async function createSummaryExportSheet(name, folderId) {
+  const body = { name, mimeType: 'application/vnd.google-apps.spreadsheet' };
+  if (folderId) body.parents = [folderId];
+  const file = await gFetch(DRIVE_FILES, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const sheetId = file.id;
+  const meta = await gFetch(`${SHEETS_BASE}/${sheetId}?fields=sheets(properties(sheetId,title))`);
+  const defId = meta.sheets[0].properties.sheetId;
+  await batchUpdate(sheetId, [{ updateSheetProperties: { properties: { sheetId: defId, title: 'summary' }, fields: 'title' } }]);
+  return sheetId;
+}
+
+// Exporta el resumen de la run ACTIVA a su propio Sheet (nombrado por el título).
+// Find-or-create por nombre: reutiliza el archivo si ya existe. Exportación única
+// (no se sincroniza ni entra en autosave).
+async function exportRunSummary() {
+  const btn = document.getElementById('btnExportSummary');
+  if (btn) { btn.disabled = true; btn.classList.add('is-loading'); }
+  try {
+    const ok = await ensureSetup();
+    if (!ok) return;
+    const folderId = getFolderId();
+    const r = activeRun();
+    const exportName = t('sheets.exportName', { title: (r && r.title && r.title.trim()) ? r.title.trim() : t('run.untitled') });
+    let sheetId = await findDriveFile(exportName, 'application/vnd.google-apps.spreadsheet', folderId);
+    if (!sheetId) sheetId = await createSummaryExportSheet(exportName, folderId);
+    await writeSummaryTo(sheetId, 'summary', buildTaskData(r ? r.id : state.activeRunId), r ? r.title : '', r ? r.description : '');
+    notify(t('sheets.exportDone'), 'ok');
+  } catch (e) {
+    notify(t('sheets.errExport', { msg: e.message }), 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('is-loading'); }
+  }
 }
 
 // ─── GOOGLE: SETUP ORCHESTRATION ────────────────────────────
@@ -4165,13 +4602,15 @@ async function openSheet() {
 // Normaliza las tareas del estado vivo a un shape estable. La regla del tiempo
 // real de la tarea ACTIVA (derivado de state.taskElapsed) vive aquí, compartida
 // por la pestaña tasks, el summary y el historial.
-function buildTaskData() {
-  // Solo los splits de la sesión (inSession); el Backlog se persiste aparte.
-  return sessionTasks().map(t => ({
+function buildTaskData(runId = state.activeRunId) {
+  // Solo los splits de la run indicada; el Backlog global se persiste aparte.
+  // El tiempo real de la tarea ACTIVA solo es "vivo" para la run activa.
+  const isActive = runId === state.activeRunId;
+  return state.tasks.filter(t => t.runId === runId).map(t => ({
     group: t.group || 'General',
     name: t.name || '',
     estimatedMin: t.estimatedMin || 0,
-    realSec: t.status === 'active' ? Math.round(state.taskElapsed / 1000) : (t.realSec || 0),
+    realSec: (isActive && t.status === 'active') ? Math.round(state.taskElapsed / 1000) : (t.realSec || 0),
     status: t.status || 'pending',
     startedAt: t.startedAt || '',
     endedAt: isClosed(t) ? (t.endedAt || '') : '',
@@ -4193,8 +4632,10 @@ function buildHistoryRow(type) {
     name: t.name, group: t.group, estimatedMin: t.estimatedMin,
     realSec: t.realSec, done: t.status === 'done' || t.status === 'interrupted',
   })));
+  const run = activeRun();
   return [
     new Date().toISOString(),
+    (run && run.title) || t('run.untitled'),
     type,
     taskData.reduce((s, t) => s + (parseInt(t.estimatedMin, 10) || 0), 0),
     Math.round(state.totalElapsed / 1000),
@@ -4239,44 +4680,53 @@ async function pushToSheet(silent) {
     if (!sheetId) { if (!silent) notify(t('sheets.statusNoSheet'), 'err'); return; }
     if (!googleAuth.tabsEnsured) await ensureTabs(sheetId);
 
+    // Sincroniza el título/descripción editables con la run activa.
     state.title = document.getElementById('sessionTitle').value.trim();
     state.description = document.getElementById('sessionDescription').value.trim();
     const now = new Date().toISOString();
-    const afkMs = state.status === 'afk'
-      ? state.afkElapsed + (Date.now() - (state.afkStart || Date.now()))
-      : state.afkElapsed;
-    const sessionRow = [
-      new Date().toLocaleDateString(I18N.localeFor()),
-      state.status,
-      sessionTasks().reduce((s, t) => s + t.estimatedMin, 0),
-      Math.round(state.totalElapsed / 1000),
-      Math.round(afkMs / 1000),
-      now,
-      state.title,
-      state.description,
-    ];
-    // Datos de tareas normalizados (reutilizados por la pestaña splits y summary).
-    const taskData = buildTaskData();
-    const taskRows = taskData.map((t, idx) => [
-      idx + 1, t.group, t.name, t.estimatedMin,
-      t.realSec, t.status, t.startedAt, t.endedAt, now,
-    ]);
-    // Backlog: tareas que no forman parte de la sesión (inSession === false).
-    const backlogRows = state.tasks.filter(tk => !tk.inSession).map(tk => [
+    const today = new Date().toLocaleDateString(I18N.localeFor());
+
+    // runs: una fila por run (run_id las identifica).
+    const runRows = state.runs.map((r, i) => {
+      const rt = state.tasks.filter(tk => tk.runId === r.id);
+      const rAfk = (r.id === state.activeRunId && r.status === 'afk')
+        ? r.afkElapsed + (Date.now() - (r.afkStart || Date.now())) : (r.afkElapsed || 0);
+      return [
+        r.id, i + 1, r.title || '', r.description || '', r.status || 'idle',
+        rt.reduce((s, tk) => s + (tk.estimatedMin || 0), 0),
+        Math.round((r.totalElapsed || 0) / 1000), Math.round(rAfk / 1000),
+        today, now,
+      ];
+    });
+
+    // splits: tareas de TODAS las runs; priority 1..N dentro de cada run, en orden de array.
+    const taskRows = [];
+    state.runs.forEach(r => {
+      const td = buildTaskData(r.id);
+      td.forEach((t, idx) => {
+        taskRows.push([r.id, idx + 1, t.group, t.name, t.estimatedMin,
+          t.realSec, t.status, t.startedAt, t.endedAt, now]);
+      });
+    });
+
+    // Backlog global (runId null).
+    const backlogRows = state.tasks.filter(inBacklog).map(tk => [
       tk.group || 'General', tk.name || '', tk.estimatedMin || 0,
       tk.createdAt || '', tk.note || '',
     ]);
     // Grupos: orden actual (1..N) → reconstruible en loadFromSheet.
     const groupRows = state.groups.map((g, i) => [i + 1, g]);
 
-    await valuesUpdate(sheetId, 'session!A1:H2', [SESSION_HEADERS, sessionRow]);
-    await valuesClear(sheetId, 'splits!A2:I');
+    await valuesClear(sheetId, 'runs!A2:J');
+    await valuesUpdate(sheetId, 'runs!A1', [RUNS_HEADERS, ...runRows]);
+    await valuesClear(sheetId, 'splits!A2:J');
     await valuesUpdate(sheetId, 'splits!A1', [TASK_HEADERS, ...taskRows]);
     await valuesClear(sheetId, 'backlog!A2:E');
     await valuesUpdate(sheetId, 'backlog!A1', [BACKLOG_HEADERS, ...backlogRows]);
     await valuesClear(sheetId, 'groups!A2:B');
     await valuesUpdate(sheetId, 'groups!A1', [GROUPS_HEADERS, ...groupRows]);
-    await writeSummary(sheetId, taskData);
+    // Resúmenes por-run: solo en guardado manual (evita reescribir pestañas en cada autosave).
+    if (!silent) await syncSummaryTabs(sheetId);
 
     if (!silent) notify(t('sheets.statusSaved'), 'ok');
   } catch (e) {
@@ -4297,35 +4747,59 @@ async function loadFromSheet() {
     const sheetId = getSheetId();
     if (!sheetId) { notify(t('sheets.statusNoSheet'), 'err'); return; }
 
-    const sRes = await valuesGet(sheetId, 'session!A2:H2');
-    const tRes = await valuesGet(sheetId, 'splits!A2:I');
+    const rRes = await valuesGet(sheetId, 'runs!A2:J');
+    const tRes = await valuesGet(sheetId, 'splits!A2:J');
     let bRes = { values: [] };
     try { bRes = await valuesGet(sheetId, 'backlog!A2:E'); } catch (e) { /* hoja vieja sin backlog */ }
     let gRes = { values: [] };
     try { gRes = await valuesGet(sheetId, 'groups!A2:B'); } catch (e) { /* hoja vieja sin groups */ }
-    const sRow = (sRes.values && sRes.values[0]) || null;
-    if (!sRow) { notify(t('sheets.statusNoSessions'), 'err'); return; }
+    const runRows = (rRes.values || []).filter(r => r && r.length && (r[0] || '').toString().trim());
+    if (!runRows.length) { notify(t('sheets.statusNoSessions'), 'err'); return; }
 
-    const tRows = tRes.values || [];
-    const splitTasks = tRows
+    // Runs (ordenadas por col B = order). Ninguna reanuda cronómetro al cargar.
+    const runs = runRows
+      .sort((a, b) => (parseInt(a[1], 10) || 0) - (parseInt(b[1], 10) || 0))
+      .map(r => {
+        const st = r[4];
+        return makeRun({
+          id: parseInt(r[0], 10) || (Date.now() + Math.floor(Math.random() * 100000)),
+          title: r[2] || '',
+          description: r[3] || '',
+          status: (st === 'running' || st === 'afk' || st === 'done') ? 'stopped' : (st || 'idle'),
+          totalElapsed: (parseInt(r[6], 10) || 0) * 1000,
+          afkElapsed: (parseInt(r[7], 10) || 0) * 1000,
+        });
+      });
+    const runOrder = new Map(runs.map((r, i) => [r.id, i]));
+
+    // splits: col A = run_id, B = priority. Se ordenan por (orden de run, priority).
+    const splitTasks = (tRes.values || [])
       .filter(r => r && r.length)
-      .sort((a, b) => (parseInt(a[0], 10) || 0) - (parseInt(b[0], 10) || 0))
       .map(r => ({
         id: Date.now() + Math.random(),
-        name: r[2] || '',
-        group: r[1] || 'General',
-        estimatedMin: parseInt(r[3], 10) || 30,
-        realSec: parseInt(r[4], 10) || 0,
-        status: r[5] || 'pending',
-        startedAt: r[6] || null,
-        endedAt: r[7] || null,
-        inSession: true,
-      }));
-    // Backlog: tareas disponibles (no en la sesión). Se fusionan tras los splits.
+        runId: parseInt(r[0], 10),
+        _priority: parseInt(r[1], 10) || 0,
+        group: r[2] || 'General',
+        name: r[3] || '',
+        estimatedMin: parseInt(r[4], 10) || 30,
+        realSec: parseInt(r[5], 10) || 0,
+        status: r[6] || 'pending',
+        startedAt: r[7] || null,
+        endedAt: r[8] || null,
+      }))
+      .sort((a, b) => {
+        const ra = runOrder.has(a.runId) ? runOrder.get(a.runId) : 999;
+        const rb = runOrder.has(b.runId) ? runOrder.get(b.runId) : 999;
+        return ra !== rb ? ra - rb : a._priority - b._priority;
+      });
+    splitTasks.forEach(t => { delete t._priority; });
+
+    // Backlog global (runId null). Se fusiona tras los splits.
     const backlogTasks = (bRes.values || [])
       .filter(r => r && r.length && (r[1] || '').trim())
       .map(r => ({
         id: Date.now() + Math.random(),
+        runId: null,
         group: r[0] || 'General',
         name: r[1] || '',
         estimatedMin: parseInt(r[2], 10) || 30,
@@ -4335,15 +4809,11 @@ async function loadFromSheet() {
         endedAt: null,
         createdAt: r[3] || '',
         note: r[4] || '',
-        inSession: false,
       }));
-    state.tasks = [...splitTasks, ...backlogTasks];
 
-    state.status = sRow[1] === 'done' ? 'stopped' : (sRow[1] || 'idle');
-    state.totalElapsed = (parseInt(sRow[3], 10) || 0) * 1000;
-    state.afkElapsed = (parseInt(sRow[4], 10) || 0) * 1000;
-    state.title = sRow[6] || '';
-    state.description = sRow[7] || '';
+    state.runs = runs;
+    state.activeRunId = runs[0].id;
+    state.tasks = [...splitTasks, ...backlogTasks];
 
     // Orden de grupos guardado (col A = order, col B = name). Si existe, fija el
     // orden; normalizeGroups() añadirá luego cualquier grupo referido por tareas.
@@ -4353,12 +4823,17 @@ async function loadFromSheet() {
       .map(r => (r[1] || '').trim());
     if (loadedGroups.length) state.groups = [...new Set(loadedGroups)];
 
+    normalizeRuns();
     normalizeGroups();
-    reindexCurrentByActive();
+    // Para cada run, fija currentTaskId desde su tarea activa (si la hubiera).
+    state.runs.forEach(r => {
+      const at = state.tasks.find(tk => tk.runId === r.id && tk.status === 'active');
+      r.currentTaskId = at ? at.id : null;
+    });
     state.taskElapsed = state.currentTaskIndex !== null
       ? Math.round(state.tasks[state.currentTaskIndex].realSec || 0) * 1000
       : 0;
-    saveLocal(); syncSessionMetaUI(); renderGroups(); renderTasks();
+    saveLocal(); renderRuns(); syncSessionMetaUI(); renderGroups(); renderTasks();
     updateSummary(); updateButtons(); updateStatus();
     notify(t('sheets.statusLoaded'), 'ok');
   } catch (e) {
@@ -4452,6 +4927,7 @@ document.addEventListener('keydown', e => {
 // Orden = orden visual dentro de cada panel móvil.
 const MOBILE_LAYOUT = [
   ['.header-status', 'mTopbarRight'],
+  ['#runsBar', 'panelSesion'],
   ['.clock-block', 'panelSesion'],
   ['.mini-clocks', 'panelSesion'],
   ['.ctrl-buttons', 'panelSesion'],
@@ -4532,6 +5008,7 @@ function init() {
   setupDragDrop();
   setupResponsive();
   updateViewToggle();
+  renderRuns();
   renderGroups();
   renderTasks();
   updateButtons();
@@ -4558,6 +5035,7 @@ function init() {
 // re-aplica I18N.applyTranslations dentro de setLang).
 window.onLangChange = function () {
   syncSessionMetaUI();
+  renderRuns();
   renderGroups();
   renderTasks();
   updateButtons();

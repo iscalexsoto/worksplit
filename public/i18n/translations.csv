@@ -111,6 +111,16 @@ sheets.errLoad|No se pudo cargar. ({msg})|Couldn't load. ({msg})
 sheets.errGeneric|Algo salió mal. ({msg})|Something went wrong. ({msg})
 sheets.errConnPrepare|Conectado, pero no se pudo preparar el Sheet: {msg}|Connected, but the Sheet could not be prepared: {msg}
 sheets.errConnReturn|Error de conexión: {error}|Connection error: {error}
+sheets.exportSummary|Exportar resumen|Export summary
+sheets.exportName|Resumen — {title}|Summary — {title}
+sheets.exportDone|Resumen exportado a su propia hoja de cálculo.|Summary exported to its own spreadsheet.
+sheets.errExport|No se pudo exportar el resumen. ({msg})|Couldn't export the summary. ({msg})
+run.new|Nueva Run|New Run
+run.untitled|Run sin título|Untitled Run
+run.defaultName|Run {n}|Run {n}
+run.deleteTitle|Eliminar Run|Delete Run
+run.deleteBody|Se eliminará la Run «{title}» y sus tareas. El Backlog global no se toca.|The Run "{title}" and its tasks will be deleted. The global Backlog is left untouched.
+run.deleteConfirm|Eliminar Run|Delete Run
 err.noAuthServer|No hay conexión con el servidor. Intenta de nuevo.|No connection to the server. Try again.
 err.authHttp|Problema al autenticar (código {status}).|Authentication problem (code {status}).
 err.noGoogleSession|Sesión de Google no iniciada. Pulsa "Conectar con Google".|Google session not started. Tap "Connect with Google".
