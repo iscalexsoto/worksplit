@@ -475,9 +475,10 @@
     gap: 4px;
     white-space: nowrap;
   }
-  /* Acciones principales como botón-ícono: cuadrado, limpio (sin borde en reposo).
-     El color/borde de acción aparece al pasar el cursor (vía las reglas :hover de
-     cada botón); los deshabilitados conservan su borde de estado (p. ej. Listo). */
+  /* Acciones principales como botón-ícono: cuadrado, limpio (sin borde nunca).
+     El color de acción aparece al pasar el cursor (vía las reglas :hover de cada
+     botón); los deshabilitados (p. ej. Listo) solo conservan el color de estado y
+     el efecto "apagado" (opacidad), sin borde, igual que el resto de íconos. */
   .task-actions .btn-icon {
     min-width: 0;
     width: 32px;
@@ -485,8 +486,8 @@
     padding: 0;
     font-size: 17px;
     border-radius: 6px;
+    border-color: transparent;
   }
-  .task-actions .btn-icon:not(:disabled) { border-color: transparent; }
   .task-actions .btn-icon:hover:not(:disabled) { background: rgba(255,255,255,0.05); }
 
   /* TASK NAME + INCLUSION CHECKBOX */
@@ -497,6 +498,28 @@
     height: 15px;
     accent-color: var(--accent);
     cursor: pointer;
+  }
+  /* Tri-estado del "seleccionar todo": el guion del estado indeterminado lo pinta
+     el navegador en blanco, lo que no coincide con el check oscuro del estado
+     marcado. Lo dibujamos a mano (cuadro lima + guion oscuro) para que combine. */
+  .task-include:indeterminate {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--accent);
+    border: none;
+    border-radius: 3px;
+    position: relative;
+  }
+  .task-include:indeterminate::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    border-radius: 1px;
+    background: var(--bg);
   }
 
   /* KEBAB MENU — usa el tamaño/estilo de .btn-icon (32×32) para alinear con los
