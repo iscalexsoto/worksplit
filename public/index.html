@@ -344,6 +344,13 @@
     text-align: right;
     padding: 5px 6px;
   }
+  /* Ocultar las flechas de incremento del input numérico (estimado). En móvil,
+     type="number" sigue abriendo el teclado numérico aunque no haya spinners. */
+  .task-input-est::-webkit-inner-spin-button,
+  .task-input-est::-webkit-outer-spin-button,
+  #fEst::-webkit-inner-spin-button,
+  #fEst::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .task-input-est, #fEst { -moz-appearance: textfield; appearance: textfield; }
   .task-est, .task-real, .task-delta {
     font-family: var(--mono);
     font-size: 12px;
@@ -351,6 +358,7 @@
   }
   .task-est { color: var(--muted); }
   .task-real { color: var(--text); }
+  .task-row.active .task-real-value { color: var(--accent); }
   .task-delta.ahead { color: var(--success); }
   .task-delta.behind { color: var(--danger); }
   .task-delta.neutral { color: var(--muted); }
@@ -722,6 +730,8 @@
   .task-headers .col-delta,
   .task-headers .col-action { text-align: right; }
   .task-headers .col-priority { text-align: center; }
+  /* Checkbox "incluir todas" en el header: alineado con los de fila (.task-name-wrap). */
+  .col-task-head { display: flex; align-items: center; gap: 8px; }
 
   /* ADD FORM */
   .add-form {
@@ -809,6 +819,18 @@
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .clock-label-track { display: inline-flex; }
+  .clock-label-text { display: inline-block; }
+  .clock-label.marquee .clock-label-text { margin-right: 48px; }
+  .clock-label.marquee .clock-label-track {
+    animation: ws-marquee var(--marquee-dur, 10s) linear infinite;
+  }
+  @keyframes ws-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(var(--scroll, 0px) * -1)); }
   }
   .clock-value {
     font-family: var(--mono);
@@ -897,6 +919,12 @@
     color: var(--muted);
   }
   .btn-new:hover { border-color: var(--text); color: var(--text); }
+  .btn-newrun {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0f11;
+  }
+  .btn-newrun:hover { opacity: 0.85; }
   .btn-clear {
     background: transparent;
     border-color: var(--border2);
@@ -1267,6 +1295,137 @@
     color: var(--muted);
     font-size: 14px;
     line-height: 1.5;
+  }
+
+  /* HISTORIAL — vista read-only de sesiones cerradas */
+  .modal-history { width: 560px; }
+  .history-filter { margin: 0 0 16px; }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 56vh;
+    overflow-y: auto;
+  }
+  .history-empty {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    padding: 28px 8px;
+  }
+  .history-item {
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .history-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .history-head:hover { background: rgba(255,255,255,0.03); }
+  .history-caret { color: var(--muted); flex: none; transition: transform 0.15s; }
+  .history-item.open .history-caret { transform: rotate(90deg); }
+  .history-title-wrap { flex: 1; min-width: 0; }
+  .history-run-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-date {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .history-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+    flex: none;
+  }
+  .history-badge.completed { color: var(--success); border-color: var(--success); }
+  .history-badge.reset { color: var(--muted); border-color: var(--border2); }
+  .history-delta {
+    font-family: var(--mono);
+    font-size: 13px;
+    white-space: nowrap;
+    flex: none;
+  }
+  .history-delta.ahead { color: var(--success); }
+  .history-delta.behind { color: var(--danger); }
+  .history-detail {
+    display: none;
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .history-item.open .history-detail { display: block; }
+  .history-current {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--warning);
+    padding-top: 12px;
+  }
+  .history-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-stat { display: flex; flex-direction: column; gap: 2px; }
+  .history-stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .history-stat-value { font-family: var(--mono); font-size: 14px; color: var(--text); }
+  .history-stat-value.ahead { color: var(--success); }
+  .history-stat-value.behind { color: var(--danger); }
+  .history-tasks { display: flex; flex-direction: column; gap: 7px; padding-top: 12px; }
+  .history-task { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .history-task-check { color: var(--success); flex: none; display: inline-flex; }
+  .history-task-check.pending { color: var(--muted); }
+  .history-task-name {
+    flex: 1;
+    min-width: 0;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-task-name.pending { color: var(--muted); }
+  .history-task-group {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    padding: 1px 6px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    flex: none;
+  }
+  .history-task-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    flex: none;
   }
 
   /* GUÍA / TOUR — overlay con spotlight (recorte iluminado) sobre la UI real */
@@ -1776,6 +1935,7 @@
   <symbol id="i-cloud-upload" viewBox="0 0 24 24"><path d="M12 13v8"></path><path d="m8 17 4-4 4 4"></path><path d="M4.5 16.5A4.5 4.5 0 0 1 6 8a6 6 0 0 1 11.6 1.5A4 4 0 0 1 18 17"></path></symbol>
   <symbol id="i-cloud-download" viewBox="0 0 24 24"><path d="M12 13v8"></path><path d="m8 17 4 4 4-4"></path><path d="M4.5 16.5A4.5 4.5 0 0 1 6 8a6 6 0 0 1 11.6 1.5A4 4 0 0 1 18 17"></path></symbol>
   <symbol id="i-table" viewBox="0 0 24 24"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></symbol>
   <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></symbol>
   <symbol id="i-loader" viewBox="0 0 24 24"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></symbol>
   <symbol id="i-square-arrow-up" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="m16 12-4-4-4 4"></path><path d="M12 16V8"></path></symbol>
@@ -1833,7 +1993,7 @@
 
     <button type="button" class="backlog-toggle tasks-toggle" id="tasksToggle" onclick="toggleTasks()" aria-expanded="true">
       <span class="backlog-caret">▸</span>
-      <span data-i18n="tasks.heading">Tareas</span>
+      <span id="tasksHeading" data-i18n="tasks.heading">Tareas</span>
       <span class="backlog-count" id="tasksCount">0</span>
     </button>
     <div id="tasksContainer">
@@ -1877,7 +2037,7 @@
   <div class="control-panel">
     <!-- CLOCK -->
     <div class="clock-block">
-      <div class="clock-label" data-i18n="clock.current">Tarea actual</div>
+      <div class="clock-label" id="mainClockLabel" data-i18n="clock.current">Tarea actual</div>
       <div class="clock-value" id="mainClock">00:00:00</div>
       <div class="clock-sub" id="mainClockSub">—</div>
     </div>
@@ -1896,9 +2056,10 @@
 
     <!-- CONTROL BUTTONS -->
     <div class="ctrl-buttons">
-      <button class="btn-ctrl btn-start" id="btnStart" onclick="startSession()"><svg class="icon"><use href="#i-play"></use></svg><span class="btn-label">Iniciar</span></button>
+      <button class="btn-ctrl btn-start" id="btnStart" onclick="primaryAction()"><svg class="icon"><use href="#i-play"></use></svg><span class="btn-label">Iniciar</span></button>
       <button class="btn-ctrl btn-afk" id="btnAfk" onclick="toggleAfk()" disabled><svg class="icon"><use href="#i-pause"></use></svg><span class="btn-label">Ausentarme</span></button>
       <button class="btn-ctrl btn-stop" id="btnStop" onclick="stopSession()" disabled><svg class="icon"><use href="#i-square"></use></svg><span class="btn-label">Detener</span></button>
+      <button class="btn-ctrl btn-newrun" id="btnNewRun" onclick="createRun()" style="display:none;"><svg class="icon"><use href="#i-plus"></use></svg><span class="btn-label" data-i18n="run.new">Nueva Run</span></button>
       <button class="btn-ctrl btn-new" id="btnNewSession" onclick="newSession()" style="display:none;"><svg class="icon"><use href="#i-rotate-ccw"></use></svg><span class="btn-label">Restablecer</span></button>
       <button class="btn-ctrl btn-clear" id="btnClearTasks" onclick="clearTasks()" style="display:none;"><svg class="icon"><use href="#i-trash"></use></svg><span data-i18n="ctrl.clearTasks">Limpiar tareas</span></button>
     </div>
@@ -1966,6 +2127,10 @@
         </button>
         <button class="btn-sheet btn-export-summary" id="btnExportSummary" onclick="exportRunSummary()">
           <span class="btn-sheet-content"><svg class="icon"><use href="#i-table"></use></svg><span data-i18n="sheets.exportSummary">Exportar resumen</span></span>
+          <span class="btn-spinner"><svg class="icon spin"><use href="#i-loader"></use></svg></span>
+        </button>
+        <button class="btn-sheet btn-history" id="btnHistory" onclick="openHistory()">
+          <span class="btn-sheet-content"><svg class="icon"><use href="#i-history"></use></svg><span data-i18n="history.viewButton">Historial</span></span>
           <span class="btn-spinner"><svg class="icon spin"><use href="#i-loader"></use></svg></span>
         </button>
       </div>
@@ -2065,6 +2230,18 @@
           <option value="never" data-i18n="prefs.saveNever">Nunca guardar</option>
         </select>
       </div>
+
+      <div class="pref-row pref-row-sep pref-row-stack">
+        <span class="pref-text">
+          <span class="pref-label" data-i18n="prefs.recreateDone">Recrear tareas terminadas al reiniciar la Run</span>
+          <span class="pref-hint" data-i18n="prefs.recreateDoneHint">Al reiniciar una Run terminada, decide si sus tareas terminadas vuelven a quedar pendientes o se eliminan.</span>
+        </span>
+        <select class="form-input pref-select" id="prefRecreateDone" onchange="setPrefRecreateDoneOnReset(this.value)">
+          <option value="always" data-i18n="prefs.recreateAlways">Recrear siempre</option>
+          <option value="never" data-i18n="prefs.recreateNever">No recrear (eliminarlas)</option>
+          <option value="ask" data-i18n="prefs.recreateAsk">Preguntar cada vez</option>
+        </select>
+      </div>
     </div>
   </div>
 </div>
@@ -2124,6 +2301,22 @@
     <div class="modal-actions">
       <button class="btn-modal" data-i18n="finish.close" onclick="closeModal()">Cerrar</button>
       <button class="btn-modal primary" data-i18n="finish.saveSheets" onclick="pushToSheet(); closeModal()">Guardar en Sheets</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL (vista read-only de sesiones cerradas guardadas en la pestaña history) -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal modal-history">
+    <h2><svg class="icon"><use href="#i-history"></use></svg> <span data-i18n="history.title">Sesiones anteriores</span></h2>
+    <div class="view-toggle history-filter" id="historyFilter" role="group">
+      <button type="button" class="view-toggle-btn on" data-htype="all" onclick="setHistoryFilter('all')" data-i18n="history.filterAll">Todas</button>
+      <button type="button" class="view-toggle-btn" data-htype="completed" onclick="setHistoryFilter('completed')" data-i18n="history.filterCompleted">Terminadas</button>
+      <button type="button" class="view-toggle-btn" data-htype="reset" onclick="setHistoryFilter('reset')" data-i18n="history.filterReset">Reseteos</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="modal-actions">
+      <button class="btn-modal" data-i18n="history.close" onclick="closeHistory()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -2303,7 +2496,7 @@ let state = {
   viewMode: 'list',        // 'list' (plana por prioridad) | 'groups' (agrupada) — global
   groups: ['General'],     // taxonomía global compartida entre runs
   tasks: [],               // pool global; runId null = Backlog, runId = run.id = en esa run
-  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20, saveHistoryOnReset: 'ask', showAddDuringSplit: false }, // señales de transición autism-friendly
+  prefs: { notify: true, notifySec: 5, pause: true, pauseSec: 60, chooseNext: true, stuck: true, stuckMargin: 20, saveHistoryOnReset: 'ask', recreateDoneOnReset: 'always', showAddDuringSplit: false }, // señales de transición autism-friendly
 };
 
 function activeRun() {
@@ -2621,6 +2814,7 @@ function normalizePrefs() {
   const MARGIN_OPTS = [10, 20, 30, 50];
   if (P.stuckMargin == null || !MARGIN_OPTS.includes(P.stuckMargin)) P.stuckMargin = 20;
   if (!['ask', 'always', 'never'].includes(P.saveHistoryOnReset)) P.saveHistoryOnReset = 'ask';
+  if (!['ask', 'always', 'never'].includes(P.recreateDoneOnReset)) P.recreateDoneOnReset = 'always';
   if (P.showAddDuringSplit == null) P.showAddDuringSplit = false;
   delete P.transitions;
   delete P.closureSec;
@@ -3357,6 +3551,9 @@ function setPrefStuckMargin(val) {
 function setPrefSaveHistoryOnReset(val) {
   if (['ask', 'always', 'never'].includes(val)) { state.prefs.saveHistoryOnReset = val; saveLocal(); }
 }
+function setPrefRecreateDoneOnReset(val) {
+  if (['ask', 'always', 'never'].includes(val)) { state.prefs.recreateDoneOnReset = val; saveLocal(); }
+}
 function setPrefShowAddDuringSplit(on) {
   state.prefs.showAddDuringSplit = !!on;
   saveLocal();
@@ -3393,6 +3590,7 @@ function syncPrefsUI() {
   const stuckCb = document.getElementById('prefStuck');
   const stuckSel = document.getElementById('prefStuckMargin');
   const saveResetSel = document.getElementById('prefSaveOnReset');
+  const recreateSel = document.getElementById('prefRecreateDone');
   const showAddCb = document.getElementById('prefShowAddDuringSplit');
   if (showAddCb) showAddCb.checked = !!P.showAddDuringSplit;
   if (notifyCb) notifyCb.checked = !!P.notify;
@@ -3403,6 +3601,7 @@ function syncPrefsUI() {
   if (stuckCb) stuckCb.checked = !!P.stuck;
   if (stuckSel) stuckSel.value = String(P.stuckMargin || 20);
   if (saveResetSel) saveResetSel.value = P.saveHistoryOnReset || 'ask';
+  if (recreateSel) recreateSel.value = P.recreateDoneOnReset || 'always';
   updatePrefSubState('prefNotifySub', !!P.notify);
   updatePrefSubState('prefPauseSub', !!P.pause);
   updatePrefSubState('prefStuckSub', !!P.stuck);
@@ -3424,6 +3623,11 @@ function renderTasks() {
   // Al armar (idle): tareas de la run activa + Backlog global (con checkbox de inclusión).
   // En sesión: solo los splits de la run activa.
   const mainPred = editing ? editPred : inRun;
+
+  // Encabezado de la lista: en armado (idle) todo está en el Backlog → "Backlog";
+  // iniciada la sesión, son los splits en curso → "Tareas".
+  const headingEl = document.getElementById('tasksHeading');
+  if (headingEl) headingEl.textContent = editing ? t('tasks.headingBacklog') : t('tasks.heading');
 
   // Encabezado "Tareas": en armado (idle) → cuántas hay y cuántas irán a la sesión;
   // con la sesión en curso → cuántas hay en sesión y cuántas ya se terminaron.
@@ -3468,8 +3672,23 @@ function renderTasks() {
   const metricsHeader = editing
     ? ''
     : `<span class="col-real">${t('col.real')}</span><span class="col-delta">${t('col.delta')}</span>`;
-  headers.innerHTML = `${railHeader}<span>${t('col.task')}</span>${groupHeader}<span class="col-est">${t('col.est')}</span>${metricsHeader}<span class="col-action">${canDeleteTasks() ? t('col.delete') : t('col.action')}</span>`;
+  // En armado (idle): checkbox "incluir/excluir todas" alineado con los de fila.
+  const taskColHeader = editing
+    ? `<span class="col-task-head"><input type="checkbox" id="selectAllTasks" class="task-include" onchange="toggleAllInSession(this.checked)" title="${t('task.selectAllAria')}" aria-label="${t('task.selectAllAria')}">${t('col.task')}</span>`
+    : `<span>${t('col.task')}</span>`;
+  headers.innerHTML = `${railHeader}${taskColHeader}${groupHeader}<span class="col-est">${t('col.est')}</span>${metricsHeader}<span class="col-action">${canDeleteTasks() ? t('col.delete') : t('col.action')}</span>`;
   container.appendChild(headers);
+
+  // Estado tri-estado del checkbox del header (indeterminate no es atributo HTML).
+  if (editing) {
+    const selectAll = document.getElementById('selectAllTasks');
+    if (selectAll) {
+      const total = state.tasks.filter(editPred).length;
+      const sel = sessionTasks().length;
+      selectAll.checked = total > 0 && sel === total;
+      selectAll.indeterminate = sel > 0 && sel < total;
+    }
+  }
 
   const mode = editing ? 'edit' : 'session';
   if (state.viewMode === 'list') renderTaskList(container, mainPred, mode, priorityOf, true);
@@ -3578,7 +3797,8 @@ function buildTaskRow(task, idx, group, mode, priority, showGroupTag) {
     deltaHtml = `<span class="task-delta ${cls}">${lbl('col.delta')}${sign}${fmtSec(Math.abs(delta))}</span>`;
   }
 
-  const realDisplay = (isClosed(task) || task.status === 'paused') ? fmtSec(task.realSec) : '—';
+  const realDisplay = (isClosed(task) || task.status === 'paused') ? fmtSec(task.realSec)
+    : task.status === 'active' ? fmtMs(state.taskElapsed) : '—';
   const activeBar = task.status === 'active' ? '<div class="active-bar"></div>' : '';
   const canEdit = canEditTasks();
   const isRunning = state.status === 'running';
@@ -3642,7 +3862,7 @@ function buildTaskRow(task, idx, group, mode, priority, showGroupTag) {
   const estHtml = canEdit
     ? `<input class="task-input task-input-est" type="number" min="1" value="${task.estimatedMin}" onchange="updateTaskField(${idx}, 'estimatedMin', this.value)">`
     : `<span class="task-est">${lbl('col.est')}${fmtMin(task.estimatedMin)}</span>`;
-  const realHtml = `<span class="task-real">${lbl('col.real')}${realDisplay}</span>`;
+  const realHtml = `<span class="task-real">${lbl('col.real')}<span class="task-real-value">${realDisplay}</span></span>`;
 
   const taskDrag = sortable
     ? `<span class="drag-handle" title="${t('task.dragTitle')}">${icon('grip')}</span>`
@@ -3742,6 +3962,14 @@ function toggleInSession(idx, checked) {
   const task = state.tasks[idx];
   if (!task || state.status !== 'idle') return;
   task.runId = checked ? state.activeRunId : null;
+  saveLocal(); renderTasks(); updateSummary(); updateButtons(); renderRuns();
+}
+
+// Incluir/excluir todas las tareas del armado (idle) en la sesión de un solo gesto,
+// desde el checkbox del encabezado. Mismo efecto que toggleInSession sobre cada una.
+function toggleAllInSession(checked) {
+  if (state.status !== 'idle') return;
+  state.tasks.forEach(task => { if (editPred(task)) task.runId = checked ? state.activeRunId : null; });
   saveLocal(); renderTasks(); updateSummary(); updateButtons(); renderRuns();
 }
 
@@ -3876,6 +4104,16 @@ function commitInterrupt(dest) {
 }
 
 // ─── SESSION CONTROL ────────────────────────────────────────
+// Acción del botón verde principal: mientras corre cierra el split actual
+// (como el botón de la fila); en idle/stopped inicia o reanuda la sesión.
+function primaryAction() {
+  if (state.status === 'running') {
+    if (state.currentTaskIndex != null) markDone(state.currentTaskIndex);
+  } else {
+    startSession();
+  }
+}
+
 function startSession() {
   if (!sessionTasks().length) { notify(t('toast.markAtLeastOne'), 'err'); return; }
   const isResume = state.status === 'stopped';
@@ -3960,9 +4198,13 @@ async function finishSession() {
 
 async function newSession() {
   if (state.status === 'running' || state.status === 'afk') return;
-  // Desde 'done' la acción es "Nueva sesión": además de restablecer, limpia las
-  // tareas terminadas (el resto del flujo es idéntico a Restablecer).
+  // Desde 'done' la acción es "Reiniciar esta Run": restablece y, según la preferencia
+  // recreateDoneOnReset, recrea (vuelve a pendiente) o elimina las tareas terminadas.
   const wasDone = state.status === 'done';
+  // Solo al reiniciar una Run terminada decide qué pasa con sus tareas terminadas:
+  // 'always' las recrea (vuelven a pendiente), 'never' las elimina, 'ask' pregunta.
+  const recreatePref = (state.prefs && state.prefs.recreateDoneOnReset) || 'always';
+  let recreate = recreatePref !== 'never';
   let saveToHistory = false;
   let snap = null;
   if (state.status !== 'idle') {
@@ -3982,12 +4224,25 @@ async function newSession() {
       });
       if (r === 'cancel') return;
       saveToHistory = r === 'confirm';
+    } else if (wasDone && recreatePref === 'ask') {
+      // Reinicio desde 'done' en modo "preguntar": un único diálogo tri-estado deja
+      // elegir recrear o eliminar las tareas terminadas (y confirma el reinicio).
+      const r = await confirmDialog({
+        title: t('confirm.newSessionTitle'),
+        message: t('confirm.recreateBody'),
+        confirmText: t('confirm.recreateConfirm'),
+        thirdText: t('confirm.recreateThird'),
+      });
+      if (r === 'cancel') return;
+      recreate = r === 'confirm';
     } else {
-      // "Nueva sesión" (desde done) avisa del borrado de terminadas; Restablecer
-      // (desde stopped) usa el mensaje genérico de reinicio.
+      // "Nueva sesión" (desde done) describe qué pasa con las terminadas según la
+      // preferencia; Restablecer (desde stopped) usa el mensaje genérico de reinicio.
       const ok = await confirmDialog({
         title: wasDone ? t('confirm.newSessionTitle') : t('confirm.resetTitle'),
-        message: wasDone ? t('confirm.newSessionBody') : t('confirm.resetBody'),
+        message: wasDone
+          ? (recreate ? t('confirm.newSessionBodyRecreate') : t('confirm.newSessionBody'))
+          : t('confirm.resetBody'),
         confirmText: wasDone ? t('confirm.newSessionConfirm') : t('confirm.resetConfirm'),
         danger: !wasDone, // "Nueva sesión" usa el botón verde (primary); Restablecer, rojo.
       });
@@ -3996,9 +4251,10 @@ async function newSession() {
     }
   }
   if (saveToHistory && snap) appendHistoryRow(snap);
-  // "Nueva sesión" (desde done): elimina las tareas terminadas DE ESTA RUN; el
-  // Backlog global, otras runs y las no terminadas se conservan.
-  if (wasDone) state.tasks = state.tasks.filter(t => !(inRun(t) && isClosed(t)));
+  // "Nueva sesión" (desde done): si NO se recrean, elimina las tareas terminadas DE
+  // ESTA RUN; si se recrean, se conservan y el reset de abajo las vuelve a 'pending'.
+  // El Backlog global, otras runs y las no terminadas se conservan en ambos casos.
+  if (wasDone && !recreate) state.tasks = state.tasks.filter(t => !(inRun(t) && isClosed(t)));
   state.status = 'idle';
   state.startTime = null;
   state.totalElapsed = 0;
@@ -4054,6 +4310,38 @@ function updateClocks() {
   const sign = diff >= 0 ? '-' : '+';
   document.getElementById('mainClockSub').textContent =
     taskEstMs > 0 ? t('clock.vsEstimate', { sign, time: fmtMs(Math.abs(diff)) }) : '—';
+
+  // Tiempo en vivo del split activo en su propia fila (columna REAL).
+  const liveEl = document.querySelector('.task-row.active .task-real-value');
+  if (liveEl) liveEl.textContent = fmtMs(state.taskElapsed);
+
+  // Rótulo del cronómetro: nombre del split en curso (con marquee si no cabe).
+  const labelEl = document.getElementById('mainClockLabel');
+  if (labelEl) {
+    const running = state.status === 'running' || state.status === 'afk';
+    const text = (running && task) ? task.name : t('clock.current');
+    if (labelEl.dataset.shown !== text) {
+      labelEl.dataset.shown = text;
+      // Se mide con una sola copia; si desborda, se duplica el texto para un
+      // marquee de bucle continuo (al salir por la izquierda, la copia ocupa el
+      // mismo lugar y la animación reinicia sin salto).
+      labelEl.classList.remove('marquee');
+      labelEl.innerHTML = `<span class="clock-label-text">${escHtml(text)}</span>`;
+      const span = labelEl.firstElementChild;
+      if (span.scrollWidth > labelEl.clientWidth) {
+        const GAP = 48; // px de separación entre repeticiones (== margin-right en CSS)
+        const dist = span.scrollWidth + GAP;
+        labelEl.style.setProperty('--scroll', dist + 'px');
+        labelEl.style.setProperty('--marquee-dur', Math.max(4, dist / 60) + 's');
+        const copy = `<span class="clock-label-text">${escHtml(text)}</span>`;
+        labelEl.innerHTML = `<span class="clock-label-track">${copy}${copy}</span>`;
+        labelEl.classList.add('marquee');
+      } else {
+        labelEl.style.removeProperty('--scroll');
+        labelEl.style.removeProperty('--marquee-dur');
+      }
+    }
+  }
 }
 
 function updateSummary() {
@@ -4106,17 +4394,29 @@ function updateButtons() {
   document.getElementById('btnStart').style.display = isDone ? 'none' : '';
   document.getElementById('btnAfk').style.display = isDone ? 'none' : '';
   document.getElementById('btnStop').style.display = isDone ? 'none' : '';
-  document.getElementById('btnStart').disabled = s !== 'idle' && s !== 'stopped';
-  setBtn('btnStart', 'play',
-    (s === 'running' || s === 'afk') ? t('ctrl.activeRunning')
-    : s === 'stopped' ? t('ctrl.resume')
-    : t('ctrl.start'));
+  // Mientras corre, el botón verde se vuelve "Hecho" (cierra el split actual,
+  // igual que el botón de la fila); en el resto, es Iniciar/Reanudar. No se puede
+  // iniciar/reanudar una Run que no tiene tareas propias: el botón queda apagado.
+  const hasRunTasks = sessionTasks().length > 0;
+  document.getElementById('btnStart').disabled =
+    !(s === 'running' || ((s === 'idle' || s === 'stopped') && hasRunTasks));
+  if (s === 'running') {
+    setBtn('btnStart', 'square-check', t('task.markDone'));
+  } else {
+    setBtn('btnStart', 'play',
+      s === 'afk' ? t('ctrl.activeRunning')
+      : s === 'stopped' ? t('ctrl.resume')
+      : t('ctrl.start'));
+  }
   document.getElementById('btnAfk').disabled = s !== 'running' && s !== 'afk';
   setBtn('btnAfk', s === 'afk' ? 'play' : 'pause', s === 'afk' ? t('ctrl.return') : t('ctrl.afk'));
   document.getElementById('btnStop').disabled = s !== 'running' && s !== 'afk';
   setBtn('btnStop', 'square', s === 'stopped' ? t('ctrl.stopped') : t('ctrl.stop'));
-  // El mismo botón hace de "Restablecer" (stopped) o "Nueva sesión" (done).
-  setBtn('btnNewSession', isDone ? 'plus' : 'rotate-ccw', isDone ? t('ctrl.newSession') : t('ctrl.reset'));
+  // En 'done' el primario es "Nueva Run" (createRun: empieza otra historia y deja
+  // la terminada como pestaña consultable). El secundario reinicia esta misma Run.
+  // En 'stopped' solo queda "Restablecer".
+  document.getElementById('btnNewRun').style.display = isDone ? '' : 'none';
+  setBtn('btnNewSession', 'rotate-ccw', isDone ? t('ctrl.redoRun') : t('ctrl.reset'));
   document.getElementById('btnNewSession').style.display = (s === 'stopped' || s === 'done') ? '' : 'none';
   const showClear = s === 'idle' && state.tasks.some(inRun);
   document.getElementById('btnClearTasks').style.display = showClear ? '' : 'none';
@@ -5020,6 +5320,229 @@ async function appendHistoryRow(row) {
 // Atajo: captura el snapshot del estado vivo y lo appendea (fire-and-forget).
 function appendHistory(type) {
   appendHistoryRow(buildHistoryRow(type));
+}
+
+// ─── GOOGLE: HISTORIAL (lectura, read-only) ─────────────────
+// Estado del modal: filas crudas leídas del Sheet + filtro activo. La vista nunca
+// reescribe la pestaña ni modifica state.
+let historyRows = [];
+let historyFilter = 'all';
+
+// Mapea una fila cruda (array A:J) a objeto usando HISTORY_HEADERS como índice.
+// tasks_json se parsea defensivamente (Sheets puede devolver celdas faltantes).
+function parseHistoryRow(row) {
+  const o = {};
+  HISTORY_HEADERS.forEach((h, i) => { o[h] = row[i] !== undefined ? row[i] : ''; });
+  o.total_estimated_min = parseInt(o.total_estimated_min, 10) || 0;
+  o.total_real_sec = parseInt(o.total_real_sec, 10) || 0;
+  o.total_away_sec = parseInt(o.total_away_sec, 10) || 0;
+  o.task_count = parseInt(o.task_count, 10) || 0;
+  o.completed_count = parseInt(o.completed_count, 10) || 0;
+  let tasks = [];
+  try { tasks = JSON.parse(o.tasks_json || '[]'); } catch (e) { tasks = []; }
+  o.tasks = Array.isArray(tasks) ? tasks : [];
+  return o;
+}
+
+// Lee history!A2:J. Tolerante: hojas viejas pueden no tener la pestaña; en ese caso
+// devuelve []. Sin Sheet/conexión también devuelve [] (el llamador avisa).
+async function loadHistory() {
+  if (!isGoogleReady()) return [];
+  const sheetId = getSheetId();
+  if (!sheetId) return [];
+  if (!googleAuth.tabsEnsured) await ensureTabs(sheetId);
+  let res = { values: [] };
+  try { res = await valuesGet(sheetId, 'history!A2:J'); } catch (e) { res = { values: [] }; }
+  return (res.values || []).map(parseHistoryRow);
+}
+
+async function openHistory() {
+  const btn = document.getElementById('btnHistory');
+  if (!isGoogleReady()) {
+    historyRows = [];
+    renderHistory();
+    document.getElementById('historyModal').classList.add('open');
+    notify(t('history.needConnect'), 'err');
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.classList.add('is-loading'); }
+  try {
+    historyRows = await loadHistory();
+  } catch (e) {
+    historyRows = [];
+    notify(t('history.errLoad', { msg: e.message }), 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('is-loading'); }
+  }
+  renderHistory();
+  document.getElementById('historyModal').classList.add('open');
+}
+
+function closeHistory() {
+  document.getElementById('historyModal').classList.remove('open');
+}
+
+function setHistoryFilter(type) {
+  if (type !== 'all' && type !== 'completed' && type !== 'reset') return;
+  historyFilter = type;
+  document.querySelectorAll('#historyFilter .view-toggle-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.htype === type);
+  });
+  renderHistory();
+}
+
+// Único punto que toca el DOM de la lista (paralelo a renderTasks). Ordena por
+// fecha descendente y aplica el filtro. Texto vía t() para respetar i18n.
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+  list.innerHTML = '';
+  const rows = historyRows
+    .filter(r => historyFilter === 'all' || r.type === historyFilter)
+    .slice()
+    .sort((a, b) => String(b.closed_at).localeCompare(String(a.closed_at)));
+  if (!rows.length) {
+    const empty = document.createElement('div');
+    empty.className = 'history-empty';
+    empty.textContent = t('history.empty');
+    list.appendChild(empty);
+    return;
+  }
+  rows.forEach(r => list.appendChild(buildHistoryItem(r)));
+}
+
+function formatHistoryDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso || '';
+  return d.toLocaleString(I18N.localeFor());
+}
+
+// Tarjeta colapsable para un snapshot de sesión cerrada.
+function buildHistoryItem(r) {
+  const estSec = r.total_estimated_min * 60;
+  const deltaSec = estSec - r.total_real_sec;
+  const ahead = deltaSec >= 0;
+  const deltaCls = ahead ? 'ahead' : 'behind';
+  const deltaStr = (ahead ? '-' : '+') + fmtSec(Math.abs(deltaSec));
+  const isCompleted = r.type === 'completed';
+
+  const item = document.createElement('div');
+  item.className = 'history-item';
+
+  const head = document.createElement('div');
+  head.className = 'history-head';
+  head.onclick = () => item.classList.toggle('open');
+
+  const caret = document.createElement('span');
+  caret.className = 'history-caret';
+  caret.innerHTML = icon('arrow-right');
+
+  const titleWrap = document.createElement('div');
+  titleWrap.className = 'history-title-wrap';
+  const title = document.createElement('div');
+  title.className = 'history-run-title';
+  title.textContent = r.run_title || t('run.untitled');
+  const date = document.createElement('div');
+  date.className = 'history-date';
+  date.textContent = formatHistoryDate(r.closed_at);
+  titleWrap.appendChild(title);
+  titleWrap.appendChild(date);
+
+  const badge = document.createElement('span');
+  badge.className = 'history-badge ' + (isCompleted ? 'completed' : 'reset');
+  badge.textContent = isCompleted ? t('history.typeCompleted') : t('history.typeReset');
+
+  const delta = document.createElement('span');
+  delta.className = 'history-delta ' + deltaCls;
+  delta.textContent = deltaStr;
+
+  head.appendChild(caret);
+  head.appendChild(titleWrap);
+  head.appendChild(badge);
+  head.appendChild(delta);
+
+  item.appendChild(head);
+  item.appendChild(buildHistoryDetail(r, deltaStr, deltaCls));
+  return item;
+}
+
+function buildHistoryDetail(r, deltaStr, deltaCls) {
+  const detail = document.createElement('div');
+  detail.className = 'history-detail';
+
+  if (r.type === 'reset' && r.current_task) {
+    const cur = document.createElement('div');
+    cur.className = 'history-current';
+    cur.textContent = t('history.currentTask', { name: r.current_task });
+    detail.appendChild(cur);
+  }
+
+  const stats = document.createElement('div');
+  stats.className = 'history-stats';
+  stats.appendChild(historyStat(t('history.estimated'), fmtMin(r.total_estimated_min)));
+  stats.appendChild(historyStat(t('history.real'), fmtSec(r.total_real_sec)));
+  stats.appendChild(historyStat(t('history.away'), fmtSec(r.total_away_sec)));
+  stats.appendChild(historyStat(t('history.delta'), deltaStr, deltaCls));
+  stats.appendChild(historyStat(t('history.tasksLabel'),
+    t('history.tasksCount', { done: r.completed_count, total: r.task_count })));
+  detail.appendChild(stats);
+
+  const tasks = document.createElement('div');
+  tasks.className = 'history-tasks';
+  if (!r.tasks.length) {
+    const none = document.createElement('div');
+    none.className = 'history-empty';
+    none.textContent = t('history.noTasks');
+    tasks.appendChild(none);
+  } else {
+    r.tasks.forEach(tk => tasks.appendChild(historyTaskRow(tk)));
+  }
+  detail.appendChild(tasks);
+  return detail;
+}
+
+function historyStat(label, value, valueCls) {
+  const wrap = document.createElement('div');
+  wrap.className = 'history-stat';
+  const l = document.createElement('span');
+  l.className = 'history-stat-label';
+  l.textContent = label;
+  const v = document.createElement('span');
+  v.className = 'history-stat-value' + (valueCls ? ' ' + valueCls : '');
+  v.textContent = value;
+  wrap.appendChild(l);
+  wrap.appendChild(v);
+  return wrap;
+}
+
+function historyTaskRow(tk) {
+  const done = !!tk.done;
+  const row = document.createElement('div');
+  row.className = 'history-task';
+
+  const check = document.createElement('span');
+  check.className = 'history-task-check' + (done ? '' : ' pending');
+  check.innerHTML = icon(done ? 'square-check' : 'square');
+
+  const name = document.createElement('span');
+  name.className = 'history-task-name' + (done ? '' : ' pending');
+  name.textContent = tk.name || '';
+
+  const group = document.createElement('span');
+  group.className = 'history-task-group';
+  group.textContent = tk.group || 'General';
+
+  const time = document.createElement('span');
+  time.className = 'history-task-time';
+  const est = parseInt(tk.estimatedMin, 10) || 0;
+  const realSec = parseInt(tk.realSec, 10) || 0;
+  time.textContent = done ? fmtSec(realSec) : fmtMin(est);
+
+  row.appendChild(check);
+  row.appendChild(name);
+  row.appendChild(group);
+  row.appendChild(time);
+  return row;
 }
 
 // ─── GOOGLE: PUSH / LOAD ────────────────────────────────────

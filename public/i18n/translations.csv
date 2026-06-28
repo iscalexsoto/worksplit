@@ -8,6 +8,7 @@ status.stopped|Detenido|Stopped
 status.done|Finalizado|Finished
 panel.tasksTitle|Tareas de la sesión|Session tasks
 tasks.heading|Tareas|Tasks
+tasks.headingBacklog|Backlog|Backlog
 tasks.countSelected|{sel} de {total} en sesión|{sel} of {total} in session
 tasks.countDone|{done} de {total} hechas|{done} of {total} done
 session.titleLabel|Título|Title
@@ -34,6 +35,7 @@ task.markDone|Hecho|Done
 task.done|Listo|Done
 task.interrupted|Interrumpida|Interrupted
 task.includeAria|Incluir en la sesión|Include in session
+task.selectAllAria|Incluir o excluir todas las tareas|Include or exclude all tasks
 task.delete|Eliminar|Delete
 task.deleteTitle|Eliminar tarea|Delete task
 task.dragTitle|Arrastrar para reordenar o cambiar de grupo|Drag to reorder or move between groups
@@ -77,6 +79,7 @@ ctrl.stop|Detener|Stop
 ctrl.stopped|Detenido|Stopped
 ctrl.reset|Restablecer|Reset
 ctrl.newSession|Nueva sesión|New session
+ctrl.redoRun|Reiniciar esta Run|Restart this Run
 ctrl.clearTasks|Limpiar tareas|Clear tasks
 groups.heading|Grupos|Groups
 groups.newPlaceholder|Nuevo grupo...|New group...
@@ -145,9 +148,13 @@ confirm.stopConfirm|Detener|Stop
 confirm.resetTitle|Restablecer|Reset
 confirm.resetBody|Se conservan las tareas, pero se reinician los tiempos y el progreso.|Tasks are kept, but times and progress are reset.
 confirm.resetConfirm|Restablecer|Reset
-confirm.newSessionTitle|Nueva sesión|New session
-confirm.newSessionBody|Se eliminarán las tareas terminadas y se reiniciarán los tiempos. El backlog se conserva.|Finished tasks will be deleted and timers reset. The backlog is kept.
-confirm.newSessionConfirm|Nueva sesión|New session
+confirm.newSessionTitle|Reiniciar esta Run|Restart this Run
+confirm.newSessionBody|Se reinician los tiempos y se borran las tareas terminadas de esta Run. El backlog y las demás Runs se conservan.|Times reset and this Run's finished tasks are cleared. The backlog and other Runs are kept.
+confirm.newSessionBodyRecreate|Se reinician los tiempos y las tareas terminadas de esta Run vuelven a quedar pendientes. El backlog y las demás Runs se conservan.|Times reset and this Run's finished tasks become pending again. The backlog and other Runs are kept.
+confirm.recreateBody|Se reinician los tiempos de esta Run. Elige qué hacer con sus tareas terminadas. El backlog y las demás Runs se conservan.|This Run's times are reset. Choose what to do with its finished tasks. The backlog and other Runs are kept.
+confirm.recreateConfirm|Recrear terminadas|Recreate finished
+confirm.recreateThird|Eliminar terminadas|Remove finished
+confirm.newSessionConfirm|Reiniciar esta Run|Restart this Run
 confirm.clearTitle|Limpiar tareas|Clear tasks
 confirm.clearBody|Las tareas de la sesión se eliminarán permanentemente.|Session tasks will be deleted permanently.
 confirm.clearConfirm|Limpiar|Clear
@@ -155,6 +162,25 @@ history.askTitle|Restablecer sesión|Reset session
 history.askBody|¿Guardar esta sesión en el historial antes de restablecer?|Save this session to history before resetting?
 history.askSave|Guardar y restablecer|Save and reset
 history.askDiscard|Restablecer sin guardar|Reset without saving
+history.viewButton|Historial|History
+history.title|Sesiones anteriores|Past sessions
+history.empty|Aún no hay sesiones guardadas en el historial.|No sessions saved to history yet.
+history.needConnect|Conecta con Google para ver el historial.|Connect to Google to see the history.
+history.errLoad|No se pudo cargar el historial. ({msg})|Couldn't load history. ({msg})
+history.typeCompleted|Terminada|Completed
+history.typeReset|Reseteo|Reset
+history.filterAll|Todas|All
+history.filterCompleted|Terminadas|Completed
+history.filterReset|Reseteos|Resets
+history.estimated|Estimado|Estimated
+history.real|Real|Real
+history.delta|Delta|Delta
+history.away|Ausente|Away
+history.tasksLabel|Tareas|Tasks
+history.tasksCount|{done}/{total} hechas|{done}/{total} done
+history.currentTask|En curso: {name}|In progress: {name}
+history.close|Cerrar|Close
+history.noTasks|Sin tareas registradas.|No tasks recorded.
 toast.addTaskFirst|Necesitas al menos una tarea para iniciar.|You need at least one task to start.
 toast.markAtLeastOne|Selecciona al menos una tarea para continuar.|Select at least one task to continue.
 toast.sentToBacklog|Tarea enviada al Backlog.|Task moved to Backlog.
@@ -201,6 +227,11 @@ prefs.saveOnResetHint|Decide si se guarda un registro al restablecer una sesión
 prefs.saveAsk|Preguntar cada vez|Ask each time
 prefs.saveAlways|Guardar siempre|Always save
 prefs.saveNever|Nunca guardar|Never save
+prefs.recreateDone|Recrear tareas terminadas al reiniciar la Run|Recreate finished tasks when restarting the Run
+prefs.recreateDoneHint|Al reiniciar una Run terminada, decide si sus tareas terminadas vuelven a quedar pendientes o se eliminan.|When restarting a finished Run, choose whether its finished tasks become pending again or are removed.
+prefs.recreateAlways|Recrear siempre|Always recreate
+prefs.recreateNever|No recrear (eliminarlas)|Don't recreate (remove them)
+prefs.recreateAsk|Preguntar cada vez|Ask each time
 stuck.askTitle|¿Cómo vas?|How's it going?
 stuck.askBody|Este split lleva más tiempo del que estimaste.|This split is taking longer than you estimated.
 stuck.continue|Continuar|Continue
