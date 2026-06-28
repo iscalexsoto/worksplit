@@ -6,6 +6,7 @@ status.running|Activo|Active
 status.afk|Ausente|Away
 status.stopped|Detenido|Stopped
 status.done|Finalizado|Finished
+status.runCaption|Estado de la Run|Run status
 panel.tasksTitle|Tareas de la sesión|Session tasks
 tasks.heading|Tareas|Tasks
 tasks.headingBacklog|Backlog|Backlog
@@ -254,6 +255,8 @@ tour.runs.title|Runs|Runs
 tour.runs.body|Cada Run es una historia o tarea grande, con su propio título y cronómetro. Trabajas una a la vez; cambiar de Run pausa la anterior.|Each Run is one story or larger task, with its own title and timer. You work one at a time; switching Runs pauses the previous one.
 tour.meta.title|Título y descripción|Title and description
 tour.meta.body|Aquí nombras la Run actual y anotas de qué trata. Aparece en los resúmenes que guardas.|Name the current Run here and note what it's about. It shows up in the summaries you save.
+tour.status.title|Estado de la Run|Run status
+tour.status.body|Junto al título ves el estado de la Run que tienes abierta: Listo, Activo, Ausente, Detenido o Finalizado. Cambia de color según avanzas.|Next to the title you see the status of the Run you have open: Ready, Active, Away, Stopped or Finished. Its color changes as you go.
 tour.view.title|Vista: lista o grupos|View: list or groups
 tour.view.body|Cambia entre una lista plana por prioridad o tus tareas agrupadas. Es solo una forma de verlas; no altera el orden.|Switch between a flat list by priority or your tasks grouped. It only changes how you see them, not their order.
 tour.tasks.title|Tus tareas|Your tasks
