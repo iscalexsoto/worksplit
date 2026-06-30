@@ -348,6 +348,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* Marquee de nombre largo: cuando no cabe, se desplaza hasta el final y se reinicia
+     (salto seco, no bucle continuo). La distancia (--name-scroll) y la duración
+     (--name-dur) las calcula applyNameMarquees() al medir cada fila. */
+  .task-name.marquee { text-overflow: clip; }
+  .task-name.marquee .task-name-text {
+    display: inline-block;
+    white-space: nowrap;
+    will-change: transform;
+    animation: ws-name-marquee var(--name-dur, 8s) linear infinite;
+  }
+  @keyframes ws-name-marquee {
+    0%, 14%   { transform: translateX(0); }
+    86%, 100% { transform: translateX(calc(var(--name-scroll, 0px) * -1)); }
+  }
   .task-name-cell {
     display: flex;
     flex-direction: column;
@@ -707,6 +721,34 @@
     transition: border-color 0.15s, color 0.15s;
   }
   .run-new-btn:hover { color: var(--accent); border-color: var(--accent-dim); }
+  /* Selector compacto de Runs + botón de borrar: solo móvil (ver media query). */
+  .runs-select, .run-del-btn { display: none; }
+  .runs-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 9px 10px;
+    outline: none;
+    min-width: 0;
+  }
+  .runs-select:focus { border-color: var(--accent); }
+  .run-del-btn {
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    padding: 0 11px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .run-del-btn:hover { color: var(--danger); border-color: var(--border2); }
+  .run-del-btn .icon { width: 16px; height: 16px; }
   .run-new-btn .icon { width: 15px; height: 15px; }
 
   /* Etiqueta de grupo dentro de la fila (solo en vista lista). */
@@ -1849,6 +1891,15 @@
     .tabbar .tab svg { width: 22px; height: 22px; }
     .tabbar .tab.on { color: var(--accent); }
 
+    /* Selector de Runs: en móvil la barra de pestañas con scroll se ve mal cuando
+       hay varias Runs; se reemplaza por un <select> compacto + borrar + nueva. */
+    .ws-mobile #runsBar { margin-top: 16px; align-items: stretch; }
+    .ws-mobile .runs-tabs { display: none; }
+    .ws-mobile .runs-select { display: block; flex: 1 1 auto; }
+    .ws-mobile .run-del-btn { display: inline-flex; }
+    .ws-mobile .run-new-btn .run-new-label { display: none; }
+    .ws-mobile .run-new-btn { padding: 8px 11px; }
+
     /* Reloj hero */
     .ws-mobile .clock-block { margin-top: 14px; padding: 24px 16px; border-radius: 18px; }
     .ws-mobile .clock-value { font-size: 46px; }
@@ -1904,7 +1955,7 @@
       align-items: center;
       gap: 6px 14px;
       min-width: 0;
-      padding: 12px 0;
+      padding: 12px 8px;
     }
     .ws-mobile .task-rail {
       grid-area: rail; display: flex; flex-direction: column;
@@ -1936,6 +1987,10 @@
     }
     .ws-mobile .task-est, .ws-mobile .task-real, .ws-mobile .task-delta { text-align: left; }
     .ws-mobile .task-input-est { width: 70px; text-align: center; }
+    /* Fila de split activa: menos ruido. Las fechas inicio/fin no aportan en móvil;
+       el "Hecho" se mueve al kebab (queda solo el menú en la columna de acciones). */
+    .ws-mobile .task-dates { display: none; }
+    .ws-mobile .task-row.active .btn-done { display: none; }
     /* La fila activa/pausada no debe sangrar fuera del contenedor en mobile */
     .ws-mobile .task-row.active,
     .ws-mobile .task-row.paused {
@@ -2029,6 +2084,9 @@
   <div class="tasks-panel" id="tasksPanel">
     <!-- SELECTOR DE RUNS (historias de usuario) -->
     <div class="runs-bar" id="runsBar">
+      <!-- Selector compacto: solo visible en móvil (en escritorio se usan las pestañas). -->
+      <select class="runs-select" id="runsSelect" onchange="switchRun(Number(this.value))" data-i18n-aria-label="run.selectAria" aria-label="Cambiar de Run"></select>
+      <button type="button" class="run-del-btn" id="runDelBtn" onclick="deleteRun(activeRun().id)" data-i18n-title="run.deleteTitle" data-i18n-aria-label="run.deleteTitle"><svg class="icon"><use href="#i-x"></use></svg></button>
       <div class="runs-tabs" id="runsTabs"></div>
       <button type="button" class="run-new-btn" id="runNewBtn" onclick="createRun()" data-i18n-title="run.new" data-i18n-aria-label="run.new"><svg class="icon"><use href="#i-plus"></use></svg><span class="run-new-label" data-i18n="run.new">Nueva Run</span></button>
     </div>
@@ -2711,6 +2769,11 @@ function renderRuns() {
   const bar = document.getElementById('runsTabs');
   if (!bar) return;
   bar.innerHTML = '';
+  // Selector compacto (móvil): mismas Runs como <option>; el botón de borrar actúa
+  // sobre la Run activa. Status sin color → glifo prefijado (▶ corriendo, ⏸ ausente, ✓ hecha).
+  const sel = document.getElementById('runsSelect');
+  const delBtn = document.getElementById('runDelBtn');
+  if (sel) sel.innerHTML = '';
   const canDelete = state.runs.length > 1;
   state.runs.forEach(r => {
     const tab = document.createElement('button');
@@ -2734,7 +2797,17 @@ function renderRuns() {
       tab.appendChild(del);
     }
     bar.appendChild(tab);
+    if (sel) {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      const mark = r.status === 'running' ? '▶ ' : r.status === 'afk' ? '⏸ ' : r.status === 'done' ? '✓ ' : '';
+      opt.textContent = `${mark}${label} · ${done}/${total}`;
+      if (r.id === state.activeRunId) opt.selected = true;
+      sel.appendChild(opt);
+    }
   });
+  if (sel) sel.value = String(state.activeRunId);
+  if (delBtn) delBtn.style.display = canDelete ? '' : 'none';
 }
 
 // Estado efímero de la señal de transición entre tareas. Vive fuera de `state`
@@ -3681,6 +3754,25 @@ function taskDatesHtml(task) {
   return parts.length ? `<span class="task-dates">${parts.join(' · ')}</span>` : '';
 }
 
+// Marquee de nombres largos: mide cada nombre de solo-lectura tras construir las filas;
+// si su texto no cabe en la celda, lo envuelve y lo anima para que se desplace hasta el
+// final y se reinicie. No aplica a inputs (.task-input-name) ni a celdas ocultas
+// (clientWidth 0 → se omite, p. ej. en una pestaña móvil no visible).
+function applyNameMarquees() {
+  document.querySelectorAll('.task-row .task-name').forEach(el => {
+    if (el.classList.contains('marquee')) return;
+    const w = el.clientWidth;
+    if (!w) return;
+    const dist = el.scrollWidth - w;
+    if (dist <= 4) return;
+    const text = el.textContent;
+    el.classList.add('marquee');
+    el.style.setProperty('--name-scroll', dist + 'px');
+    el.style.setProperty('--name-dur', (Math.max(5, dist / 35) + 3).toFixed(1) + 's');
+    el.innerHTML = `<span class="task-name-text">${escHtml(text)}</span>`;
+  });
+}
+
 function renderTasks() {
   const container = document.getElementById('tasksContainer');
   // En 'idle' (armado) se muestran TODAS las tareas con checkbox de inclusión;
@@ -3718,6 +3810,7 @@ function renderTasks() {
     container.innerHTML = `<div class="empty-state" id="emptyState">${t('empty.tasks')}</div>`;
     container.classList.remove('tasks-sortable');
     renderBacklog(editing);
+    applyNameMarquees();
     return;
   }
   container.innerHTML = '';
@@ -3761,6 +3854,7 @@ function renderTasks() {
   if (state.viewMode === 'list') renderTaskList(container, mainPred, mode, priorityOf, true);
   else renderTaskGroups(container, mainPred, mode, priorityOf);
   renderBacklog(editing);
+  applyNameMarquees();
 }
 
 // Mapa: índice absoluto de tarea → prioridad (1..N) entre las que cumplen `pred`,
@@ -3942,6 +4036,9 @@ function buildTaskRow(task, idx, group, mode, priority, showGroupTag) {
 
   const priorityHtml = `<span class="task-priority">${priority != null ? priority : ''}</span>`;
 
+  // El grupo va en la línea del nombre (chip a la derecha): la fila queda en 2 líneas
+  // (nombre · grupo / métricas). En escritorio .task-titleline es display:contents, así
+  // que nombre y grupo siguen siendo celdas separadas del grid (orden de columnas intacto).
   row.innerHTML = `
     ${activeBar}
     <div class="task-rail">${taskDrag}${priorityHtml}</div>
@@ -4077,6 +4174,12 @@ function openTaskMenu(idx, btn) {
   const task = state.tasks[idx];
   if (!task) return;
   const items = [];
+  // En móvil el botón "Hecho" de la fila se oculta (las acciones apiladas se ven
+  // apretadas); se ofrece aquí, dentro del kebab, para la tarea activa en curso.
+  const isMobile = document.body.classList.contains('is-mobile');
+  if (isMobile && task.status === 'active' && state.status === 'running') {
+    items.push({ label: t('task.markDone'), fn: () => markDone(idx) });
+  }
   if (task.status === 'pending') items.push({ label: t('menu.sendToBacklog'), fn: () => sendToBacklog(idx) });
   if (task.status === 'active') items.push({ label: t('menu.interrupt'), fn: () => openInterruptModal(idx) });
   if (!items.length) return;
@@ -5934,6 +6037,9 @@ function setMobileTab(tab) {
   document.querySelectorAll('#wsTabbar .tab').forEach((b) => {
     b.classList.toggle('on', b.dataset.tab === tab);
   });
+  // Los nombres medidos mientras el panel estaba oculto (clientWidth 0) no se
+  // marquearon; al mostrar la Sesión se re-mide ahora que la celda tiene ancho.
+  if (tab === 'sesion') requestAnimationFrame(applyNameMarquees);
 }
 
 function populateLangSwitcher() {

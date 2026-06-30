@@ -125,6 +125,7 @@ run.defaultName|Run {n}|Run {n}
 run.deleteTitle|Eliminar Run|Delete Run
 run.deleteBody|Se eliminará la Run «{title}» y sus tareas. El Backlog global no se toca.|The Run "{title}" and its tasks will be deleted. The global Backlog is left untouched.
 run.deleteConfirm|Eliminar Run|Delete Run
+run.selectAria|Cambiar de Run|Switch Run
 err.noAuthServer|No hay conexión con el servidor. Intenta de nuevo.|No connection to the server. Try again.
 err.authHttp|Problema al autenticar (código {status}).|Authentication problem (code {status}).
 err.noGoogleSession|Sesión de Google no iniciada. Pulsa "Conectar con Google".|Google session not started. Tap "Connect with Google".
